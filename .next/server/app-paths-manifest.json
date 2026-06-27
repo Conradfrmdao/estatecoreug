@@ -1,0 +1,10 @@
+{
+  "/settings/page": "app/settings/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/properties/page": "app/properties/page.js",
+  "/units/page": "app/units/page.js",
+  "/tenants/page": "app/tenants/page.js",
+  "/payments/page": "app/payments/page.js",
+  "/expenses/page": "app/expenses/page.js",
+  "/reports/page": "app/reports/page.js"
+}

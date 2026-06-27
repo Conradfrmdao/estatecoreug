@@ -1,0 +1,124 @@
+import { relations } from 'drizzle-orm'
+import { boolean, integer, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
+
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  clerkId: varchar('clerk_id', { length: 255 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  email: varchar('email', { length: 255 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+})
+
+export const properties = pgTable('properties', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id),
+  name: varchar('name', { length: 255 }).notNull(),
+  location: text('location').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+})
+
+export const units = pgTable('units', {
+  id: serial('id').primaryKey(),
+  propertyId: integer('property_id').notNull().references(() => properties.id),
+  unitNumber: varchar('unit_number', { length: 50 }).notNull(),
+  rentAmount: integer('rent_amount').notNull(),
+  status: varchar('status', { length: 50 }).default('vacant').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+})
+
+export const tenants = pgTable('tenants', {
+  id: serial('id').primaryKey(),
+  unitId: integer('unit_id').notNull().references(() => units.id),
+  fullName: varchar('full_name', { length: 255 }).notNull(),
+  phone: varchar('phone', { length: 50 }).notNull(),
+  email: varchar('email', { length: 255 }),
+  moveInDate: timestamp('move_in_date', { withTimezone: true }).notNull(),
+  rentDueDate: timestamp('rent_due_date', { withTimezone: true }).notNull(),
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+})
+
+export const rentPayments = pgTable('rent_payments', {
+  id: serial('id').primaryKey(),
+  tenantId: integer('tenant_id').notNull().references(() => tenants.id),
+  unitId: integer('unit_id').notNull().references(() => units.id),
+  amountPaid: integer('amount_paid').notNull(),
+  balanceAfterPayment: integer('balance_after_payment').notNull(),
+  paymentMonth: varchar('payment_month', { length: 50 }).notNull(),
+  paymentDate: timestamp('payment_date', { withTimezone: true }).defaultNow().notNull(),
+  paymentMethod: varchar('payment_method', { length: 100 }).notNull(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+})
+
+export const expenses = pgTable('expenses', {
+  id: serial('id').primaryKey(),
+  propertyId: integer('property_id').notNull().references(() => properties.id),
+  unitId: integer('unit_id').references(() => units.id),
+  title: varchar('title', { length: 255 }).notNull(),
+  category: varchar('category', { length: 100 }).notNull(),
+  amount: integer('amount').notNull(),
+  expenseDate: timestamp('expense_date', { withTimezone: true }).defaultNow().notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+})
+
+export const usersRelations = relations(users, ({ many }) => ({
+  properties: many(properties)
+}))
+
+export const propertiesRelations = relations(properties, ({ one, many }) => ({
+  user: one(users, {
+    fields: [properties.userId],
+    references: [users.id]
+  }),
+  units: many(units),
+  expenses: many(expenses)
+}))
+
+export const unitsRelations = relations(units, ({ one, many }) => ({
+  property: one(properties, {
+    fields: [units.propertyId],
+    references: [properties.id]
+  }),
+  tenants: many(tenants),
+  rentPayments: many(rentPayments),
+  expenses: many(expenses)
+}))
+
+export const tenantsRelations = relations(tenants, ({ one, many }) => ({
+  unit: one(units, {
+    fields: [tenants.unitId],
+    references: [units.id]
+  }),
+  rentPayments: many(rentPayments)
+}))
+
+export const rentPaymentsRelations = relations(rentPayments, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [rentPayments.tenantId],
+    references: [tenants.id]
+  }),
+  unit: one(units, {
+    fields: [rentPayments.unitId],
+    references: [units.id]
+  })
+}))
+
+export const expensesRelations = relations(expenses, ({ one }) => ({
+  property: one(properties, {
+    fields: [expenses.propertyId],
+    references: [properties.id]
+  }),
+  unit: one(units, {
+    fields: [expenses.unitId],
+    references: [units.id]
+  })
+}))
+
+export type User = typeof users.$inferSelect
+export type Property = typeof properties.$inferSelect
+export type Unit = typeof units.$inferSelect
+export type Tenant = typeof tenants.$inferSelect
+export type RentPayment = typeof rentPayments.$inferSelect
+export type Expense = typeof expenses.$inferSelect

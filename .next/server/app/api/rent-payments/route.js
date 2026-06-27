@@ -1,0 +1,10 @@
+const CHUNK_PUBLIC_PATH = "server/app/api/rent-payments/route.js";
+const runtime = require("../../../chunks/[turbopack]_runtime.js");
+runtime.loadChunk("server/chunks/node_modules_next_613eed._.js");
+runtime.loadChunk("server/chunks/node_modules_drizzle-orm_d45783._.js");
+runtime.loadChunk("server/chunks/node_modules_@clerk_backend_dist_65751e._.js");
+runtime.loadChunk("server/chunks/node_modules_@clerk_nextjs_dist_esm_3d2c4f._.js");
+runtime.loadChunk("server/chunks/node_modules_@neondatabase_serverless_index_mjs_f93648._.js");
+runtime.loadChunk("server/chunks/node_modules_8ffe03._.js");
+runtime.loadChunk("server/chunks/_d72c5d._.js");
+module.exports = runtime.getOrInstantiateRuntimeModule("[project]/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/app/api/rent-payments/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)", CHUNK_PUBLIC_PATH).exports;

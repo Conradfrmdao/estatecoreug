@@ -1,0 +1,212 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* ── Awiil Brand Colors ── */
+  --brand: #00A550;
+  --brand-hover: #008f44;
+  --brand-dark: #007038;
+  --brand-light: #e6f7ef;
+  --brand-foreground: #ffffff;
+
+  /* ── Neutral Colors ── */
+  --background: #f8fafc;
+  --foreground: #1a1a2e;
+  --muted: #64748b;
+  --muted-foreground: #94a3b8;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #00A550;
+
+  /* ── Surface Colors ── */
+  --card: #ffffff;
+  --card-foreground: #1a1a2e;
+  --popover: #ffffff;
+
+  /* ── UI State Colors ── */
+  --primary: #00A550;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #1a1a2e;
+  --accent: #f0fdf4;
+  --accent-foreground: #166534;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --warn: #f59e0b;
+  --warn-foreground: #78350f;
+
+  /* ── Radius ── */
+  --radius: 0.75rem;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
+  --shadow-brand: 0 4px 14px rgba(0,165,80,0.25);
+}
+
+* {
+  box-sizing: border-box;
+  border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Brand Utilities ── */
+.btn-brand {
+  background-color: var(--brand);
+  color: var(--brand-foreground);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+  box-shadow: var(--shadow-brand);
+}
+.btn-brand:hover {
+  background-color: var(--brand-hover);
+  box-shadow: 0 6px 18px rgba(0,165,80,0.35);
+  transform: translateY(-1px);
+}
+.btn-brand:active {
+  transform: translateY(0);
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--foreground);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.btn-outline:hover {
+  background-color: var(--secondary);
+  border-color: #cbd5e1;
+}
+
+/* ── Card Hover ── */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Badges ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.badge-green {
+  background-color: var(--brand-light);
+  color: var(--brand-dark);
+}
+.badge-amber {
+  background-color: #fffbeb;
+  color: #92400e;
+}
+.badge-red {
+  background-color: #fef2f2;
+  color: #991b1b;
+}
+.badge-slate {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+/* ── Table ── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.data-table thead tr {
+  background-color: #f8fafc;
+  border-bottom: 1px solid var(--border);
+}
+.data-table thead th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.data-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.1s ease;
+}
+.data-table tbody tr:last-child {
+  border-bottom: none;
+}
+.data-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+.data-table tbody td {
+  padding: 12px 16px;
+  color: var(--foreground);
+  vertical-align: middle;
+}
+
+/* ── Form Fields ── */
+.field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+.field-input {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--foreground);
+  background-color: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+.field-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(0,165,80,0.12);
+}
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}

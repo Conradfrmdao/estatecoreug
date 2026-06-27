@@ -1,0 +1,13 @@
+{
+  "node": {
+    "242e7ea905a8dc9d2da24f9e149b6ff779d9882b": {
+      "workers": {
+        "app/sign-up/[[...sign-up]]/page": "[project]/.next-internal/server/app/sign-up/[[...sign-up]]/page/actions.js { ACTIONS_MODULE0 => \"[project]/node_modules/@clerk/nextjs/dist/esm/app-router/server-actions.js [app-rsc] (ecmascript, action, ecmascript)\" } [app-rsc] (ecmascript)"
+      },
+      "layer": {
+        "app/sign-up/[[...sign-up]]/page": "actionBrowser"
+      }
+    }
+  },
+  "edge": {}
+}
