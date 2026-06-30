@@ -1,6 +1,6 @@
-import { units } from '@/drizzle/schema'
+import { expenses, rentPayments, tenants, units } from '@/drizzle/schema'
 import { requireCurrentAppUser } from '@/lib/auth'
-import { getPropertyForUser, getUnitForUser } from '@/lib/data'
+import { getPropertyForUser, getUnitForUser, listTenantsForUser } from '@/lib/data'
 import { db } from '@/lib/db'
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
@@ -12,9 +12,12 @@ function parseId(value: string) {
   return Number.isInteger(id) && id > 0 ? id : null
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+type UnitRouteContext = { params: Promise<{ id: string }> }
+
+export async function GET(_req: Request, { params }: UnitRouteContext) {
   const user = await requireCurrentAppUser()
-  const id = parseId(params.id)
+  const { id: idParam } = await params
+  const id = parseId(idParam)
 
   if (!id) {
     return NextResponse.json({ error: 'Invalid unit id.' }, { status: 400 })
@@ -32,9 +35,10 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   })
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: UnitRouteContext) {
   const user = await requireCurrentAppUser()
-  const id = parseId(params.id)
+  const { id: idParam } = await params
+  const id = parseId(idParam)
 
   if (!id) {
     return NextResponse.json({ error: 'Invalid unit id.' }, { status: 400 })
@@ -62,6 +66,24 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: 'Property not found.' }, { status: 404 })
   }
 
+  const activeTenant = (await listTenantsForUser(user.id)).find(
+    (row) => row.tenant.unitId === id && row.tenant.active
+  )
+
+  if (status === 'occupied' && !activeTenant) {
+    return NextResponse.json(
+      { error: 'Assign an active tenant before marking this unit occupied.' },
+      { status: 400 }
+    )
+  }
+
+  if (status === 'vacant' && activeTenant) {
+    return NextResponse.json(
+      { error: 'Deactivate or move the active tenant before marking this unit vacant.' },
+      { status: 409 }
+    )
+  }
+
   const [updated] = await db
     .update(units)
     .set({
@@ -76,9 +98,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json(updated)
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: UnitRouteContext) {
   const user = await requireCurrentAppUser()
-  const id = parseId(params.id)
+  const { id: idParam } = await params
+  const id = parseId(idParam)
 
   if (!id) {
     return NextResponse.json({ error: 'Invalid unit id.' }, { status: 400 })
@@ -90,13 +113,12 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     return NextResponse.json({ error: 'Unit not found.' }, { status: 404 })
   }
 
-  try {
-    await db.delete(units).where(eq(units.id, id))
-    return NextResponse.json({ ok: true })
-  } catch {
-    return NextResponse.json(
-      { error: 'Delete tenants, payments, and expenses linked to this unit first.' },
-      { status: 409 }
-    )
-  }
+  await db.transaction(async (tx) => {
+    await tx.delete(rentPayments).where(eq(rentPayments.unitId, id))
+    await tx.delete(expenses).where(eq(expenses.unitId, id))
+    await tx.delete(tenants).where(eq(tenants.unitId, id))
+    await tx.delete(units).where(eq(units.id, id))
+  })
+
+  return NextResponse.json({ ok: true })
 }

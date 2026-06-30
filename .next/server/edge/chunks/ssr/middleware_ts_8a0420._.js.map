@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 5, "column": 0}, "map": {"version":3,"sources":["/turbopack/[project]/middleware.ts"],"sourcesContent":["import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'\n\nconst isPublicRoute = createRouteMatcher([\n  '/',\n  '/sign-in(.*)',\n  '/sign-up(.*)'\n])\n\nexport default clerkMiddleware(async (auth, request) => {\n  if (!isPublicRoute(request)) {\n    await auth().protect()\n  }\n})\n\nexport const config = {\n  matcher: [\n    '/((?!_next|[^?]*\\\\.(?:html?|css|js(?!on)|jpe?g|png|gif|svg|ico|woff2?|ttf|map)).*)',\n    '/(api|trpc)(.*)'\n  ]\n}\n"],"names":[],"mappings":";;;;;;;;AAEA,MAAM,gBAAgB,CAAA,GAAA,0KAAA,CAAA,qBAAkB,AAAD,EAAE;IACvC;IACA;IACA;CACD;uCAEc,CAAA,GAAA,6KAAA,CAAA,kBAAe,AAAD,EAAE,OAAO,MAAM;IAC1C,IAAI,CAAC,cAAc,UAAU;QAC3B,MAAM,OAAO,OAAO;IACtB;AACF;AAEO,MAAM,SAAS;IACpB,SAAS;QACP;QACA;KACD;AACH"}},
-    {"offset": {"line": 29, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"A"}}]
-}

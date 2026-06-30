@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import FormNotice from '@/components/FormNotice'
 
 type TenantOption = {
   id: number
@@ -10,6 +11,7 @@ type TenantOption = {
   unitNumber: string
   propertyName: string
   rentAmount: number
+  rentDueDate: string
 }
 
 type PaymentFormProps = {
@@ -18,10 +20,30 @@ type PaymentFormProps = {
     tenantId: number
     amountPaid: number
     paymentMonth: string
+    coverageStart?: string
+    coverageEnd?: string
+    monthsCovered?: number
     paymentDate: string
     paymentMethod: string
     notes: string | null
   }
+}
+
+const durationOptions = [1, 3, 6, 12]
+
+function addMonths(dateString: string, months: number) {
+  if (!dateString) {
+    return ''
+  }
+
+  const date = new Date(`${dateString}T00:00:00.000Z`)
+  const next = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, date.getUTCDate()))
+
+  if (next.getUTCDate() !== date.getUTCDate()) {
+    next.setUTCDate(0)
+  }
+
+  return next.toISOString().slice(0, 10)
 }
 
 function PaymentFormFields({ initialData }: PaymentFormProps) {
@@ -35,12 +57,17 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
   const [paymentMonth, setPaymentMonth] = useState(
     initialData?.paymentMonth ?? new Date().toISOString().slice(0, 7)
   )
+  const [monthsCovered, setMonthsCovered] = useState(initialData?.monthsCovered ?? 1)
+  const [customMonths, setCustomMonths] = useState(String(initialData?.monthsCovered ?? 2))
+  const [coverageStart, setCoverageStart] = useState(initialData?.coverageStart ?? '')
+  const [coverageEnd, setCoverageEnd] = useState(initialData?.coverageEnd ?? '')
   const [paymentDate, setPaymentDate] = useState(
     initialData?.paymentDate ?? new Date().toISOString().slice(0, 10)
   )
   const [paymentMethod, setPaymentMethod] = useState(initialData?.paymentMethod ?? 'cash')
   const [notes, setNotes] = useState(initialData?.notes ?? '')
   const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     fetch('/api/tenants?active=true')
@@ -60,14 +87,37 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
 
   const selectedTenant = tenants.find((tenant) => tenant.id === Number(tenantId))
 
+  useEffect(() => {
+    if (!selectedTenant || initialData?.coverageStart) {
+      return
+    }
+
+    const nextStart = selectedTenant.rentDueDate.slice(0, 10)
+    setCoverageStart(nextStart)
+    setPaymentMonth(nextStart.slice(0, 7))
+  }, [initialData, selectedTenant])
+
+  useEffect(() => {
+    const nextCoverageEnd = addMonths(coverageStart, monthsCovered)
+    setCoverageEnd(nextCoverageEnd)
+
+    if (selectedTenant && !initialData) {
+      setAmountPaid(String(selectedTenant.rentAmount * monthsCovered))
+    }
+  }, [coverageStart, initialData, monthsCovered, selectedTenant])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError('')
     setIsSaving(true)
 
     const payload = {
       tenantId: Number(tenantId),
       amountPaid: Number(amountPaid),
       paymentMonth,
+      coverageStart,
+      coverageEnd,
+      monthsCovered,
       paymentDate,
       paymentMethod,
       notes
@@ -86,7 +136,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => null)
-      alert(payload?.error ?? 'Failed to save payment')
+      setError(payload?.error ?? 'Failed to save payment')
       return
     }
 
@@ -96,6 +146,8 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-5">
+      <FormNotice message={error} />
+
       <div>
         <label className="field-label">Tenant</label>
         <select
@@ -141,15 +193,71 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
 
         <div>
           <label className="field-label">Payment month</label>
-          <input
-            type="month"
-            value={paymentMonth}
-            onChange={(e) => setPaymentMonth(e.target.value)}
-            required
-            className="field-input"
-          />
+          <div className="field-input bg-slate-50 text-slate-700">
+            {coverageStart ? coverageStart.slice(0, 7) : paymentMonth}
+          </div>
         </div>
       </div>
+
+      <section className="rounded-xl border bg-white p-4" style={{ borderColor: '#e2e8f0' }}>
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-semibold" style={{ color: '#1a1a2e' }}>Rent coverage</p>
+          <p className="text-xs text-slate-500">Choose the number of months this payment covers.</p>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+          <div>
+            <label className="field-label">Coverage starts</label>
+            <input
+              type="date"
+              value={coverageStart}
+              onChange={(e) => {
+                setCoverageStart(e.target.value)
+                setPaymentMonth(e.target.value.slice(0, 7))
+              }}
+              required
+              className="field-input"
+            />
+          </div>
+          <div>
+            <label className="field-label">Coverage ends</label>
+            <div className="field-input min-w-[11rem] bg-slate-50 text-slate-700">
+              {coverageEnd || 'Select start'}
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+          {durationOptions.map((months) => (
+            <button
+              key={months}
+              type="button"
+              onClick={() => setMonthsCovered(months)}
+              className="rounded-lg border px-3 py-2 text-sm font-semibold transition"
+              style={{
+                borderColor: monthsCovered === months ? '#00A550' : '#e2e8f0',
+                backgroundColor: monthsCovered === months ? '#e6f7ef' : '#fff',
+                color: monthsCovered === months ? '#007038' : '#374151'
+              }}
+            >
+              {months} mo
+            </button>
+          ))}
+          <label className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: '#e2e8f0' }}>
+            <span className="sr-only">Custom months</span>
+            <input
+              type="number"
+              min="1"
+              value={customMonths}
+              onFocus={() => setMonthsCovered(Math.max(1, Number(customMonths) || 1))}
+              onChange={(e) => {
+                setCustomMonths(e.target.value)
+                setMonthsCovered(Math.max(1, Number(e.target.value) || 1))
+              }}
+              className="w-full bg-transparent text-center font-semibold outline-none"
+              placeholder="Custom"
+            />
+          </label>
+        </div>
+      </section>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>

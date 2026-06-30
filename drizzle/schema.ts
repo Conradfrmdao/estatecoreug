@@ -6,12 +6,19 @@ export const users = pgTable('users', {
   clerkId: varchar('clerk_id', { length: 255 }).notNull().unique(),
   name: varchar('name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull(),
+  phone: varchar('phone', { length: 50 }),
+  role: varchar('role', { length: 50 }).default('landlord').notNull(),
+  accountStatus: varchar('account_status', { length: 50 }).default('pending').notNull(),
+  approvedAt: timestamp('approved_at', { withTimezone: true }),
+  rejectedAt: timestamp('rejected_at', { withTimezone: true }),
+  suspendedAt: timestamp('suspended_at', { withTimezone: true }),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
 })
 
 export const properties = pgTable('properties', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => users.id),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
   location: text('location').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
@@ -19,7 +26,7 @@ export const properties = pgTable('properties', {
 
 export const units = pgTable('units', {
   id: serial('id').primaryKey(),
-  propertyId: integer('property_id').notNull().references(() => properties.id),
+  propertyId: integer('property_id').notNull().references(() => properties.id, { onDelete: 'cascade' }),
   unitNumber: varchar('unit_number', { length: 50 }).notNull(),
   rentAmount: integer('rent_amount').notNull(),
   status: varchar('status', { length: 50 }).default('vacant').notNull(),
@@ -28,7 +35,7 @@ export const units = pgTable('units', {
 
 export const tenants = pgTable('tenants', {
   id: serial('id').primaryKey(),
-  unitId: integer('unit_id').notNull().references(() => units.id),
+  unitId: integer('unit_id').notNull().references(() => units.id, { onDelete: 'cascade' }),
   fullName: varchar('full_name', { length: 255 }).notNull(),
   phone: varchar('phone', { length: 50 }).notNull(),
   email: varchar('email', { length: 255 }),
@@ -40,11 +47,14 @@ export const tenants = pgTable('tenants', {
 
 export const rentPayments = pgTable('rent_payments', {
   id: serial('id').primaryKey(),
-  tenantId: integer('tenant_id').notNull().references(() => tenants.id),
-  unitId: integer('unit_id').notNull().references(() => units.id),
+  tenantId: integer('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  unitId: integer('unit_id').notNull().references(() => units.id, { onDelete: 'cascade' }),
   amountPaid: integer('amount_paid').notNull(),
   balanceAfterPayment: integer('balance_after_payment').notNull(),
   paymentMonth: varchar('payment_month', { length: 50 }).notNull(),
+  coverageStart: timestamp('coverage_start', { withTimezone: true }).notNull(),
+  coverageEnd: timestamp('coverage_end', { withTimezone: true }).notNull(),
+  monthsCovered: integer('months_covered').default(1).notNull(),
   paymentDate: timestamp('payment_date', { withTimezone: true }).defaultNow().notNull(),
   paymentMethod: varchar('payment_method', { length: 100 }).notNull(),
   notes: text('notes'),
@@ -53,8 +63,8 @@ export const rentPayments = pgTable('rent_payments', {
 
 export const expenses = pgTable('expenses', {
   id: serial('id').primaryKey(),
-  propertyId: integer('property_id').notNull().references(() => properties.id),
-  unitId: integer('unit_id').references(() => units.id),
+  propertyId: integer('property_id').notNull().references(() => properties.id, { onDelete: 'cascade' }),
+  unitId: integer('unit_id').references(() => units.id, { onDelete: 'cascade' }),
   title: varchar('title', { length: 255 }).notNull(),
   category: varchar('category', { length: 100 }).notNull(),
   amount: integer('amount').notNull(),

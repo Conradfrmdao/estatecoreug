@@ -204,7 +204,7 @@ interface PropertySummaryReportProps {
 type ReportProps = MonthlyRentReportProps | UnpaidTenantsReportProps | IncomeExpenseReportProps | PropertySummaryReportProps
 
 export function ReportDocument(props: ReportProps) {
-  const logoPath = path.join(process.cwd(), 'public/estatecoreuglogo.png')
+  const logoPath = path.join(process.cwd(), 'public/estatecore-lockup.png')
   const dateStr = new Date().toLocaleDateString('en-GB')
   const formatUGX = (amount: number) => `UGX ${amount.toLocaleString('en-US')}`
 

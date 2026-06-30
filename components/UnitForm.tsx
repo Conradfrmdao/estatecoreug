@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import FormNotice from '@/components/FormNotice'
 
 type Property = { id: number; name: string }
 
@@ -23,6 +24,7 @@ export default function UnitForm({ initialData }: UnitFormProps) {
   const [rentAmount, setRentAmount] = useState(initialData ? String(initialData.rentAmount) : '')
   const [status, setStatus] = useState(initialData?.status ?? 'vacant')
   const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     fetch('/api/properties')
@@ -33,6 +35,7 @@ export default function UnitForm({ initialData }: UnitFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError('')
     setIsSaving(true)
 
     const payload = {
@@ -55,12 +58,14 @@ export default function UnitForm({ initialData }: UnitFormProps) {
       router.refresh()
     } else {
       const payload = await res.json().catch(() => null)
-      alert(payload?.error ?? 'Failed to save unit')
+      setError(payload?.error ?? 'Failed to save unit')
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-5">
+      <FormNotice message={error} />
+
       <div>
         <label className="field-label">Property</label>
         <select
@@ -104,17 +109,19 @@ export default function UnitForm({ initialData }: UnitFormProps) {
         </div>
       </div>
 
-      <div>
-        <label className="field-label">Status</label>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="field-input"
-        >
-          <option value="vacant">Vacant</option>
-          <option value="occupied">Occupied</option>
-        </select>
-      </div>
+      {initialData ? (
+        <div>
+          <label className="field-label">Status</label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="field-input"
+          >
+            <option value="vacant">Vacant</option>
+            <option value="occupied">Occupied</option>
+          </select>
+        </div>
+      ) : null}
 
       <div className="flex items-center gap-3 pt-2">
         <button

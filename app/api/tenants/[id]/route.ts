@@ -1,4 +1,4 @@
-import { tenants, units } from '@/drizzle/schema'
+import { rentPayments, tenants, units } from '@/drizzle/schema'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getTenantForUser, getUnitForUser, listTenantsForUser } from '@/lib/data'
 import { db } from '@/lib/db'
@@ -11,6 +11,8 @@ function parseId(value: string) {
   const id = Number(value)
   return Number.isInteger(id) && id > 0 ? id : null
 }
+
+type TenantRouteContext = { params: Promise<{ id: string }> }
 
 async function refreshUnitStatuses(userId: number, unitIds: number[]) {
   const uniqueUnitIds = Array.from(new Set(unitIds))
@@ -30,9 +32,10 @@ async function refreshUnitStatuses(userId: number, unitIds: number[]) {
   )
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: TenantRouteContext) {
   const user = await requireCurrentAppUser()
-  const id = parseId(params.id)
+  const { id: idParam } = await params
+  const id = parseId(idParam)
 
   if (!id) {
     return NextResponse.json({ error: 'Invalid tenant id.' }, { status: 400 })
@@ -52,9 +55,10 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   })
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: TenantRouteContext) {
   const user = await requireCurrentAppUser()
-  const id = parseId(params.id)
+  const { id: idParam } = await params
+  const id = parseId(idParam)
 
   if (!id) {
     return NextResponse.json({ error: 'Invalid tenant id.' }, { status: 400 })
@@ -89,9 +93,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const conflictingTenant = tenantRows.find(
     (row) => row.tenant.id !== id && row.tenant.unitId === unitId && row.tenant.active
   )
+  const isSameActiveAssignment = existing.tenant.active && existing.tenant.unitId === unitId
 
-  if (active && conflictingTenant) {
-    return NextResponse.json({ error: 'This unit already has an active tenant.' }, { status: 409 })
+  if (active && !isSameActiveAssignment && (conflictingTenant || unit.unit.status === 'occupied')) {
+    return NextResponse.json(
+      { error: 'This unit is already occupied. Move or deactivate the current tenant before assigning another one.' },
+      { status: 409 }
+    )
   }
 
   const [updated] = await db
@@ -113,9 +121,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json(updated)
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: TenantRouteContext) {
   const user = await requireCurrentAppUser()
-  const id = parseId(params.id)
+  const { id: idParam } = await params
+  const id = parseId(idParam)
 
   if (!id) {
     return NextResponse.json({ error: 'Invalid tenant id.' }, { status: 400 })
@@ -128,12 +137,13 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   }
 
   try {
+    await db.delete(rentPayments).where(eq(rentPayments.tenantId, id))
     await db.delete(tenants).where(eq(tenants.id, id))
     await refreshUnitStatuses(user.id, [existing.tenant.unitId])
     return NextResponse.json({ ok: true })
   } catch {
     return NextResponse.json(
-      { error: 'Delete rent payments linked to this tenant first.' },
+      { error: 'Unable to delete this tenant.' },
       { status: 409 }
     )
   }

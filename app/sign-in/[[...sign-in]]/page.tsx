@@ -1,21 +1,49 @@
 import { SignIn } from '@clerk/nextjs'
 import Image from 'next/image'
+import AuthBackButton from '@/components/AuthBackButton'
+
+const compactAuthAppearance = {
+  variables: {
+    colorPrimary: '#00A550',
+    borderRadius: '0.75rem'
+  },
+  elements: {
+    rootBox: 'w-full',
+    cardBox: 'w-full shadow-none',
+    card: 'w-full border border-slate-200 p-4 shadow-sm sm:p-5',
+    header: 'hidden',
+    socialButtonsBlockButton: 'h-9 text-sm',
+    dividerRow: 'my-2',
+    formField: 'mb-2',
+    formFieldLabel: 'mb-1 text-xs',
+    formFieldInput: 'h-9 text-sm',
+    formButtonPrimary: 'h-9 text-sm font-bold',
+    footer: 'mt-2 text-xs'
+  }
+}
 
 export default function SignInPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center px-4"
-      style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #f8fafc 50%, #e6f7ef 100%)' }}>
+    <main className="flex h-svh items-start justify-center overflow-hidden px-4 pb-4 pt-8 sm:pt-10"
+      style={{ backgroundColor: '#f8fafc' }}>
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <Image src="/estatecoreuglogo.png" alt="EstateCore UG Logo" width={1536} height={1024} className="h-10 w-auto object-contain mx-auto mb-4" />
-          <h1 className="text-2xl font-bold" style={{ color: '#1a1a2e' }}>Welcome back</h1>
-          <p className="mt-1 text-sm" style={{ color: '#64748b' }}>Sign in to your Estate Core Ug account</p>
+        <div className="mb-4 flex justify-start">
+          <AuthBackButton />
+        </div>
+        <div className="mb-3 text-center">
+          <span className="mx-auto mb-2 flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-[#071a0f] ring-1 ring-black/5">
+            <Image src="/estatecore-mark.png" alt="EstateCore UG" width={88} height={88} className="h-11 w-11 object-cover" />
+          </span>
+          <h1 className="text-xl font-bold" style={{ color: '#1a1a2e' }}>Welcome back</h1>
+          <p className="mt-0.5 text-xs" style={{ color: '#64748b' }}>Sign in to your EstateCore UG account</p>
         </div>
         <SignIn
           routing="path"
           path="/sign-in"
-          afterSignInUrl="/dashboard"
+          forceRedirectUrl="/dashboard"
+          fallbackRedirectUrl="/dashboard"
           signUpUrl="/sign-up"
+          appearance={compactAuthAppearance}
         />
       </div>
     </main>

@@ -2,6 +2,7 @@ import DeleteButton from '@/components/DeleteButton'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { listPaymentsForUser } from '@/lib/data'
 import { currency, formatDate, monthLabel } from '@/lib/format'
+import { Download, Plus } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -42,9 +43,7 @@ export default async function PaymentsPage({
           className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition"
           style={{ backgroundColor: '#00A550', boxShadow: '0 4px 14px rgba(0,165,80,0.3)' }}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
           Record Payment
         </Link>
       </section>
@@ -75,7 +74,7 @@ export default async function PaymentsPage({
               <tr>
                 <th>Tenant</th>
                 <th>Unit & Property</th>
-                <th>Payment Month</th>
+                <th>Rent Coverage</th>
                 <th>Amount Paid</th>
                 <th>Remaining Balance</th>
                 <th>Date Paid</th>
@@ -108,6 +107,9 @@ export default async function PaymentsPage({
                   </td>
                   <td style={{ color: '#374151', fontSize: '0.875rem' }}>
                     {monthLabel(payment.paymentMonth)}
+                    <span className="mt-1 block text-xs text-slate-400">
+                      {payment.monthsCovered} month{payment.monthsCovered === 1 ? '' : 's'}
+                    </span>
                   </td>
                   <td className="font-bold" style={{ color: '#00A550' }}>
                     {currency(payment.amountPaid)}
@@ -131,9 +133,7 @@ export default async function PaymentsPage({
                         className="rounded-lg border px-2 py-1.5 text-xs font-medium transition text-white hover:opacity-90 flex items-center gap-1"
                         style={{ backgroundColor: '#00A550', borderColor: 'transparent' }}
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
+                        <Download aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
                         Receipt
                       </a>
                       <Link

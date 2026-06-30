@@ -18,8 +18,23 @@ export function formatDate(value: Date | string | null | undefined) {
   }).format(new Date(value))
 }
 
+export function dateKey(value = new Date(), timeZone = 'Africa/Kampala') {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(value)
+
+  const year = parts.find((part) => part.type === 'year')?.value ?? '1970'
+  const month = parts.find((part) => part.type === 'month')?.value ?? '01'
+  const day = parts.find((part) => part.type === 'day')?.value ?? '01'
+
+  return `${year}-${month}-${day}`
+}
+
 export function currentPaymentMonth(date = new Date()) {
-  return date.toISOString().slice(0, 7)
+  return dateKey(date).slice(0, 7)
 }
 
 export function monthLabel(month: string) {

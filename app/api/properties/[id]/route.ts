@@ -12,9 +12,12 @@ function parseId(value: string) {
   return Number.isInteger(id) && id > 0 ? id : null
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+type PropertyRouteContext = { params: Promise<{ id: string }> }
+
+export async function GET(_req: Request, { params }: PropertyRouteContext) {
   const user = await requireCurrentAppUser()
-  const id = parseId(params.id)
+  const { id: idParam } = await params
+  const id = parseId(idParam)
 
   if (!id) {
     return NextResponse.json({ error: 'Invalid property id.' }, { status: 400 })
@@ -29,9 +32,10 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return NextResponse.json(property)
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: PropertyRouteContext) {
   const user = await requireCurrentAppUser()
-  const id = parseId(params.id)
+  const { id: idParam } = await params
+  const id = parseId(idParam)
 
   if (!id) {
     return NextResponse.json({ error: 'Invalid property id.' }, { status: 400 })
@@ -60,9 +64,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json(updated)
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: PropertyRouteContext) {
   const user = await requireCurrentAppUser()
-  const id = parseId(params.id)
+  const { id: idParam } = await params
+  const id = parseId(idParam)
 
   if (!id) {
     return NextResponse.json({ error: 'Invalid property id.' }, { status: 400 })
@@ -74,13 +79,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     return NextResponse.json({ error: 'Property not found.' }, { status: 404 })
   }
 
-  try {
-    await db.delete(properties).where(eq(properties.id, id))
-    return NextResponse.json({ ok: true })
-  } catch {
-    return NextResponse.json(
-      { error: 'Delete units, tenants, payments, and expenses linked to this property first.' },
-      { status: 409 }
-    )
-  }
+  await db.delete(properties).where(eq(properties.id, id))
+
+  return NextResponse.json({ ok: true })
 }

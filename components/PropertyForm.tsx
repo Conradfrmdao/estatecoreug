@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import FormNotice from '@/components/FormNotice'
 
 type PropertyFormProps = {
   initialData?: {
@@ -16,9 +17,11 @@ export default function PropertyForm({ initialData }: PropertyFormProps) {
   const [name, setName] = useState(initialData?.name ?? '')
   const [location, setLocation] = useState(initialData?.location ?? '')
   const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError('')
     setIsSaving(true)
 
     const res = await fetch(initialData ? `/api/properties/${initialData.id}` : '/api/properties', {
@@ -34,12 +37,14 @@ export default function PropertyForm({ initialData }: PropertyFormProps) {
       router.refresh()
     } else {
       const payload = await res.json().catch(() => null)
-      alert(payload?.error ?? 'Failed to save property')
+      setError(payload?.error ?? 'Failed to save property')
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-5">
+      <FormNotice message={error} />
+
       <div>
         <label className="field-label">Property name</label>
         <input

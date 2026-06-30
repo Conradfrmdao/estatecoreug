@@ -2,6 +2,7 @@ import DeleteButton from '@/components/DeleteButton'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { listExpensesForUser } from '@/lib/data'
 import { currency, formatDate } from '@/lib/format'
+import { Plus } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -58,9 +59,7 @@ export default async function ExpensesPage({
           className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition"
           style={{ backgroundColor: '#00A550', boxShadow: '0 4px 14px rgba(0,165,80,0.3)' }}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
           New Expense
         </Link>
       </section>

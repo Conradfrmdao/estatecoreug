@@ -8,11 +8,20 @@ import {
   type Property,
   type RentPayment,
   type Tenant,
-  type Unit
+  type Unit,
+  users,
+  type User
 } from '@/drizzle/schema'
 import { db } from '@/lib/db'
 import { currentPaymentMonth } from '@/lib/format'
-import { and, desc, eq } from 'drizzle-orm'
+import {
+  allocatedPaymentForPeriod,
+  calculateTenantPeriodBalance,
+  getPaymentCoverage,
+  parseMonth,
+  type TenantRentStatus
+} from '@/lib/rent-cycle'
+import { and, desc, eq, ne } from 'drizzle-orm'
 
 export type UnitWithProperty = {
   unit: Unit
@@ -41,7 +50,37 @@ export type ExpenseWithProperty = {
 export type TenantBalance = TenantWithUnit & {
   amountPaid: number
   balance: number
-  paymentStatus: 'paid' | 'partial' | 'unpaid'
+  dueDate: Date
+  daysUntilDue: number
+  paymentStatus: TenantRentStatus
+}
+
+export type UserWithStats = {
+  user: User
+  stats: {
+    properties: number
+    tenants: number
+    payments: number
+    expenses: number
+    paymentTotal: number
+    expenseTotal: number
+  }
+}
+
+export type CalendarEvent = {
+  id: string
+  date: string
+  title: string
+  type: 'move_in' | 'due' | 'overdue' | 'payment' | 'expense'
+  detail: string
+  severity: 'info' | 'success' | 'warning' | 'danger'
+}
+
+export type AppAlert = {
+  id: string
+  title: string
+  body: string
+  severity: 'info' | 'success' | 'warning' | 'danger'
 }
 
 function sum(values: number[]) {
@@ -50,6 +89,201 @@ function sum(values: number[]) {
 
 function getExpenseMonth(expense: Expense) {
   return expense.expenseDate.toISOString().slice(0, 7)
+}
+
+function getPaymentDateMonth(payment: RentPayment) {
+  return payment.paymentDate.toISOString().slice(0, 7)
+}
+
+function buildTenantBalances(
+  tenantRows: TenantWithUnit[],
+  paymentRows: PaymentWithTenant[],
+  month: string
+) {
+  const period = parseMonth(month)
+  const activeTenants = tenantRows.filter(({ tenant }) => tenant.active)
+  const paymentsByTenant = new Map<number, RentPayment[]>()
+
+  for (const { payment } of paymentRows) {
+    const rows = paymentsByTenant.get(payment.tenantId) ?? []
+    rows.push(payment)
+    paymentsByTenant.set(payment.tenantId, rows)
+  }
+
+  return activeTenants.flatMap((row) => {
+    const balance = calculateTenantPeriodBalance(
+      row,
+      paymentsByTenant.get(row.tenant.id) ?? [],
+      period
+    )
+
+    if (!balance) {
+      return []
+    }
+
+    return [{
+      ...row,
+      ...balance
+    } satisfies TenantBalance]
+  })
+}
+
+function buildAlerts(tenantBalances: TenantBalance[], paymentRows: PaymentWithTenant[], expenseRows: ExpenseWithProperty[]) {
+  const today = new Date().toISOString().slice(0, 10)
+  const alerts: AppAlert[] = []
+
+  for (const row of tenantBalances) {
+    if (row.paymentStatus === 'due_today') {
+      alerts.push({
+        id: `due-${row.tenant.id}`,
+        title: 'Rent due today',
+        body: `${row.tenant.fullName} owes ${row.property.name}, Unit ${row.unit.unitNumber}.`,
+        severity: 'warning'
+      })
+    }
+
+    if (row.paymentStatus === 'upcoming') {
+      alerts.push({
+        id: `upcoming-${row.tenant.id}`,
+        title: `${row.daysUntilDue} days left`,
+        body: `${row.tenant.fullName}'s rent is coming due soon.`,
+        severity: 'info'
+      })
+    }
+
+    if (row.paymentStatus === 'overdue') {
+      alerts.push({
+        id: `overdue-${row.tenant.id}`,
+        title: `Overdue by ${Math.abs(row.daysUntilDue)} days`,
+        body: `${row.tenant.fullName} has ${row.balance.toLocaleString('en-UG')} UGX outstanding.`,
+        severity: 'danger'
+      })
+    }
+  }
+
+  for (const { payment, tenant } of paymentRows.slice(0, 10)) {
+    if (payment.paymentDate.toISOString().slice(0, 10) === today) {
+      alerts.push({
+        id: `paid-${payment.id}`,
+        title: 'Payment recorded today',
+        body: `${tenant.fullName} paid ${payment.amountPaid.toLocaleString('en-UG')} UGX.`,
+        severity: 'success'
+      })
+    }
+  }
+
+  for (const { expense } of expenseRows.slice(0, 10)) {
+    if (expense.expenseDate.toISOString().slice(0, 10) === today) {
+      alerts.push({
+        id: `expense-${expense.id}`,
+        title: 'Expense recorded today',
+        body: `${expense.title} was logged for ${expense.amount.toLocaleString('en-UG')} UGX.`,
+        severity: 'info'
+      })
+    }
+  }
+
+  return alerts.slice(0, 8)
+}
+
+function toEventDate(value: Date) {
+  return value.toISOString().slice(0, 10)
+}
+
+function buildCalendarEvents(
+  tenantRows: TenantWithUnit[],
+  paymentRows: PaymentWithTenant[],
+  expenseRows: ExpenseWithProperty[]
+) {
+  const events: CalendarEvent[] = []
+
+  for (const { tenant, unit, property } of tenantRows) {
+    events.push({
+      id: `move-in-${tenant.id}`,
+      date: toEventDate(tenant.moveInDate),
+      title: `${tenant.fullName} moved in`,
+      type: 'move_in',
+      detail: `${property.name}, Unit ${unit.unitNumber}`,
+      severity: 'info'
+    })
+
+    if (tenant.active) {
+      const overdue = tenant.rentDueDate < new Date()
+      events.push({
+        id: `due-${tenant.id}`,
+        date: toEventDate(tenant.rentDueDate),
+        title: overdue ? `${tenant.fullName} rent overdue` : `${tenant.fullName} rent due`,
+        type: overdue ? 'overdue' : 'due',
+        detail: `${property.name}, Unit ${unit.unitNumber}`,
+        severity: overdue ? 'danger' : 'warning'
+      })
+    }
+  }
+
+  for (const { payment, tenant, property, unit } of paymentRows) {
+    const coverage = getPaymentCoverage(payment)
+    events.push({
+      id: `payment-${payment.id}`,
+      date: toEventDate(payment.paymentDate),
+      title: `${tenant.fullName} paid rent`,
+      type: 'payment',
+      detail: `${property.name}, Unit ${unit.unitNumber}, ${coverage.monthsCovered} month${coverage.monthsCovered === 1 ? '' : 's'} covered`,
+      severity: 'success'
+    })
+  }
+
+  for (const { expense, property, unit } of expenseRows) {
+    events.push({
+      id: `expense-${expense.id}`,
+      date: toEventDate(expense.expenseDate),
+      title: expense.title,
+      type: 'expense',
+      detail: `${property.name}${unit ? `, Unit ${unit.unitNumber}` : ''}`,
+      severity: 'info'
+    })
+  }
+
+  return events.sort((a, b) => a.date.localeCompare(b.date))
+}
+
+export async function listUsersWithStats(): Promise<UserWithStats[]> {
+  const [userRows, propertyRows, tenantRows, paymentRows, expenseRows] = await Promise.all([
+    db.select().from(users).orderBy(desc(users.createdAt)),
+    db.select({ id: properties.id, userId: properties.userId }).from(properties),
+    db
+      .select({ id: tenants.id, userId: properties.userId })
+      .from(tenants)
+      .innerJoin(units, eq(units.id, tenants.unitId))
+      .innerJoin(properties, eq(properties.id, units.propertyId)),
+    db
+      .select({ id: rentPayments.id, userId: properties.userId, amountPaid: rentPayments.amountPaid })
+      .from(rentPayments)
+      .innerJoin(units, eq(units.id, rentPayments.unitId))
+      .innerJoin(properties, eq(properties.id, units.propertyId)),
+    db
+      .select({ id: expenses.id, userId: properties.userId, amount: expenses.amount })
+      .from(expenses)
+      .innerJoin(properties, eq(properties.id, expenses.propertyId))
+  ])
+
+  return userRows.map((user) => {
+    const userProperties = propertyRows.filter((row) => row.userId === user.id)
+    const userTenants = tenantRows.filter((row) => row.userId === user.id)
+    const userPayments = paymentRows.filter((row) => row.userId === user.id)
+    const userExpenses = expenseRows.filter((row) => row.userId === user.id)
+
+    return {
+      user,
+      stats: {
+        properties: userProperties.length,
+        tenants: userTenants.length,
+        payments: userPayments.length,
+        expenses: userExpenses.length,
+        paymentTotal: sum(userPayments.map((row) => row.amountPaid)),
+        expenseTotal: sum(userExpenses.map((row) => row.amount))
+      }
+    }
+  })
 }
 
 export async function listPropertiesForUser(userId: number) {
@@ -193,33 +427,7 @@ export async function getExpenseForUser(userId: number, expenseId: number) {
 export async function listTenantBalances(userId: number, month = currentPaymentMonth()) {
   const tenantRows = await listTenantsForUser(userId)
   const paymentRows = await listPaymentsForUser(userId)
-  const activeTenants = tenantRows.filter(({ tenant }) => tenant.active)
-  const paidByTenant = new Map<number, number>()
-
-  for (const { payment } of paymentRows) {
-    if (payment.paymentMonth !== month) {
-      continue
-    }
-
-    paidByTenant.set(
-      payment.tenantId,
-      (paidByTenant.get(payment.tenantId) ?? 0) + payment.amountPaid
-    )
-  }
-
-  return activeTenants.map((row) => {
-    const amountPaid = paidByTenant.get(row.tenant.id) ?? 0
-    const balance = Math.max(row.unit.rentAmount - amountPaid, 0)
-    const paymentStatus =
-      balance <= 0 ? 'paid' : amountPaid > 0 ? 'partial' : 'unpaid'
-
-    return {
-      ...row,
-      amountPaid,
-      balance,
-      paymentStatus
-    } satisfies TenantBalance
-  })
+  return buildTenantBalances(tenantRows, paymentRows, month)
 }
 
 export async function calculateBalanceAfterPayment(params: {
@@ -227,6 +435,7 @@ export async function calculateBalanceAfterPayment(params: {
   tenantId: number
   amountPaid: number
   paymentMonth: string
+  monthsCovered?: number
   ignorePaymentId?: number
 }) {
   const tenantRow = await getTenantForUser(params.userId, params.tenantId)
@@ -235,27 +444,37 @@ export async function calculateBalanceAfterPayment(params: {
     return null
   }
 
-  const paymentRows = await listPaymentsForUser(params.userId)
+  const period = parseMonth(params.paymentMonth)
+  const paymentRows = await db
+    .select({
+      amountPaid: rentPayments.amountPaid,
+      paymentMonth: rentPayments.paymentMonth,
+      coverageStart: rentPayments.coverageStart,
+      coverageEnd: rentPayments.coverageEnd,
+      monthsCovered: rentPayments.monthsCovered
+    })
+    .from(rentPayments)
+    .where(
+      params.ignorePaymentId
+        ? and(
+            eq(rentPayments.tenantId, params.tenantId),
+            ne(rentPayments.id, params.ignorePaymentId)
+          )
+        : and(
+            eq(rentPayments.tenantId, params.tenantId)
+          )
+    )
   const alreadyPaid = sum(
-    paymentRows
-      .filter(({ payment }) => {
-        if (payment.tenantId !== params.tenantId) {
-          return false
-        }
-
-        if (payment.paymentMonth !== params.paymentMonth) {
-          return false
-        }
-
-        return payment.id !== params.ignorePaymentId
-      })
-      .map(({ payment }) => payment.amountPaid)
+    paymentRows.map((payment) => allocatedPaymentForPeriod(payment, period))
+  )
+  const allocatedCurrentPayment = Math.round(
+    params.amountPaid / Math.max(1, params.monthsCovered ?? 1)
   )
 
   return {
     unitId: tenantRow.unit.id,
     balanceAfterPayment: Math.max(
-      tenantRow.unit.rentAmount - alreadyPaid - params.amountPaid,
+      tenantRow.unit.rentAmount - alreadyPaid - allocatedCurrentPayment,
       0
     )
   }
@@ -268,17 +487,16 @@ export async function getDashboardData(userId: number, month = currentPaymentMon
     tenantRows,
     paymentRows,
     expenseRows,
-    tenantBalances
   ] = await Promise.all([
     listPropertiesForUser(userId),
     listUnitsForUser(userId),
     listTenantsForUser(userId),
     listPaymentsForUser(userId),
-    listExpensesForUser(userId),
-    listTenantBalances(userId, month)
+    listExpensesForUser(userId)
   ])
 
-  const monthlyPayments = paymentRows.filter(({ payment }) => payment.paymentMonth === month)
+  const tenantBalances = buildTenantBalances(tenantRows, paymentRows, month)
+  const monthlyPayments = paymentRows.filter(({ payment }) => getPaymentDateMonth(payment) === month)
   const monthlyExpenses = expenseRows.filter(({ expense }) => getExpenseMonth(expense) === month)
   const activeTenants = tenantRows.filter(({ tenant }) => tenant.active)
   const totalExpected = sum(tenantBalances.map(({ unit }) => unit.rentAmount))
@@ -313,7 +531,21 @@ export async function getDashboardData(userId: number, month = currentPaymentMon
     payments: paymentRows,
     expenses: expenseRows,
     tenantBalances,
+    alerts: buildAlerts(tenantBalances, paymentRows, expenseRows),
     recentPayments: paymentRows.slice(0, 5),
     recentExpenses: expenseRows.slice(0, 5)
+  }
+}
+
+export async function getCalendarData(userId: number) {
+  const [tenantRows, paymentRows, expenseRows] = await Promise.all([
+    listTenantsForUser(userId),
+    listPaymentsForUser(userId),
+    listExpensesForUser(userId)
+  ])
+
+  return {
+    events: buildCalendarEvents(tenantRows, paymentRows, expenseRows),
+    alerts: buildAlerts(buildTenantBalances(tenantRows, paymentRows, currentPaymentMonth()), paymentRows, expenseRows)
   }
 }

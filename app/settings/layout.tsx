@@ -1,6 +1,8 @@
 import AppShell from '@/components/AppShell'
+import { requireCurrentAppUser } from '@/lib/auth'
 import type { ReactNode } from 'react'
 
-export default function SettingsLayout({ children }: { children: ReactNode }) {
-  return <AppShell>{children}</AppShell>
+export default async function SettingsLayout({ children }: { children: ReactNode }) {
+  const user = await requireCurrentAppUser()
+  return <AppShell isAdmin={user.role === 'admin'}>{children}</AppShell>
 }

@@ -28,6 +28,9 @@ export default async function EditPaymentPage({
     tenantId: row.payment.tenantId,
     amountPaid: row.payment.amountPaid,
     paymentMonth: row.payment.paymentMonth,
+    coverageStart: toDateInputValue(row.payment.coverageStart),
+    coverageEnd: toDateInputValue(row.payment.coverageEnd),
+    monthsCovered: row.payment.monthsCovered,
     paymentDate: toDateInputValue(row.payment.paymentDate),
     paymentMethod: row.payment.paymentMethod,
     notes: row.payment.notes

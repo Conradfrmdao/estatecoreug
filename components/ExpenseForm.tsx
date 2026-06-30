@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import FormNotice from '@/components/FormNotice'
 
 type PropertyOption = { id: number; name: string }
 type UnitOption = { id: number; unitNumber: string; propertyId: number }
@@ -33,6 +34,7 @@ export default function ExpenseForm({ initialData }: ExpenseFormProps) {
   )
   const [description, setDescription] = useState(initialData?.description ?? '')
   const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     fetch('/api/properties')
@@ -56,6 +58,7 @@ export default function ExpenseForm({ initialData }: ExpenseFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError('')
     setIsSaving(true)
 
     const payload = {
@@ -78,7 +81,7 @@ export default function ExpenseForm({ initialData }: ExpenseFormProps) {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => null)
-      alert(payload?.error ?? 'Failed to save expense')
+      setError(payload?.error ?? 'Failed to save expense')
       return
     }
 
@@ -88,6 +91,8 @@ export default function ExpenseForm({ initialData }: ExpenseFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-5">
+      <FormNotice message={error} />
+
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label className="field-label">Property</label>

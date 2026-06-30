@@ -6,28 +6,31 @@
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "next typegen && tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:rent-cycle": "node --test --experimental-strip-types tests/rent-cycle.test.ts",
     "drizzle:generate": "drizzle-kit generate",
     "drizzle:push": "drizzle-kit push"
   },
   "dependencies": {
-    "@clerk/nextjs": "^5.0.0",
+    "@clerk/nextjs": "^7.5.9",
     "@neondatabase/serverless": "^1.1.0",
     "@react-pdf/renderer": "^4.5.1",
     "drizzle-orm": "^0.45.2",
-    "next": "^14.2.0",
+    "lucide-react": "^1.22.0",
+    "next": "^16.2.9",
     "pg": "^8.12.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/pg": "^8.20.0",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.20",
     "drizzle-kit": "^0.31.10",
-    "postcss": "^8.4.40",
+    "postcss": "^8.5.16",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.6.0"
   }

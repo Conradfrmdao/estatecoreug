@@ -1,120 +1,132 @@
-import { requireCurrentAppUser } from '@/lib/auth'
-import { currentUser } from '@clerk/nextjs/server'
 import Link from 'next/link'
+import { currentUser } from '@clerk/nextjs/server'
+import { BadgeCheck, CalendarDays, CircleDollarSign, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react'
+
+import { requireCurrentAppUser } from '@/lib/auth'
+import { formatDate } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
+
+function SettingRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-0.5 truncate text-sm font-semibold text-slate-900">{value}</p>
+    </div>
+  )
+}
 
 export default async function SettingsPage() {
   const [dbUser, clerkUser] = await Promise.all([
     requireCurrentAppUser(),
     currentUser()
   ])
+  const initials = dbUser.name.slice(0, 1).toUpperCase()
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in">
-      <div>
-        <h1 className="text-3xl font-bold" style={{ color: '#1a1a2e' }}>Settings</h1>
-        <p className="mt-1.5 text-sm" style={{ color: '#64748b' }}>
-          Manage your account profile, localization, and system preferences.
-        </p>
-      </div>
+    <div className="mx-auto max-w-7xl animate-in">
+      <section className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-widest" style={{ color: '#00A550' }}>Workspace settings</p>
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950">Settings</h1>
+          <p className="mt-1 text-sm text-slate-500">Account, access, and Ugandan property-management defaults.</p>
+        </div>
+        {dbUser.role === 'admin' && (
+          <Link
+            href="/admin"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold text-white"
+            style={{ backgroundColor: '#00A550' }}
+          >
+            <ShieldCheck className="h-4 w-4" strokeWidth={1.9} />
+            Open Admin Portal
+          </Link>
+        )}
+      </section>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Navigation/Quick Links */}
-        <div className="space-y-2">
-          <div className="rounded-xl border bg-white p-2" style={{ borderColor: '#e2e8f0' }}>
-            <button className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-semibold transition"
-              style={{ backgroundColor: '#e6f7ef', color: '#00A550' }}>
-              Account Profile
-            </button>
-            <button className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-600 hover:bg-slate-50">
-              System Settings
-            </button>
+      <section className="grid gap-4 xl:grid-cols-[1.25fr_0.9fr_0.85fr]">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-4">
+            {clerkUser?.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={clerkUser.imageUrl}
+                alt={dbUser.name}
+                className="h-16 w-16 rounded-2xl border-2 object-cover"
+                style={{ borderColor: '#00A550' }}
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl text-xl font-black text-white" style={{ backgroundColor: '#00A550' }}>
+                {initials}
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="truncate text-xl font-black text-slate-950">{dbUser.name}</h2>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-black uppercase tracking-wide text-emerald-700">
+                  <BadgeCheck className="h-3 w-3" />
+                  {dbUser.accountStatus}
+                </span>
+              </div>
+              <p className="mt-1 truncate text-sm text-slate-500">{dbUser.email}</p>
+              {dbUser.phone && <p className="mt-0.5 truncate text-xs text-slate-400">{dbUser.phone}</p>}
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <SettingRow label="Role" value={dbUser.role === 'admin' ? 'Platform Admin' : 'Landlord'} />
+            <SettingRow label="Last seen" value={formatDate(dbUser.lastSeenAt)} />
+            <SettingRow label="Approved" value={formatDate(dbUser.approvedAt)} />
+            <SettingRow label="Created" value={formatDate(dbUser.createdAt)} />
           </div>
         </div>
 
-        {/* Settings Panels */}
-        <div className="md:col-span-2 space-y-6">
-          {/* Profile Card */}
-          <section className="rounded-xl border bg-white p-6 space-y-6"
-            style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+              <LockKeyhole className="h-5 w-5" strokeWidth={1.9} />
+            </span>
             <div>
-              <h2 className="text-lg font-semibold" style={{ color: '#1a1a2e' }}>Landlord Profile</h2>
-              <p className="text-xs mt-1" style={{ color: '#94a3b8' }}>Personal details and login account.</p>
+              <h2 className="text-base font-black text-slate-950">Access Control</h2>
+              <p className="text-xs text-slate-500">Approval and admin routing.</p>
             </div>
+          </div>
 
-            <div className="flex items-center gap-4 p-4 rounded-xl" style={{ backgroundColor: '#f8fafc' }}>
-              {clerkUser?.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={clerkUser.imageUrl}
-                  alt={dbUser.name}
-                  className="w-16 h-16 rounded-full border-2"
-                  style={{ borderColor: '#00A550' }}
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold"
-                  style={{ backgroundColor: '#00A550' }}>
-                  {dbUser.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div>
-                <h3 className="font-semibold text-lg" style={{ color: '#1a1a2e' }}>{dbUser.name}</h3>
-                <p className="text-sm text-slate-500">{dbUser.email}</p>
-                <span className="inline-block text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded mt-1.5"
-                  style={{ backgroundColor: '#e6f7ef', color: '#00A550' }}>
-                  Active Landlord
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <a
-                href="https://dashboard.clerk.com"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition"
-                style={{ backgroundColor: '#00A550', boxShadow: '0 4px 14px rgba(0,165,80,0.3)' }}
-              >
-                Manage Clerk Security
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-            </div>
-          </section>
-
-          {/* Preferences Card */}
-          <section className="rounded-xl border bg-white p-6 space-y-6"
-            style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-            <div>
-              <h2 className="text-lg font-semibold" style={{ color: '#1a1a2e' }}>Localization & System Defaults</h2>
-              <p className="text-xs mt-1" style={{ color: '#94a3b8' }}>Regional currency settings for your properties.</p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid gap-2">
-                <label className="field-label">Default Currency</label>
-                <div className="field-input bg-slate-50 flex items-center justify-between text-slate-500">
-                  <span>Ugandan Shilling (UGX)</span>
-                  <span className="font-bold text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded">DEFAULT</span>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  We defaulted the billing currency to Ugandan Shilling (UGX) as requested for Ugandan property owners.
-                </p>
-              </div>
-
-              <div className="grid gap-2">
-                <label className="field-label">Date Format</label>
-                <div className="field-input bg-slate-50 flex items-center justify-between text-slate-500">
-                  <span>DD/MM/YYYY (en-UG format)</span>
-                  <span className="font-bold text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded">SYSTEM</span>
-                </div>
-              </div>
-            </div>
-          </section>
+          <div className="mt-4 space-y-3">
+            <SettingRow label="Admin portal" value={dbUser.role === 'admin' ? '/admin enabled' : 'Admin only'} />
+            <SettingRow label="Account status" value={dbUser.accountStatus} />
+            <SettingRow label="Login provider" value="Clerk authentication" />
+          </div>
         </div>
-      </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+              <UserRound className="h-5 w-5" strokeWidth={1.9} />
+            </span>
+            <div>
+              <h2 className="text-base font-black text-slate-950">System Defaults</h2>
+              <p className="text-xs text-slate-500">Regional app settings.</p>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <CircleDollarSign className="mt-0.5 h-4 w-4 text-emerald-700" strokeWidth={1.9} />
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Currency</p>
+                <p className="text-sm font-semibold text-slate-900">Ugandan Shilling (UGX)</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <CalendarDays className="mt-0.5 h-4 w-4 text-emerald-700" strokeWidth={1.9} />
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Date and time</p>
+                <p className="text-sm font-semibold text-slate-900">Africa/Kampala, en-UG</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

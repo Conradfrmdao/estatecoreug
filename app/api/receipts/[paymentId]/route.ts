@@ -1,17 +1,27 @@
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getPaymentForUser } from '@/lib/data'
 import { ReceiptDocument } from '@/lib/pdf/receipt'
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { renderToStream } = require('@react-pdf/renderer')
+import { renderToBuffer } from '@react-pdf/renderer'
 import { NextResponse } from 'next/server'
 import React from 'react'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(_req: Request, { params }: { params: { paymentId: string } }) {
+type ReceiptRouteContext = { params: Promise<{ paymentId: string }> }
+
+function safeFilenamePart(value: string) {
+  return value
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase()
+    .slice(0, 48) || 'receipt'
+}
+
+export async function GET(_req: Request, { params }: ReceiptRouteContext) {
   try {
     const user = await requireCurrentAppUser()
-    const paymentId = Number(params.paymentId)
+    const { paymentId: paymentIdParam } = await params
+    const paymentId = Number(paymentIdParam)
 
     if (!paymentId || Number.isNaN(paymentId)) {
       return NextResponse.json({ error: 'Invalid payment ID.' }, { status: 400 })
@@ -28,6 +38,9 @@ export async function GET(_req: Request, { params }: { params: { paymentId: stri
       amountPaid: row.payment.amountPaid,
       balanceAfterPayment: row.payment.balanceAfterPayment,
       paymentMonth: row.payment.paymentMonth,
+      coverageStart: row.payment.coverageStart,
+      coverageEnd: row.payment.coverageEnd,
+      monthsCovered: row.payment.monthsCovered,
       paymentDate: row.payment.paymentDate,
       paymentMethod: row.payment.paymentMethod,
       notes: row.payment.notes,
@@ -38,20 +51,20 @@ export async function GET(_req: Request, { params }: { params: { paymentId: stri
     }
 
     const element = React.createElement(ReceiptDocument, { payment: paymentData })
-    const stream = await renderToStream(element as any)
+    const buffer: Buffer = await renderToBuffer(element as any)
+    const filename = [
+      'receipt',
+      `ec-pay-${paymentId.toString().padStart(5, '0')}`,
+      safeFilenamePart(row.property.name),
+      `unit-${safeFilenamePart(row.unit.unitNumber)}`
+    ].join('-')
 
-    const responseStream = new ReadableStream({
-      start(controller) {
-        stream.on('data', (chunk: Buffer) => controller.enqueue(chunk))
-        stream.on('end', () => controller.close())
-        stream.on('error', (err: Error) => controller.error(err))
-      }
-    })
-
-    return new Response(responseStream, {
+    return new Response(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="receipt_${paymentId}.pdf"`
+        'Content-Disposition': `attachment; filename="${filename}.pdf"`,
+        'Content-Length': String(buffer.length),
+        'Cache-Control': 'private, no-store'
       }
     })
   } catch (error: any) {

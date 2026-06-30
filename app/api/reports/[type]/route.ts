@@ -2,19 +2,28 @@ import { requireCurrentAppUser } from '@/lib/auth'
 import { getDashboardData } from '@/lib/data'
 import { currentPaymentMonth, monthLabel } from '@/lib/format'
 import { ReportDocument } from '@/lib/pdf/reports'
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { renderToStream } = require('@react-pdf/renderer')
+import { renderToBuffer } from '@react-pdf/renderer'
 import { NextResponse } from 'next/server'
 import React from 'react'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: Request, { params }: { params: { type: string } }) {
+type ReportRouteContext = { params: Promise<{ type: string }> }
+
+function safeFilenamePart(value: string) {
+  return value
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase()
+    .slice(0, 64) || 'report'
+}
+
+export async function GET(req: Request, { params }: ReportRouteContext) {
   try {
     const user = await requireCurrentAppUser()
     const { searchParams } = new URL(req.url)
     const month = searchParams.get('month') ?? currentPaymentMonth()
-    const type = params.type
+    const { type } = await params
 
     const dashboardData = await getDashboardData(user.id, month)
 
@@ -35,7 +44,7 @@ export async function GET(req: Request, { params }: { params: { type: string } }
 
       reportProps = {
         type: 'monthly-rent',
-        title: `Monthly Rent Report — ${monthLabel(month)}`,
+        title: `Monthly Rent Report - ${monthLabel(month)}`,
         month: monthLabel(month),
         data: {
           payments,
@@ -60,7 +69,7 @@ export async function GET(req: Request, { params }: { params: { type: string } }
 
       reportProps = {
         type: 'unpaid-tenants',
-        title: `Unpaid Tenants Report — ${monthLabel(month)}`,
+        title: `Unpaid Tenants Report - ${monthLabel(month)}`,
         month: monthLabel(month),
         data: {
           unpaid,
@@ -99,7 +108,7 @@ export async function GET(req: Request, { params }: { params: { type: string } }
 
       reportProps = {
         type: 'income-expense',
-        title: `Income vs Expense Report — ${monthLabel(month)}`,
+        title: `Income vs Expense Report - ${monthLabel(month)}`,
         monthRange: monthLabel(month),
         data: {
           income: dashboardData.summary.collectedThisMonth,
@@ -137,20 +146,15 @@ export async function GET(req: Request, { params }: { params: { type: string } }
     }
 
     const element = React.createElement(ReportDocument, reportProps)
-    const stream = await renderToStream(element as any)
+    const buffer: Buffer = await renderToBuffer(element as any)
+    const filename = safeFilenamePart(`estatecore-${type}-${month}`)
 
-    const responseStream = new ReadableStream({
-      start(controller) {
-        stream.on('data', (chunk: Buffer) => controller.enqueue(chunk))
-        stream.on('end', () => controller.close())
-        stream.on('error', (err: Error) => controller.error(err))
-      }
-    })
-
-    return new Response(responseStream, {
+    return new Response(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="report_${type}_${month}.pdf"`
+        'Content-Disposition': `attachment; filename="${filename}.pdf"`,
+        'Content-Length': String(buffer.length),
+        'Cache-Control': 'private, no-store'
       }
     })
   } catch (error: any) {

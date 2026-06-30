@@ -1,257 +1,204 @@
-import Link from 'next/link'
+import { auth } from '@clerk/nextjs/server'
+import {
+  ArrowRight,
+  Building2,
+  CalendarDays,
+  CheckCircle2,
+  FileText,
+  LockKeyhole,
+  WalletCards
+} from 'lucide-react'
 import Image from 'next/image'
-import { SignedIn, SignedOut } from '@clerk/nextjs'
+import Link from 'next/link'
 
-const features = [
+const capabilities = [
   {
-    icon: '🏠',
-    title: 'Track Rent in UGX',
-    desc: 'Record payments in Uganda Shillings. See who paid, who owes, and total balances at a glance.',
+    icon: Building2,
+    title: 'Portfolio control',
+    desc: 'Properties, units, rent amounts, occupancy, and tenant assignments stay organized in one workspace.'
   },
   {
-    icon: '👥',
-    title: 'Manage Tenants',
-    desc: 'Store tenant details, move-in dates, and rent due dates. Know your tenants without notebooks.',
+    icon: WalletCards,
+    title: 'Coverage-aware rent',
+    desc: 'Record one, three, six, twelve, or custom months and keep due dates honest.'
   },
   {
-    icon: '📊',
-    title: 'Financial Reports',
-    desc: 'Generate monthly reports, income vs expense summaries, and unpaid tenant lists as PDFs.',
+    icon: CalendarDays,
+    title: 'Rent calendar',
+    desc: 'See move-ins, due dates, overdue rent, payments, expenses, and daily events.'
   },
   {
-    icon: '🏢',
-    title: 'Multiple Properties',
-    desc: 'Manage all your properties and units from one dashboard. Each unit tracked separately.',
-  },
-  {
-    icon: '🔧',
-    title: 'Expense Tracking',
-    desc: 'Log renovations, repairs, plumbing, and maintenance costs. See your true net profit.',
-  },
-  {
-    icon: '🔒',
-    title: 'Secure & Private',
-    desc: 'Your data is yours only. Multi-tenant architecture means no data ever leaks between accounts.',
-  },
+    icon: LockKeyhole,
+    title: 'Private by account',
+    desc: 'Every landlord sees only their own properties, tenants, receipts, and reports.'
+  }
 ]
 
-const steps = [
-  { num: '01', title: 'Sign up free', desc: 'Create your account in under a minute. No credit card required.' },
-  { num: '02', title: 'Add your properties', desc: 'Add buildings and units. Set rent amounts for each unit.' },
-  { num: '03', title: 'Start tracking rent', desc: 'Record payments in UGX, track balances, and generate reports.' },
+const workflow = [
+  'Admin approves the landlord account',
+  'Add properties and vacant units',
+  'Move tenants in with rent coverage',
+  'Track alerts, receipts, and reports'
 ]
 
-export default function Home() {
+export default async function Home() {
+  const { userId } = await auth()
+  const primaryHref = userId ? '/dashboard' : '/sign-up'
+
   return (
-    <div className="min-h-screen bg-white text-gray-900 font-sans">
+    <main className="min-h-screen bg-[#071a0f] text-white">
+      <nav className="sticky top-0 z-50 border-b border-white/10 text-white shadow-[0_18px_45px_rgba(0,0,0,0.22)]">
+        <div className="absolute inset-0 -z-10 bg-[#071a0f]/94 backdrop-blur-xl" />
 
-      {/* ── Navbar ── */}
-      <nav className="sticky top-0 z-50 border-b border-green-900/40" style={{ backgroundColor: '#0a1a0f' }}>
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/estatecoreuglogo.png"
-              alt="EstateCore UG"
-              width={1536}
-              height={1024}
-              className="h-9 w-auto object-contain"
-            />
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-6 lg:px-8">
+          <Link href="/" className="flex min-w-0 items-center gap-3">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/95 shadow-sm ring-1 ring-white/15">
+              <Image src="/estatecore-mark.png" alt="EstateCore UG" width={112} height={112} className="h-14 w-14 object-cover" priority />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-xl font-black leading-none tracking-tight text-white sm:text-2xl">EstateCore UG</span>
+              <span className="mt-1.5 block truncate text-xs font-bold uppercase tracking-[0.18em] text-slate-300 sm:text-sm">Property Management</span>
+            </span>
           </Link>
 
-          {/* Nav actions */}
-          <div className="flex items-center gap-3">
-            <SignedOut>
-              <Link
-                href="/sign-in"
-                className="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-150 px-3 py-1.5"
-              >
-                Sign in
+          <div className="flex shrink-0 items-center gap-3">
+            {userId ? (
+              <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-base font-black text-white" style={{ backgroundColor: '#00A550' }}>
+                Dashboard
+                <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link
-                href="/sign-up"
-                className="text-sm font-bold px-5 py-2 rounded-full transition-all duration-200 bg-white hover:bg-green-50"
-                style={{ color: '#166534' }}
-              >
-                Get started →
-              </Link>
-            </SignedOut>
-            <SignedIn>
-              <Link
-                href="/dashboard"
-                className="text-sm font-bold px-5 py-2 rounded-full transition-all duration-200 bg-white hover:bg-green-50"
-                style={{ color: '#166534' }}
-              >
-                Dashboard →
-              </Link>
-            </SignedIn>
+            ) : (
+              <>
+                <Link href="/sign-in" className="hidden rounded-xl px-4 py-3 text-base font-black text-slate-100 hover:bg-white/10 sm:inline-flex">
+                  Sign in
+                </Link>
+                <Link href="/sign-up" className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-base font-black text-white" style={{ backgroundColor: '#00A550' }}>
+                  Get started
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
 
-      {/* ── Hero ── */}
-      <section
-        className="relative min-h-screen flex flex-col justify-center items-center px-6 text-center overflow-hidden"
-        style={{ backgroundColor: '#0a1a0f' }}
-      >
-        {/* Radial glow */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-30"
-          style={{
-            background: 'radial-gradient(ellipse at center, #166534 0%, transparent 60%)',
-          }}
+      <div className="relative isolate">
+        <Image
+          src="/estatecore-hero-bg.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="absolute inset-0 -z-30 object-cover"
         />
+        <div className="absolute inset-0 -z-20 bg-[#071a0f]/35" />
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(7,26,15,0.9)_0%,rgba(7,26,15,0.62)_38%,rgba(7,26,15,0.18)_68%,rgba(7,26,15,0.36)_100%)]" />
+        <div className="absolute inset-x-0 top-0 -z-10 h-full bg-[linear-gradient(180deg,rgba(0,165,80,0.22)_0%,rgba(0,165,80,0.12)_42%,rgba(0,165,80,0)_100%)] blur-2xl" />
 
-        <div className="relative z-10 max-w-4xl mx-auto">
-          {/* Eyebrow badge */}
-          <span className="inline-flex items-center gap-2 text-sm font-medium px-4 py-1.5 rounded-full border"
-            style={{ backgroundColor: 'rgba(22,101,52,0.3)', borderColor: 'rgba(22,163,74,0.4)', color: '#4ade80' }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            Built for Ugandan Landlords
-          </span>
+        <section>
+          <div className="relative mx-auto flex min-h-[calc(100svh-5rem)] max-w-7xl items-center px-5 py-10 sm:px-6 lg:px-8">
+            <div className="max-w-4xl">
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] sm:text-xs" style={{ color: '#74e3a2' }}>
+                Estate Core UG Property Management Solutions
+              </p>
+              <h1 className="mt-4 max-w-4xl text-[clamp(2.75rem,6vw,5.75rem)] font-black leading-[0.96] tracking-tight">
+                Crafting Rental Operations That Matter
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg lg:text-xl lg:leading-8">
+                Manage units, tenants, rent coverage, receipts, expenses, calendar reminders, and approval controls without spreadsheets or guesswork.
+              </p>
 
-          {/* Headline */}
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-white mt-6 leading-none">
-            The property management<br />
-            <span style={{ color: '#4ade80' }}>tool built for Uganda.</span>
-          </h1>
-
-          {/* Subheading */}
-          <p className="text-lg md:text-xl mt-6 leading-relaxed max-w-2xl mx-auto" style={{ color: '#d1d5db' }}>
-            Track rent in UGX, manage tenants, log expenses, and get clear
-            financial reports — all from one clean dashboard. No spreadsheets.
-          </p>
-
-          {/* Primary CTA */}
-          <div className="mt-10">
-            <Link href="/sign-up">
-              <button className="bg-white font-bold text-lg px-10 py-4 rounded-full transition-all duration-200 shadow-lg hover:bg-green-50"
-                style={{ color: '#166534', boxShadow: '0 8px 32px rgba(22,101,52,0.4)' }}>
-                Start for free →
-              </button>
-            </Link>
-            <p className="mt-4 text-sm" style={{ color: '#9ca3af' }}>
-              Already have an account?{' '}
-              <Link href="/sign-in" className="hover:underline" style={{ color: '#4ade80' }}>
-                Sign in
-              </Link>
-            </p>
-          </div>
-
-          {/* Social proof */}
-          <div className="mt-12 flex items-center justify-center gap-6 md:gap-8 flex-wrap text-sm" style={{ color: '#9ca3af' }}>
-            <div className="flex items-center gap-2">
-              <span className="text-white font-bold text-lg">500+</span>
-              <span>units tracked</span>
-            </div>
-            <div className="hidden sm:block w-px h-6" style={{ backgroundColor: '#374151' }} />
-            <div className="flex items-center gap-2">
-              <span className="text-white font-bold text-lg">UGX</span>
-              <span>native currency</span>
-            </div>
-            <div className="hidden sm:block w-px h-6" style={{ backgroundColor: '#374151' }} />
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-lg" style={{ color: '#4ade80' }}>✓</span>
-              <span>No spreadsheets</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section className="py-24 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-              Everything a Ugandan landlord needs
-            </h2>
-            <p className="text-gray-500 mt-3 max-w-xl mx-auto text-base md:text-lg">
-              Built specifically for the way property management works in Uganda.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((f) => (
-              <div
-                key={f.title}
-                className="p-6 rounded-2xl border border-gray-100 hover:border-green-200 hover:shadow-md transition-all duration-200"
-              >
-                <div className="text-3xl mb-3">{f.icon}</div>
-                <h3 className="font-semibold text-gray-900 text-lg mb-2">{f.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <Link href={primaryHref} className="inline-flex items-center justify-center gap-3 rounded-full bg-white px-7 py-3.5 text-base font-black text-slate-950 shadow-xl sm:px-8">
+                  {userId ? 'View Dashboard' : 'Start Managing'}
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+                <Link href="/sign-in" className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-7 py-3.5 text-base font-black text-white backdrop-blur sm:px-8">
+                  Sign in
+                </Link>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
-      {/* ── How It Works ── */}
-      <section className="py-24 px-6" style={{ backgroundColor: '#0a1a0f' }}>
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white">
-              Up and running in minutes
-            </h2>
-            <p className="mt-3 text-base md:text-lg" style={{ color: '#9ca3af' }}>
-              No training required. No complicated setup.
-            </p>
+      <section className="bg-[#f5f7f5] px-5 py-14 text-slate-950 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-2xl">
+            <p className="text-sm font-black uppercase tracking-[0.18em]" style={{ color: '#00A550' }}>Operating system</p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">Everything a landlord checks every day.</h2>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-            {steps.map((step, i) => (
-              <div key={step.num} className="text-center md:text-left relative">
-                {/* Connector arrow between steps */}
-                {i < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-6 left-full w-12 text-center" style={{ color: '#166534' }}>
-                    →
-                  </div>
-                )}
-                <div className="text-4xl font-extrabold mb-4" style={{ color: '#22c55e', opacity: 0.4 }}>
-                  {step.num}
+          <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {capabilities.map((item) => {
+              const Icon = item.icon
+              return (
+                <div key={item.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <Icon className="h-6 w-6" style={{ color: '#00A550' }} />
+                  <h3 className="mt-5 text-lg font-black">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{item.desc}</p>
                 </div>
-                <h3 className="font-bold text-white text-lg mb-2">{step.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: '#9ca3af' }}>{step.desc}</p>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white px-5 py-14 text-slate-950 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.8fr_1fr] lg:items-center">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.18em]" style={{ color: '#00A550' }}>Workflow</p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">From approval to receipt without loose ends.</h2>
+            <p className="mt-5 text-base leading-7 text-slate-600">
+              EstateCore UG keeps the business rules visible: approval status, occupied units, rent coverage, due dates, receipts, and cross-account isolation.
+            </p>
+          </div>
+          <div className="grid gap-3">
+            {workflow.map((item) => (
+              <div key={item} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <CheckCircle2 className="h-5 w-5 shrink-0" style={{ color: '#00A550' }} />
+                <span className="text-sm font-black text-slate-800">{item}</span>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Final CTA ── */}
-      <section className="py-24 px-6 text-center bg-white">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900">
-            Ready to stop using notebooks?
-          </h2>
-          <p className="text-gray-500 mt-4 text-lg">
-            Join landlords across Uganda managing rent the smart way.
-          </p>
-          <Link href="/sign-up">
-            <button
-              className="mt-8 text-white font-bold text-lg px-10 py-4 rounded-full transition-all duration-200 hover:opacity-90"
-              style={{ backgroundColor: '#16a34a' }}
-            >
-              Get started for free →
-            </button>
+      <section className="relative isolate overflow-hidden px-5 py-16 text-white sm:px-6 lg:px-8">
+        <Image
+          src="/estatecore-hero-bg.png"
+          alt=""
+          fill
+          sizes="100vw"
+          className="absolute inset-0 -z-30 object-cover"
+        />
+        <div className="absolute inset-0 -z-20 bg-[#071a0f]/55" />
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(7,26,15,0.92)_0%,rgba(7,26,15,0.64)_48%,rgba(7,26,15,0.34)_100%)]" />
+        <div className="absolute inset-x-0 top-0 -z-10 h-full bg-[linear-gradient(180deg,rgba(0,165,80,0.16)_0%,rgba(0,165,80,0.05)_100%)] blur-2xl" />
+
+        <div className="relative mx-auto flex max-w-7xl flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <FileText className="mb-4 h-6 w-6" style={{ color: '#74e3a2' }} />
+            <h2 className="text-3xl font-black tracking-tight sm:text-5xl">Ready to run your portfolio properly?</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-200">
+              Start with approval, add your properties, and keep every rent cycle accountable.
+            </p>
+          </div>
+          <Link href={primaryHref} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-4 text-sm font-black text-slate-950">
+            Continue
+            <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </section>
 
-      {/* ── Footer ── */}
-      <footer className="py-8 px-6 border-t" style={{ backgroundColor: '#0a1a0f', borderColor: '#1f2d1f' }}>
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <Image
-            src="/estatecoreuglogo.png"
-            alt="EstateCore UG"
-            width={1536}
-            height={1024}
-            className="h-7 w-auto object-contain"
-          />
-          <p className="text-sm" style={{ color: '#6b7280' }}>
-            © {new Date().getFullYear()} EstateCore UG. All rights reserved.
-          </p>
+      <footer className="border-t border-white/10 bg-[#071a0f] px-5 py-7 text-white sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-slate-300 sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-semibold text-white">EstateCore UG Property Management Solutions</p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
+            <a href="tel:+256751929535" className="hover:text-white">Contact: +256 751929535</a>
+            <a href="mailto:godlovesconrad@gmail.com" className="hover:text-white">Email: godlovesconrad@gmail.com</a>
+          </div>
         </div>
       </footer>
-    </div>
+    </main>
   )
 }

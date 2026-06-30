@@ -4,8 +4,21 @@ import { users } from '@/drizzle/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 
+export type AppUserRole = 'admin' | 'landlord'
+export type AppUserStatus = 'pending' | 'approved' | 'rejected' | 'suspended'
+
+function getAdminEmails() {
+  return (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+function isAdminEmail(email: string) {
+  return getAdminEmails().includes(email.toLowerCase())
+}
+
 export async function getCurrentUser() {
-  // Clerk v5 uses auth() as a function — works in both v4 and v5
   const authResult = await auth()
   const userId = authResult?.userId
   if (!userId) throw new Error('Unauthenticated')
@@ -28,17 +41,46 @@ export async function getCurrentUser() {
       clerkUser.username ??
       clerkUser.firstName ??
       email
+    const phone = clerkUser.primaryPhoneNumber?.phoneNumber ?? null
+    const admin = isAdminEmail(email)
+    const now = new Date()
 
     const [created] = await db
       .insert(users)
       .values({
         clerkId: clerkUser.id,
         email,
-        name
+        name,
+        phone,
+        role: admin ? 'admin' : 'landlord',
+        accountStatus: admin ? 'approved' : 'pending',
+        approvedAt: admin ? now : null,
+        lastSeenAt: now
       })
       .returning()
-    
+
     user = created
+  } else {
+    const admin = isAdminEmail(user.email)
+    const updates: Partial<typeof users.$inferInsert> = {
+      lastSeenAt: new Date()
+    }
+
+    if (admin && (user.role !== 'admin' || user.accountStatus !== 'approved')) {
+      updates.role = 'admin'
+      updates.accountStatus = 'approved'
+      updates.approvedAt = user.approvedAt ?? new Date()
+      updates.rejectedAt = null
+      updates.suspendedAt = null
+    }
+
+    const [updated] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, user.id))
+      .returning()
+
+    user = updated ?? user
   }
 
   return user
@@ -56,6 +98,23 @@ export async function requireCurrentAppUser() {
   const user = await getCurrentAppUser()
   if (!user) {
     redirect('/sign-in')
+  }
+  if (user.accountStatus !== 'approved') {
+    redirect('/pending-approval')
+  }
+  return user
+}
+
+export async function requireAdminUser() {
+  const user = await getCurrentAppUser()
+  if (!user) {
+    redirect('/sign-in')
+  }
+  if (user.accountStatus !== 'approved') {
+    redirect('/pending-approval')
+  }
+  if (user.role !== 'admin') {
+    redirect('/dashboard')
   }
   return user
 }

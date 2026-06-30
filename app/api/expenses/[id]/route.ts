@@ -12,9 +12,12 @@ function parseId(value: string) {
   return Number.isInteger(id) && id > 0 ? id : null
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+type ExpenseRouteContext = { params: Promise<{ id: string }> }
+
+export async function GET(_req: Request, { params }: ExpenseRouteContext) {
   const user = await requireCurrentAppUser()
-  const id = parseId(params.id)
+  const { id: idParam } = await params
+  const id = parseId(idParam)
 
   if (!id) {
     return NextResponse.json({ error: 'Invalid expense id.' }, { status: 400 })
@@ -33,9 +36,10 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   })
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: ExpenseRouteContext) {
   const user = await requireCurrentAppUser()
-  const id = parseId(params.id)
+  const { id: idParam } = await params
+  const id = parseId(idParam)
 
   if (!id) {
     return NextResponse.json({ error: 'Invalid expense id.' }, { status: 400 })
@@ -91,9 +95,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json(updated)
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: ExpenseRouteContext) {
   const user = await requireCurrentAppUser()
-  const id = parseId(params.id)
+  const { id: idParam } = await params
+  const id = parseId(idParam)
 
   if (!id) {
     return NextResponse.json({ error: 'Invalid expense id.' }, { status: 400 })

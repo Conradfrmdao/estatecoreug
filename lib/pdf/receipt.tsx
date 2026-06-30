@@ -135,6 +135,9 @@ interface ReceiptProps {
     amountPaid: number
     balanceAfterPayment: number
     paymentMonth: string
+    monthsCovered?: number
+    coverageStart?: string | Date
+    coverageEnd?: string | Date
     paymentDate: string | Date
     paymentMethod: string
     notes?: string | null
@@ -146,7 +149,7 @@ interface ReceiptProps {
 }
 
 export function ReceiptDocument({ payment }: ReceiptProps) {
-  const logoPath = path.join(process.cwd(), 'public/estatecoreuglogo.png')
+  const logoPath = path.join(process.cwd(), 'public/estatecore-lockup.png')
   const dateStr = new Date(payment.paymentDate).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'short',
@@ -164,8 +167,8 @@ export function ReceiptDocument({ payment }: ReceiptProps) {
         <View style={styles.header}>
           <Image src={logoPath} style={styles.logo} />
           <View style={styles.titleContainer}>
-            <Text style={styles.title}>RENT RECEIPT</Text>
-            <Text style={styles.subtitle}>PROPERTY MANAGEMENT SOLUTIONS</Text>
+            <Text style={styles.title}>Rent Receipt</Text>
+            <Text style={styles.subtitle}>Estate Core UG Property Management Solutions</Text>
           </View>
         </View>
 
@@ -184,8 +187,10 @@ export function ReceiptDocument({ payment }: ReceiptProps) {
             <Text style={styles.metaValue}>{payment.paymentMethod.toUpperCase()}</Text>
           </View>
           <View style={styles.metaCol}>
-            <Text style={styles.metaLabel}>Month Covered</Text>
-            <Text style={styles.metaValue}>{payment.paymentMonth}</Text>
+            <Text style={styles.metaLabel}>Rent Coverage</Text>
+            <Text style={styles.metaValue}>
+              {payment.monthsCovered ?? 1} month{(payment.monthsCovered ?? 1) === 1 ? '' : 's'}
+            </Text>
           </View>
         </View>
 

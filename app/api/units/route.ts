@@ -55,6 +55,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Property not found.' }, { status: 404 })
   }
 
+  if (status === 'occupied') {
+    return NextResponse.json(
+      { error: 'Create the unit as vacant, then assign an active tenant to occupy it.' },
+      { status: 400 }
+    )
+  }
+
   const [created] = await db
     .insert(units)
     .values({
