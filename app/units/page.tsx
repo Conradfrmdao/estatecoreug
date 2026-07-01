@@ -34,14 +34,14 @@ export default async function UnitsPage({
     <div className="space-y-6 animate-in">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: '#1a1a2e' }}>Units</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl" style={{ color: '#1a1a2e' }}>Units</h1>
           <p className="mt-1.5 text-sm" style={{ color: '#64748b' }}>
             All rental units across your properties.
           </p>
         </div>
         <Link
           href="/units/new"
-          className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition sm:w-auto"
           style={{ backgroundColor: '#00A550', boxShadow: '0 4px 14px rgba(0,165,80,0.3)' }}
         >
           <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
@@ -50,7 +50,7 @@ export default async function UnitsPage({
       </section>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-3 sm:gap-4">
         <div className="rounded-xl border bg-white p-4 text-center"
           style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
           <p className="text-2xl font-bold" style={{ color: '#1a1a2e' }}>{unitRows.length}</p>
@@ -69,32 +69,32 @@ export default async function UnitsPage({
       </div>
 
       {/* Filters */}
-      <form method="get" className="flex flex-wrap gap-3 rounded-xl border bg-white p-4"
+      <form method="get" className="grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-center"
         style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         <input
           name="q"
           defaultValue={searchParams?.q ?? ''}
           placeholder="Search unit, property…"
-          className="field-input flex-1 min-w-[180px]"
+          className="field-input min-w-0"
         />
         <select
           name="status"
           defaultValue={statusFilter}
-          className="field-input w-auto min-w-[140px]"
+          className="field-input min-w-0 sm:w-auto sm:min-w-[140px]"
         >
           <option value="">All statuses</option>
           <option value="occupied">Occupied</option>
           <option value="vacant">Vacant</option>
         </select>
         <button
-          className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition"
+          className="min-h-11 rounded-lg px-5 py-2 text-sm font-semibold text-white transition"
           style={{ backgroundColor: '#00A550' }}
         >
           Filter
         </button>
         {(q || statusFilter) && (
           <Link href="/units"
-            className="rounded-lg px-4 py-2 text-sm font-medium transition"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition"
             style={{ color: '#64748b', border: '1px solid #e2e8f0' }}>
             Clear
           </Link>
@@ -118,12 +118,12 @@ export default async function UnitsPage({
             <tbody>
               {rows.map(({ unit, property }) => (
                 <tr key={unit.id}>
-                  <td>
+                  <td data-label="Unit">
                     <span className="font-semibold" style={{ color: '#1a1a2e' }}>
                       Unit {unit.unitNumber}
                     </span>
                   </td>
-                  <td style={{ color: '#64748b' }}>
+                  <td data-label="Property" style={{ color: '#64748b' }}>
                     <div className="flex items-center gap-1.5">
                       <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" />
@@ -131,17 +131,17 @@ export default async function UnitsPage({
                       {property.name}
                     </div>
                   </td>
-                  <td className="font-semibold" style={{ color: '#1a1a2e' }}>
+                  <td data-label="Monthly Rent" className="font-semibold" style={{ color: '#1a1a2e' }}>
                     {currency(unit.rentAmount)}
                   </td>
-                  <td>
+                  <td data-label="Status">
                     {unit.status === 'occupied' ? (
                       <span className="badge badge-green">Occupied</span>
                     ) : (
                       <span className="badge badge-amber">Vacant</span>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Actions">
                     <div className="flex justify-end items-center gap-2">
                       <Link
                         href={`/units/${unit.id}/edit`}

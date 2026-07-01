@@ -2,11 +2,26 @@ import { rentPayments, tenants, units } from '@/drizzle/schema'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getUnitForUser, listTenantsForUser } from '@/lib/data'
 import { db } from '@/lib/db'
-import { calculateDueDate, monthFromDate } from '@/lib/rent-cycle'
+import { buildFirstPaymentValues, planTenantCreation } from '@/lib/tenant-creation'
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
+
+function isActiveTenantConflict(error: unknown) {
+  if (typeof error === 'object' && error && 'code' in error && error.code === '23505') {
+    return true
+  }
+
+  return error instanceof Error && error.message.includes('tenants_one_active_per_unit_idx')
+}
+
+function occupiedUnitResponse() {
+  return NextResponse.json(
+    { error: 'This unit is already occupied. Move or deactivate the current tenant before assigning another one.' },
+    { status: 409 }
+  )
+}
 
 export async function GET(req: Request) {
   const user = await requireCurrentAppUser()
@@ -48,82 +63,70 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const user = await requireCurrentAppUser()
-  const body = await req.json()
-  const unitId = Number(body.unitId)
-  const fullName = String(body.fullName ?? '').trim()
-  const phone = String(body.phone ?? '').trim()
-  const email = body.email ? String(body.email).trim() : null
-  const moveInDate = body.moveInDate ? new Date(body.moveInDate) : new Date()
-  const monthsCovered = Math.max(1, Math.trunc(Number(body.monthsCovered ?? 1)))
-  const rentDueDate = calculateDueDate(moveInDate, monthsCovered)
-  const active = body.active ?? true
-  const recordFirstPayment = Boolean(body.recordFirstPayment)
-  const paymentAmount = Number(body.paymentAmount ?? 0)
-  const paymentDate = body.paymentDate ? new Date(body.paymentDate) : new Date()
-  const paymentMethod = String(body.paymentMethod ?? 'cash').trim()
+  let plan
 
-  if (!unitId || !fullName || !phone || Number.isNaN(moveInDate.valueOf()) || Number.isNaN(rentDueDate.valueOf())) {
-    return NextResponse.json({ error: 'Unit, name, phone, and move-in date are required.' }, { status: 400 })
+  try {
+    plan = planTenantCreation(await req.json())
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Tenant details are invalid.' },
+      { status: 400 }
+    )
   }
 
-  if (recordFirstPayment && (!Number.isFinite(paymentAmount) || paymentAmount <= 0 || Number.isNaN(paymentDate.valueOf()))) {
-    return NextResponse.json({ error: 'A positive first payment amount and payment date are required.' }, { status: 400 })
-  }
-
-  const unit = await getUnitForUser(user.id, unitId)
+  const unit = await getUnitForUser(user.id, plan.unitId)
 
   if (!unit) {
     return NextResponse.json({ error: 'Unit not found.' }, { status: 404 })
   }
 
   const existingActiveTenant = (await listTenantsForUser(user.id)).find(
-    (row) => row.tenant.unitId === unitId && row.tenant.active
+    (row) => row.tenant.unitId === plan.unitId && row.tenant.active
   )
 
-  if (active && (existingActiveTenant || unit.unit.status === 'occupied')) {
-    return NextResponse.json(
-      { error: 'This unit is already occupied. Move or deactivate the current tenant before assigning another one.' },
-      { status: 409 }
-    )
+  if (plan.active && (existingActiveTenant || unit.unit.status === 'occupied')) {
+    return occupiedUnitResponse()
   }
 
-  const [created] = await db.transaction(async (tx) => {
-    const [tenant] = await tx
+  let created: typeof tenants.$inferSelect | null = null
+
+  try {
+    const [tenant] = await db
       .insert(tenants)
       .values({
-        unitId,
-        fullName,
-        phone,
-        email,
-        moveInDate,
-        rentDueDate,
-        active
+        unitId: plan.unitId,
+        fullName: plan.fullName,
+        phone: plan.phone,
+        email: plan.email,
+        moveInDate: plan.moveInDate,
+        rentDueDate: plan.rentDueDate,
+        active: plan.active
       })
       .returning()
+    created = tenant
 
-    if (recordFirstPayment) {
-      const allocatedAmount = Math.round(paymentAmount / monthsCovered)
-      await tx.insert(rentPayments).values({
-        tenantId: tenant.id,
-        unitId,
-        amountPaid: paymentAmount,
-        balanceAfterPayment: Math.max(unit.unit.rentAmount - allocatedAmount, 0),
-        paymentMonth: monthFromDate(moveInDate),
-        coverageStart: moveInDate,
-        coverageEnd: rentDueDate,
-        monthsCovered,
-        paymentDate,
-        paymentMethod,
-        notes: `First rent payment covering ${monthsCovered} month${monthsCovered === 1 ? '' : 's'} from move-in.`
-      })
+    if (plan.recordFirstPayment) {
+      await db.insert(rentPayments).values(
+        buildFirstPaymentValues(plan, tenant.id, unit.unit.rentAmount)
+      )
     }
 
-    if (active) {
-      await tx.update(units).set({ status: 'occupied' }).where(eq(units.id, unitId))
+    if (plan.active) {
+      await db.update(units).set({ status: 'occupied' }).where(eq(units.id, plan.unitId))
     }
-
-    return [tenant]
-  })
+  } catch (error) {
+    if (created) {
+      await db.delete(tenants).where(eq(tenants.id, created.id)).catch(() => undefined)
+    }
+    if (isActiveTenantConflict(error)) {
+      return occupiedUnitResponse()
+    }
+    console.error('Failed to save tenant:', error)
+    return NextResponse.json(
+      { error: 'Failed to save tenant. Check the unit, payment amount, and database connection.' },
+      { status: 500 }
+    )
+  }
 
   return NextResponse.json(created, { status: 201 })
 }

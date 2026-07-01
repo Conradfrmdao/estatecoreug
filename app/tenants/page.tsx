@@ -27,14 +27,14 @@ export default async function TenantsPage({
     <div className="space-y-6 animate-in">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: '#1a1a2e' }}>Tenants</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl" style={{ color: '#1a1a2e' }}>Tenants</h1>
           <p className="mt-1.5 text-sm" style={{ color: '#64748b' }}>
             Manage profiles, unit assignments, and contact details of active and inactive tenants.
           </p>
         </div>
         <Link
           href="/tenants/new"
-          className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition sm:w-auto"
           style={{ backgroundColor: '#00A550', boxShadow: '0 4px 14px rgba(0,165,80,0.3)' }}
         >
           <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
@@ -52,7 +52,7 @@ export default async function TenantsPage({
           className="field-input min-w-0 flex-1"
         />
         <button
-          className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition"
+          className="min-h-11 rounded-lg px-5 py-2 text-sm font-semibold text-white transition sm:w-auto"
           style={{ backgroundColor: '#00A550' }}
         >
           Search
@@ -77,7 +77,7 @@ export default async function TenantsPage({
             <tbody>
               {rows.map(({ tenant, unit, property }) => (
                 <tr key={tenant.id}>
-                  <td>
+                  <td data-label="Tenant">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                         style={{ backgroundColor: tenant.active ? '#00A550' : '#94a3b8' }}>
@@ -91,26 +91,26 @@ export default async function TenantsPage({
                       </div>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Unit & Property">
                     <div>
                       <span className="font-semibold block" style={{ color: '#1a1a2e' }}>Unit {unit.unitNumber}</span>
                       <span className="text-xs text-slate-500 block">{property.name}</span>
                     </div>
                   </td>
-                  <td style={{ color: '#374151', fontSize: '0.875rem' }}>
+                  <td data-label="Contact" style={{ color: '#374151', fontSize: '0.875rem' }}>
                     {tenant.phone}
                   </td>
-                  <td style={{ color: '#64748b', fontSize: '0.875rem' }}>
+                  <td data-label="Move In Date" style={{ color: '#64748b', fontSize: '0.875rem' }}>
                     {formatDate(tenant.moveInDate)}
                   </td>
-                  <td>
+                  <td data-label="Status">
                     {tenant.active ? (
                       <span className="badge badge-green">Active</span>
                     ) : (
                       <span className="badge" style={{ backgroundColor: '#f1f5f9', color: '#64748b' }}>Inactive</span>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Actions">
                     <div className="flex justify-end items-center gap-2">
                       {tenant.active && (
                         <Link

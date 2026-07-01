@@ -58,19 +58,20 @@ export default async function CalendarPage({
     : view === 'week'
       ? Array.from({ length: 7 }, (_, index) => addDays(weekStart, index))
       : monthGrid
+  const calendarGridClass = view === 'day' ? 'grid-cols-1' : 'grid-cols-7'
 
   return (
     <div className="space-y-3 pb-4 animate-in">
       <section className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: '#00A550' }}>Rent calendar</p>
-          <h1 className="text-2xl font-bold" style={{ color: '#1a1a2e' }}>Calendar</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl" style={{ color: '#1a1a2e' }}>Calendar</h1>
           <p className="mt-0.5 text-xs text-slate-500">Move-ins, rent due dates, payments, expenses, and overdue reminders.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href={`/calendar?view=${view}&date=${todayKey}`}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700"
+            className="inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700"
           >
             Today
           </Link>
@@ -102,12 +103,12 @@ export default async function CalendarPage({
 
       <section className="grid gap-3 xl:grid-cols-[1fr_20rem]">
         <div className="overflow-hidden rounded-xl border bg-white" style={{ borderColor: '#e2e8f0' }}>
-          <div className="grid grid-cols-7 border-b text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400" style={{ borderColor: '#e2e8f0' }}>
+          <div className={`${view === 'day' ? 'hidden' : 'grid'} grid-cols-7 border-b text-center text-[10px] font-semibold uppercase tracking-wider text-slate-400 sm:text-[11px]`} style={{ borderColor: '#e2e8f0' }}>
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
               <div key={day} className="px-2 py-2">{day}</div>
             ))}
           </div>
-          <div className="grid grid-cols-7">
+          <div className={`grid ${calendarGridClass}`}>
             {visibleDays.map((day) => {
               const key = toDateKey(day)
               const dayEvents = eventsByDate.get(key) ?? []
@@ -119,7 +120,7 @@ export default async function CalendarPage({
                 <Link
                   key={key}
                   href={`/calendar?view=${view}&date=${key}`}
-                  className={`min-h-[5.75rem] border-b border-r p-1.5 transition hover:bg-slate-50 ${isSelected ? 'ring-2 ring-inset ring-green-500' : ''}`}
+                  className={`min-h-[4.75rem] border-b border-r p-1 transition hover:bg-slate-50 sm:min-h-[5.75rem] sm:p-1.5 ${isSelected ? 'ring-2 ring-inset ring-green-500' : ''}`}
                   style={{ borderColor: '#f1f5f9', backgroundColor: inMonth ? undefined : '#f8fafc' }}
                 >
                   <span className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full text-xs font-bold ${
@@ -127,14 +128,14 @@ export default async function CalendarPage({
                   }`}>
                     {day.getUTCDate()}
                   </span>
-                  <div className="mt-1 space-y-1">
+                  <div className="mt-1 flex min-w-0 flex-wrap gap-0.5 sm:block sm:space-y-1">
                     {dayEvents.slice(0, view === 'month' ? 2 : 6).map((event) => (
-                      <div key={event.id} className={`truncate rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${eventColors(event.severity)}`}>
+                      <div key={event.id} className={`h-1.5 w-1.5 rounded-full border text-transparent sm:h-auto sm:w-auto sm:truncate sm:rounded-md sm:px-1.5 sm:py-0.5 sm:text-[10px] sm:font-semibold ${eventColors(event.severity)}`}>
                         {event.title}
                       </div>
                     ))}
                     {dayEvents.length > 2 && view === 'month' && (
-                      <p className="text-[10px] font-semibold text-slate-400">+{dayEvents.length - 2} more</p>
+                      <p className="basis-full text-[10px] font-semibold leading-none text-slate-400 sm:basis-auto sm:leading-normal">+{dayEvents.length - 2}</p>
                     )}
                   </div>
                 </Link>

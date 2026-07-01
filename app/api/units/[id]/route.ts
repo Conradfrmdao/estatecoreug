@@ -1,4 +1,4 @@
-import { expenses, rentPayments, tenants, units } from '@/drizzle/schema'
+import { units } from '@/drizzle/schema'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getPropertyForUser, getUnitForUser, listTenantsForUser } from '@/lib/data'
 import { db } from '@/lib/db'
@@ -113,12 +113,7 @@ export async function DELETE(_req: Request, { params }: UnitRouteContext) {
     return NextResponse.json({ error: 'Unit not found.' }, { status: 404 })
   }
 
-  await db.transaction(async (tx) => {
-    await tx.delete(rentPayments).where(eq(rentPayments.unitId, id))
-    await tx.delete(expenses).where(eq(expenses.unitId, id))
-    await tx.delete(tenants).where(eq(tenants.unitId, id))
-    await tx.delete(units).where(eq(units.id, id))
-  })
+  await db.delete(units).where(eq(units.id, id))
 
   return NextResponse.json({ ok: true })
 }

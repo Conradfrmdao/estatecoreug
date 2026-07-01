@@ -37,7 +37,7 @@ export default async function EditPaymentPage({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 animate-in">
+    <div className="mx-auto max-w-2xl space-y-4 sm:space-y-6 animate-in">
       <div>
         <Link href="/payments"
           className="inline-flex items-center gap-1.5 text-sm font-medium transition"
@@ -47,11 +47,11 @@ export default async function EditPaymentPage({
           </svg>
           Back to payments
         </Link>
-        <h1 className="mt-3 text-3xl font-bold" style={{ color: '#1a1a2e' }}>Edit Payment</h1>
+        <h1 className="mt-3 text-2xl font-bold sm:text-3xl" style={{ color: '#1a1a2e' }}>Edit Payment</h1>
         <p className="mt-1.5 text-sm" style={{ color: '#64748b' }}>Update the recorded payment details.</p>
       </div>
 
-      <section className="rounded-xl border bg-white p-6"
+      <section className="rounded-xl border bg-white p-4 sm:p-6"
         style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         <PaymentForm initialData={initialData} />
       </section>

@@ -298,13 +298,13 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
         />
       </div>
 
-      <div className="flex items-center gap-3 pt-2">
+      <div className="form-actions">
         <button
           disabled={isSaving}
           className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
           style={{ backgroundColor: '#00A550', boxShadow: '0 4px 14px rgba(0,165,80,0.3)' }}
         >
-          {isSaving ? 'Saving…' : initialData ? 'Save Payment' : 'Record Payment'}
+          {isSaving ? 'Saving...' : initialData ? 'Save Payment' : 'Record Payment'}
         </button>
         <button
           type="button"

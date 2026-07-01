@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next typegen && tsc --noEmit",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:rent-cycle": "node --test --experimental-strip-types tests/rent-cycle.test.ts",
+    "test": "node --test --experimental-strip-types tests/*.test.ts",
+    "test:rent-cycle": "node --test --experimental-strip-types tests/*.test.ts",
+    "db:smoke": "node scripts/neon-smoke-test.mjs",
     "drizzle:generate": "drizzle-kit generate",
     "drizzle:push": "drizzle-kit push"
   },

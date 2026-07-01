@@ -1,5 +1,5 @@
-import { relations } from 'drizzle-orm'
-import { boolean, integer, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
+import { relations, sql } from 'drizzle-orm'
+import { boolean, integer, pgTable, serial, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -43,7 +43,11 @@ export const tenants = pgTable('tenants', {
   rentDueDate: timestamp('rent_due_date', { withTimezone: true }).notNull(),
   active: boolean('active').default(true).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
-})
+}, (table) => [
+  uniqueIndex('tenants_one_active_per_unit_idx')
+    .on(table.unitId)
+    .where(sql`${table.active} = true`)
+])
 
 export const rentPayments = pgTable('rent_payments', {
   id: serial('id').primaryKey(),

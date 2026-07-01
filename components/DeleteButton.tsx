@@ -50,7 +50,7 @@ export default function DeleteButton({
       </button>
 
       {confirming && (
-        <span className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4">
+        <span className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/35 px-4 py-[calc(1rem+env(safe-area-inset-bottom))]">
           <span className="w-full max-w-sm rounded-xl border bg-white p-5 text-left shadow-xl" style={{ borderColor: '#e2e8f0' }}>
             <span className="block text-base font-bold" style={{ color: '#1a1a2e' }}>
               Confirm delete
@@ -63,12 +63,12 @@ export default function DeleteButton({
                 {error}
               </span>
             )}
-            <span className="mt-5 flex justify-end gap-2">
+            <span className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={() => setConfirming(false)}
                 disabled={pending}
-                className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60"
+                className="min-h-11 w-full rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60 sm:w-auto"
                 style={{ borderColor: '#e2e8f0' }}
               >
                 Cancel
@@ -77,7 +77,7 @@ export default function DeleteButton({
                 type="button"
                 onClick={handleDelete}
                 disabled={pending}
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                className="min-h-11 w-full rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 sm:w-auto"
                 style={{ backgroundColor: '#dc2626' }}
               >
                 {pending ? 'Deleting...' : 'Delete'}

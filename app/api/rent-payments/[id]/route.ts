@@ -8,6 +8,15 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
+function parseMonthsCovered(value: unknown) {
+  const number = Number(value ?? 1)
+  if (!Number.isFinite(number)) {
+    return 1
+  }
+
+  return Math.max(1, Math.trunc(number))
+}
+
 function parseId(value: string) {
   const id = Number(value)
   return Number.isInteger(id) && id > 0 ? id : null
@@ -59,7 +68,7 @@ export async function PATCH(req: Request, { params }: PaymentRouteContext) {
   const requestedPaymentMonth = String(body.paymentMonth ?? '').trim()
   const paymentDate = body.paymentDate ? new Date(body.paymentDate) : new Date()
   const paymentMethod = String(body.paymentMethod ?? 'other').trim()
-  const monthsCovered = Math.max(1, Math.trunc(Number(body.monthsCovered ?? 1)))
+  const monthsCovered = parseMonthsCovered(body.monthsCovered)
   const notes = body.notes ? String(body.notes).trim() : null
 
   if (!tenantId || !Number.isFinite(amountPaid) || amountPaid <= 0 || !requestedPaymentMonth || Number.isNaN(paymentDate.valueOf())) {

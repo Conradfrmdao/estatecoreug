@@ -37,7 +37,7 @@ export default async function AdminPage() {
     <div className="space-y-6 animate-in">
       <section className="flex flex-col gap-2">
         <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#00A550' }}>Platform owner</p>
-        <h1 className="text-3xl font-bold" style={{ color: '#1a1a2e' }}>Admin Panel</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl" style={{ color: '#1a1a2e' }}>Admin Panel</h1>
         <p className="text-sm text-slate-500">Approve accounts, monitor usage, and protect tenant data boundaries.</p>
       </section>
 
@@ -77,26 +77,26 @@ export default async function AdminPage() {
             <tbody>
               {users.map(({ user, stats }) => (
                 <tr key={user.id}>
-                  <td>
+                  <td data-label="User">
                     <div>
                       <span className="block font-semibold" style={{ color: '#1a1a2e' }}>{user.name}</span>
                       <span className="block text-xs text-slate-500">{user.email}</span>
                       {user.phone && <span className="block text-xs text-slate-400">{user.phone}</span>}
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Status">
                     {statusBadge(user.accountStatus)}
                     <span className="ml-2 text-xs uppercase text-slate-400">{user.role}</span>
                   </td>
-                  <td className="text-sm text-slate-500">{formatDate(user.createdAt)}</td>
-                  <td className="text-sm text-slate-500">{formatDate(user.lastSeenAt)}</td>
-                  <td className="text-sm text-slate-600">
+                  <td data-label="Created" className="text-sm text-slate-500">{formatDate(user.createdAt)}</td>
+                  <td data-label="Last seen" className="text-sm text-slate-500">{formatDate(user.lastSeenAt)}</td>
+                  <td data-label="Portfolio" className="text-sm text-slate-600">
                     {stats.properties} properties, {stats.tenants} tenants
                   </td>
-                  <td className="text-sm text-slate-600">
+                  <td data-label="Financials" className="text-sm text-slate-600">
                     {currency(stats.paymentTotal)} paid, {currency(stats.expenseTotal)} expenses
                   </td>
-                  <td>
+                  <td data-label="Actions">
                     <AdminUserActions userId={user.id} status={user.accountStatus} currentUserId={admin.id} />
                   </td>
                 </tr>

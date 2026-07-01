@@ -33,14 +33,14 @@ export default async function PaymentsPage({
     <div className="space-y-6 animate-in">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: '#1a1a2e' }}>Rent Payments</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl" style={{ color: '#1a1a2e' }}>Rent Payments</h1>
           <p className="mt-1.5 text-sm" style={{ color: '#64748b' }}>
             History of all rent collected from your tenants.
           </p>
         </div>
         <Link
           href="/payments/new"
-          className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition sm:w-auto"
           style={{ backgroundColor: '#00A550', boxShadow: '0 4px 14px rgba(0,165,80,0.3)' }}
         >
           <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
@@ -58,7 +58,7 @@ export default async function PaymentsPage({
           className="field-input min-w-0 flex-1"
         />
         <button
-          className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition"
+          className="min-h-11 rounded-lg px-5 py-2 text-sm font-semibold text-white transition sm:w-auto"
           style={{ backgroundColor: '#00A550' }}
         >
           Search
@@ -85,7 +85,7 @@ export default async function PaymentsPage({
             <tbody>
               {rows.map(({ payment, tenant, unit, property }) => (
                 <tr key={payment.id}>
-                  <td>
+                  <td data-label="Tenant">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                         style={{ backgroundColor: '#00A550' }}>
@@ -99,33 +99,33 @@ export default async function PaymentsPage({
                       </div>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Unit & Property">
                     <div>
                       <span className="font-semibold block" style={{ color: '#1a1a2e' }}>Unit {unit.unitNumber}</span>
                       <span className="text-xs text-slate-500 block">{property.name}</span>
                     </div>
                   </td>
-                  <td style={{ color: '#374151', fontSize: '0.875rem' }}>
+                  <td data-label="Rent Coverage" style={{ color: '#374151', fontSize: '0.875rem' }}>
                     {monthLabel(payment.paymentMonth)}
                     <span className="mt-1 block text-xs text-slate-400">
                       {payment.monthsCovered} month{payment.monthsCovered === 1 ? '' : 's'}
                     </span>
                   </td>
-                  <td className="font-bold" style={{ color: '#00A550' }}>
+                  <td data-label="Amount Paid" className="font-bold" style={{ color: '#00A550' }}>
                     {currency(payment.amountPaid)}
                   </td>
-                  <td style={{ color: payment.balanceAfterPayment > 0 ? '#b45309' : '#64748b', fontSize: '0.875rem' }}>
+                  <td data-label="Remaining Balance" style={{ color: payment.balanceAfterPayment > 0 ? '#b45309' : '#64748b', fontSize: '0.875rem' }}>
                     {payment.balanceAfterPayment > 0 ? currency(payment.balanceAfterPayment) : 'Fully Paid'}
                   </td>
-                  <td style={{ color: '#64748b', fontSize: '0.875rem' }}>
+                  <td data-label="Date Paid" style={{ color: '#64748b', fontSize: '0.875rem' }}>
                     {formatDate(payment.paymentDate)}
                   </td>
-                  <td>
+                  <td data-label="Method">
                     <span className="badge" style={{ backgroundColor: '#f1f5f9', color: '#374151' }}>
                       {payment.paymentMethod.toUpperCase()}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Actions">
                     <div className="flex justify-end items-center gap-2">
                       <a
                         href={`/api/receipts/${payment.id}`}

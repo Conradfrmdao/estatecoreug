@@ -49,14 +49,14 @@ export default async function ExpensesPage({
     <div className="space-y-6 animate-in">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: '#1a1a2e' }}>Expenses</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl" style={{ color: '#1a1a2e' }}>Expenses</h1>
           <p className="mt-1.5 text-sm" style={{ color: '#64748b' }}>
             Track maintenance, repair, utility, and other property-related costs.
           </p>
         </div>
         <Link
           href="/expenses/new"
-          className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition sm:w-auto"
           style={{ backgroundColor: '#00A550', boxShadow: '0 4px 14px rgba(0,165,80,0.3)' }}
         >
           <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
@@ -74,7 +74,7 @@ export default async function ExpensesPage({
           className="field-input min-w-0 flex-1"
         />
         <button
-          className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition"
+          className="min-h-11 rounded-lg px-5 py-2 text-sm font-semibold text-white transition sm:w-auto"
           style={{ backgroundColor: '#00A550' }}
         >
           Search
@@ -99,7 +99,7 @@ export default async function ExpensesPage({
             <tbody>
               {rows.map(({ expense, property, unit }) => (
                 <tr key={expense.id}>
-                  <td>
+                  <td data-label="Expense Details">
                     <div>
                       <span className="font-semibold block" style={{ color: '#1a1a2e' }}>{expense.title}</span>
                       {expense.description && (
@@ -107,7 +107,7 @@ export default async function ExpensesPage({
                       )}
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Property & Unit">
                     <div>
                       <span className="font-semibold block" style={{ color: '#1a1a2e' }}>{property.name}</span>
                       {unit && (
@@ -115,18 +115,18 @@ export default async function ExpensesPage({
                       )}
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Category">
                     <span className="badge" style={getCategoryBadgeStyles(expense.category)}>
                       {expense.category.toUpperCase()}
                     </span>
                   </td>
-                  <td className="font-bold text-slate-900">
+                  <td data-label="Amount" className="font-bold text-slate-900">
                     {currency(expense.amount)}
                   </td>
-                  <td style={{ color: '#64748b', fontSize: '0.875rem' }}>
+                  <td data-label="Date Paid" style={{ color: '#64748b', fontSize: '0.875rem' }}>
                     {formatDate(expense.expenseDate)}
                   </td>
-                  <td>
+                  <td data-label="Actions">
                     <div className="flex justify-end items-center gap-2">
                       <Link
                         href={`/expenses/${expense.id}/edit`}

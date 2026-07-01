@@ -230,28 +230,28 @@ export default async function DashboardPage({
     <div className="space-y-3 pb-4 animate-in">
       <section className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-xl font-black tracking-tight text-slate-950">Dashboard</h1>
+          <h1 className="text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Dashboard</h1>
           <p className="mt-0.5 text-xs text-slate-600">
             Welcome back, {user.name.split(' ')[0] || 'Landlord'}. Here is what is happening with your properties.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
           <Link
             href="/payments/new"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-xs font-bold text-white shadow-sm"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-xs font-bold text-white shadow-sm sm:h-9 sm:min-h-0"
             style={{ backgroundColor: '#00A550' }}
           >
             <Plus className="h-4 w-4" strokeWidth={2} />
             Record Payment
           </Link>
-          <form className="flex items-center gap-2" method="get">
+          <form className="grid gap-2 min-[390px]:grid-cols-[minmax(0,1fr)_auto]" method="get">
             <input
               name="month"
               type="month"
               defaultValue={month}
-              className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+              className="min-h-11 min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 sm:h-9 sm:min-h-0 sm:text-xs"
             />
-            <button className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50">
+            <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50 sm:h-9 sm:min-h-0">
               <Filter className="h-4 w-4" strokeWidth={1.9} />
               Filter
             </button>
@@ -344,13 +344,13 @@ export default async function DashboardPage({
             </div>
             <div className="space-y-2">
               {upcomingPayments.map((row) => (
-                <div key={row.tenant.id} className="flex items-center justify-between gap-3 text-xs">
+                <div key={row.tenant.id} className="flex items-start justify-between gap-3 text-xs">
                   <div className="min-w-0">
                     <p className="truncate font-bold text-slate-800">{row.tenant.fullName}</p>
                     <p className="truncate text-xs text-slate-500">{row.property.name} - Unit {row.unit.unitNumber}</p>
                   </div>
-                  <div className="shrink-0 text-right">
-                    <p className="font-bold text-slate-950">{currency(row.balance)}</p>
+                  <div className="max-w-[8rem] shrink-0 text-right">
+                    <p className="truncate font-bold text-slate-950">{currency(row.balance)}</p>
                     <span className="rounded-md bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-600">
                       {statusBadge(row.paymentStatus, row.daysUntilDue)}
                     </span>
@@ -406,7 +406,7 @@ export default async function DashboardPage({
             </div>
             <div className="space-y-2">
               {todayEvents.map((item) => (
-                <div key={item.id} className="flex items-center justify-between gap-3 text-xs">
+                <div key={item.id} className="flex items-start justify-between gap-3 text-xs">
                   <div className="flex min-w-0 items-center gap-2">
                     <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${item.type === 'payment' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
                       {item.type === 'payment' ? <CheckCircle2 className="h-4 w-4" /> : <ReceiptText className="h-4 w-4" />}
@@ -416,7 +416,7 @@ export default async function DashboardPage({
                       <p className="truncate text-xs text-slate-500">{item.detail}</p>
                     </div>
                   </div>
-                  <span className="text-xs font-semibold text-slate-500">{currency(item.amount)}</span>
+                  <span className="max-w-[7rem] shrink-0 truncate text-right text-xs font-semibold text-slate-500">{currency(item.amount)}</span>
                 </div>
               ))}
               {todayEvents.length === 0 && (
@@ -433,7 +433,7 @@ export default async function DashboardPage({
           </div>
           <div className="space-y-2.5">
             {recentActivity.map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-3">
+              <div key={item.id} className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${item.type === 'payment' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
                     {item.type === 'payment' ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
@@ -443,7 +443,7 @@ export default async function DashboardPage({
                     <p className="truncate text-xs text-slate-500">{item.detail} - {formatDate(item.date)}</p>
                   </div>
                 </div>
-                <p className={`shrink-0 text-xs font-black ${item.type === 'payment' ? 'text-emerald-700' : 'text-red-600'}`}>
+                <p className={`max-w-[7rem] shrink-0 truncate text-right text-xs font-black ${item.type === 'payment' ? 'text-emerald-700' : 'text-red-600'}`}>
                   {item.type === 'payment' ? '+' : '-'} {currency(item.amount)}
                 </p>
               </div>

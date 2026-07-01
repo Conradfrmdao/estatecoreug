@@ -9,6 +9,15 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
+function parseMonthsCovered(value: unknown) {
+  const number = Number(value ?? 1)
+  if (!Number.isFinite(number)) {
+    return 1
+  }
+
+  return Math.max(1, Math.trunc(number))
+}
+
 export async function GET(req: Request) {
   const user = await requireCurrentAppUser()
   const url = new URL(req.url)
@@ -52,7 +61,7 @@ export async function POST(req: Request) {
     const requestedPaymentMonth = String(body.paymentMonth ?? currentPaymentMonth()).trim()
     const paymentDate = body.paymentDate ? new Date(body.paymentDate) : new Date()
     const paymentMethod = String(body.paymentMethod ?? 'other').trim()
-    const monthsCovered = Math.max(1, Math.trunc(Number(body.monthsCovered ?? 1)))
+    const monthsCovered = parseMonthsCovered(body.monthsCovered)
     const notes = body.notes ? String(body.notes).trim() : null
 
     if (!tenantId || !Number.isFinite(amountPaid) || amountPaid <= 0 || !requestedPaymentMonth || Number.isNaN(paymentDate.valueOf())) {

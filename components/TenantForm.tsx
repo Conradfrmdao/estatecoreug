@@ -55,7 +55,6 @@ export default function TenantForm({ initialData }: TenantFormProps) {
   const [customMonths, setCustomMonths] = useState('2')
   const [recordFirstPayment, setRecordFirstPayment] = useState(!initialData)
   const [paymentAmount, setPaymentAmount] = useState('')
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10))
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [active, setActive] = useState(initialData?.active ?? true)
   const [isSaving, setIsSaving] = useState(false)
@@ -99,7 +98,6 @@ export default function TenantForm({ initialData }: TenantFormProps) {
       monthsCovered,
       recordFirstPayment,
       paymentAmount: Number(paymentAmount),
-      paymentDate,
       paymentMethod
     }
     const res = await fetch(initialData ? `/api/tenants/${initialData.id}` : '/api/tenants', {
@@ -251,7 +249,7 @@ export default function TenantForm({ initialData }: TenantFormProps) {
           </div>
 
           {recordFirstPayment && (
-            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="field-label">First payment amount</label>
                 <input
@@ -259,16 +257,6 @@ export default function TenantForm({ initialData }: TenantFormProps) {
                   min="1"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  required
-                  className="field-input"
-                />
-              </div>
-              <div>
-                <label className="field-label">Payment date</label>
-                <input
-                  type="date"
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
                   required
                   className="field-input"
                 />
@@ -293,18 +281,18 @@ export default function TenantForm({ initialData }: TenantFormProps) {
           type="checkbox"
           checked={active}
           onChange={(e) => setActive(e.target.checked)}
-          className="h-4.5 w-4.5 rounded border-slate-300 text-green-600 focus:ring-green-500"
+          className="h-[18px] w-[18px] rounded border-slate-300 text-green-600 focus:ring-green-500"
         />
         Active tenant
       </label>
 
-      <div className="flex items-center gap-3 pt-2">
+      <div className="form-actions">
         <button
           disabled={isSaving}
           className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
           style={{ backgroundColor: '#00A550', boxShadow: '0 4px 14px rgba(0,165,80,0.3)' }}
         >
-          {isSaving ? 'Saving…' : initialData ? 'Save Tenant' : 'Create Tenant'}
+          {isSaving ? 'Saving...' : initialData ? 'Save Tenant' : 'Create Tenant'}
         </button>
         <button
           type="button"

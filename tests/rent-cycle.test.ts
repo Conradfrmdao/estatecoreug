@@ -97,3 +97,28 @@ test('falls back to paymentMonth for legacy payments without coverage', () => {
   assert.equal(allocatedPaymentForPeriod(legacyPayment, parseMonth('2026-02')), 500000)
   assert.equal(allocatedPaymentForPeriod(legacyPayment, parseMonth('2026-03')), 0)
 })
+
+test('marks unpaid tenants as due today, upcoming, or overdue for alerts', () => {
+  const dueToday = calculateTenantPeriodBalance(
+    { tenant: { ...baseTenant, rentDueDate: new Date('2026-02-10T00:00:00.000Z') }, unit: baseUnit },
+    [],
+    parseMonth('2026-02'),
+    new Date('2026-02-10T00:00:00.000Z')
+  )
+  const upcoming = calculateTenantPeriodBalance(
+    { tenant: { ...baseTenant, rentDueDate: new Date('2026-02-15T00:00:00.000Z') }, unit: baseUnit },
+    [],
+    parseMonth('2026-02'),
+    new Date('2026-02-10T00:00:00.000Z')
+  )
+  const overdue = calculateTenantPeriodBalance(
+    { tenant: { ...baseTenant, rentDueDate: new Date('2026-02-05T00:00:00.000Z') }, unit: baseUnit },
+    [],
+    parseMonth('2026-02'),
+    new Date('2026-02-10T00:00:00.000Z')
+  )
+
+  assert.equal(dueToday?.paymentStatus, 'due_today')
+  assert.equal(upcoming?.paymentStatus, 'upcoming')
+  assert.equal(overdue?.paymentStatus, 'overdue')
+})

@@ -7,6 +7,21 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
+function isActiveTenantConflict(error: unknown) {
+  if (typeof error === 'object' && error && 'code' in error && error.code === '23505') {
+    return true
+  }
+
+  return error instanceof Error && error.message.includes('tenants_one_active_per_unit_idx')
+}
+
+function occupiedUnitResponse() {
+  return NextResponse.json(
+    { error: 'This unit is already occupied. Move or deactivate the current tenant before assigning another one.' },
+    { status: 409 }
+  )
+}
+
 function parseId(value: string) {
   const id = Number(value)
   return Number.isInteger(id) && id > 0 ? id : null
@@ -96,25 +111,31 @@ export async function PATCH(req: Request, { params }: TenantRouteContext) {
   const isSameActiveAssignment = existing.tenant.active && existing.tenant.unitId === unitId
 
   if (active && !isSameActiveAssignment && (conflictingTenant || unit.unit.status === 'occupied')) {
-    return NextResponse.json(
-      { error: 'This unit is already occupied. Move or deactivate the current tenant before assigning another one.' },
-      { status: 409 }
-    )
+    return occupiedUnitResponse()
   }
 
-  const [updated] = await db
-    .update(tenants)
-    .set({
-      unitId,
-      fullName,
-      phone,
-      email,
-      moveInDate,
-      rentDueDate,
-      active
-    })
-    .where(eq(tenants.id, id))
-    .returning()
+  let updated: typeof tenants.$inferSelect
+  try {
+    const [row] = await db
+      .update(tenants)
+      .set({
+        unitId,
+        fullName,
+        phone,
+        email,
+        moveInDate,
+        rentDueDate,
+        active
+      })
+      .where(eq(tenants.id, id))
+      .returning()
+    updated = row
+  } catch (error) {
+    if (isActiveTenantConflict(error)) {
+      return occupiedUnitResponse()
+    }
+    throw error
+  }
 
   await refreshUnitStatuses(user.id, [existing.tenant.unitId, unitId])
 

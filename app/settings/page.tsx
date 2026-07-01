@@ -28,13 +28,13 @@ export default async function SettingsPage() {
       <section className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-widest" style={{ color: '#00A550' }}>Workspace settings</p>
-          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950">Settings</h1>
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Settings</h1>
           <p className="mt-1 text-sm text-slate-500">Account, access, and Ugandan property-management defaults.</p>
         </div>
         {dbUser.role === 'admin' && (
           <Link
             href="/admin"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold text-white"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold text-white sm:h-10 sm:min-h-0 sm:w-auto"
             style={{ backgroundColor: '#00A550' }}
           >
             <ShieldCheck className="h-4 w-4" strokeWidth={1.9} />
@@ -45,7 +45,7 @@ export default async function SettingsPage() {
 
       <section className="grid gap-4 xl:grid-cols-[1.25fr_0.9fr_0.85fr]">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-4">
+          <div className="flex items-start gap-3 sm:items-center sm:gap-4">
             {clerkUser?.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -61,7 +61,7 @@ export default async function SettingsPage() {
             )}
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="truncate text-xl font-black text-slate-950">{dbUser.name}</h2>
+                <h2 className="truncate text-lg font-black text-slate-950 sm:text-xl">{dbUser.name}</h2>
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-black uppercase tracking-wide text-emerald-700">
                   <BadgeCheck className="h-3 w-3" />
                   {dbUser.accountStatus}

@@ -27,14 +27,14 @@ export default async function PropertiesPage({
     <div className="space-y-6 animate-in">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: '#1a1a2e' }}>Properties</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl" style={{ color: '#1a1a2e' }}>Properties</h1>
           <p className="mt-1.5 text-sm" style={{ color: '#64748b' }}>
             Rental houses and buildings in your portfolio.
           </p>
         </div>
         <Link
           href="/properties/new"
-          className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition sm:w-auto"
           style={{ backgroundColor: '#00A550', boxShadow: '0 4px 14px rgba(0,165,80,0.3)' }}
         >
           <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
@@ -52,7 +52,7 @@ export default async function PropertiesPage({
           className="field-input min-w-0 flex-1"
         />
         <button
-          className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition"
+          className="min-h-11 rounded-lg px-5 py-2 text-sm font-semibold text-white transition sm:w-auto"
           style={{ backgroundColor: '#00A550' }}
         >
           Search
@@ -79,7 +79,7 @@ export default async function PropertiesPage({
 
                 return (
                   <tr key={property.id}>
-                    <td>
+                    <td data-label="Property">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                           style={{ backgroundColor: '#00A550' }}>
@@ -88,7 +88,7 @@ export default async function PropertiesPage({
                         <span className="font-semibold" style={{ color: '#1a1a2e' }}>{property.name}</span>
                       </div>
                     </td>
-                    <td style={{ color: '#64748b' }}>
+                    <td data-label="Location" style={{ color: '#64748b' }}>
                       <div className="flex items-center gap-1.5">
                         <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -97,7 +97,7 @@ export default async function PropertiesPage({
                         {property.location}
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Units">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold" style={{ color: '#1a1a2e' }}>{unitsForProperty.length}</span>
                         {unitsForProperty.length > 0 && (
@@ -105,7 +105,7 @@ export default async function PropertiesPage({
                         )}
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Actions">
                       <div className="flex justify-end items-center gap-2">
                         <Link
                           href={`/properties/${property.id}/edit`}
