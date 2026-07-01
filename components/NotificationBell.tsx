@@ -62,14 +62,14 @@ export default function NotificationBell() {
   }, [])
 
   return (
-    <div ref={containerRef} className="relative hidden sm:block">
+    <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-100 bg-white text-slate-600 transition hover:bg-slate-50"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 sm:h-10 sm:w-10 sm:border-slate-100 sm:shadow-none"
         aria-label="Open notifications"
       >
-        <Bell aria-hidden="true" className="h-5 w-5" strokeWidth={1.9} />
+        <Bell aria-hidden="true" className="h-[18px] w-[18px] sm:h-5 sm:w-5" strokeWidth={1.9} />
         {data.count > 0 && (
           <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
             {data.count > 9 ? '9+' : data.count}
@@ -78,7 +78,7 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 z-50 w-[22rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+        <div className="fixed right-3 top-[4.25rem] z-50 w-[calc(100vw-1.5rem)] max-w-[22rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:absolute sm:right-0 sm:top-12 sm:w-[22rem]">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <div>
               <p className="text-sm font-black text-slate-950">Notifications</p>

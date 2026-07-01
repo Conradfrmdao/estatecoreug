@@ -30,15 +30,14 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
     let reportProps: any = null
 
     if (type === 'monthly-rent') {
-      const payments = dashboardData.payments
-        .filter(({ payment }) => payment.paymentMonth === month)
-        .map(({ payment, tenant, unit, property }) => ({
+      const payments = dashboardData.monthlyPayments
+        .map(({ payment, tenant, unit, property, allocatedAmount, coverageDate }) => ({
           id: payment.id,
           tenantName: tenant.fullName,
           propertyName: property.name,
           unitNumber: unit.unitNumber,
-          amountPaid: payment.amountPaid,
-          paymentDate: payment.paymentDate,
+          amountPaid: allocatedAmount,
+          paymentDate: coverageDate,
           paymentMethod: payment.paymentMethod
         }))
 

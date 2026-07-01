@@ -85,13 +85,28 @@ export function rangesOverlap(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date
 }
 
 export function allocatedPaymentForPeriod(payment: PaymentLike, period: RentPeriod) {
-  const coverage = getPaymentCoverage(payment)
-
-  if (!rangesOverlap(coverage.start, coverage.end, period.start, period.end)) {
+  if (!paymentCoveragePeriods(payment).some((coveredPeriod) => coveredPeriod.month === period.month)) {
     return 0
   }
 
-  return Math.round(payment.amountPaid / coverage.monthsCovered)
+  return Math.round(payment.amountPaid / getPaymentCoverage(payment).monthsCovered)
+}
+
+export function paymentCoveragePeriods(payment: PaymentLike) {
+  const coverage = getPaymentCoverage(payment)
+
+  return Array.from({ length: coverage.monthsCovered }, (_, index) =>
+    parseMonth(monthFromDate(addMonths(coverage.start, index)))
+  )
+}
+
+export function paymentCoverageDateForPeriod(payment: PaymentLike, period: RentPeriod) {
+  const coverage = getPaymentCoverage(payment)
+  const monthOffset =
+    (period.start.getUTCFullYear() - coverage.start.getUTCFullYear()) * 12 +
+    (period.start.getUTCMonth() - coverage.start.getUTCMonth())
+
+  return addMonths(coverage.start, Math.max(0, monthOffset))
 }
 
 export function calculateTenantPeriodBalance(

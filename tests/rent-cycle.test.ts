@@ -4,6 +4,8 @@ import {
   allocatedPaymentForPeriod,
   calculateDueDate,
   calculateTenantPeriodBalance,
+  paymentCoverageDateForPeriod,
+  paymentCoveragePeriods,
   parseMonth
 } from '../lib/rent-cycle.ts'
 
@@ -50,7 +52,25 @@ test('allocates multi-month payments across covered months', () => {
 
   assert.equal(allocatedPaymentForPeriod(payment, parseMonth('2026-01')), 500000)
   assert.equal(allocatedPaymentForPeriod(payment, parseMonth('2026-03')), 500000)
+  assert.equal(allocatedPaymentForPeriod(payment, parseMonth('2026-04')), 0)
   assert.equal(allocatedPaymentForPeriod(payment, parseMonth('2026-05')), 0)
+})
+
+test('lists covered months for multi-month payment calendar views', () => {
+  const payment = {
+    amountPaid: 1500000,
+    paymentMonth: '2026-01',
+    coverageStart: new Date('2026-01-31T00:00:00.000Z'),
+    coverageEnd: new Date('2026-04-30T00:00:00.000Z'),
+    monthsCovered: 3
+  }
+  const periods = paymentCoveragePeriods(payment)
+
+  assert.deepEqual(periods.map((period) => period.month), ['2026-01', '2026-02', '2026-03'])
+  assert.equal(paymentCoverageDateForPeriod(payment, periods[0]).toISOString().slice(0, 10), '2026-01-31')
+  assert.equal(paymentCoverageDateForPeriod(payment, periods[1]).toISOString().slice(0, 10), '2026-02-28')
+  assert.equal(allocatedPaymentForPeriod(payment, periods[1]), 500000)
+  assert.equal(allocatedPaymentForPeriod(payment, parseMonth('2026-04')), 0)
 })
 
 test('marks covered tenant as paid and partial tenant as partial', () => {

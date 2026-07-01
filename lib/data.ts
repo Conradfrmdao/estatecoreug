@@ -18,6 +18,8 @@ import {
   allocatedPaymentForPeriod,
   calculateTenantPeriodBalance,
   getPaymentCoverage,
+  paymentCoverageDateForPeriod,
+  paymentCoveragePeriods,
   parseMonth,
   type TenantRentStatus
 } from '@/lib/rent-cycle'
@@ -39,6 +41,12 @@ export type PaymentWithTenant = {
   tenant: Tenant
   unit: Unit
   property: Property
+}
+
+export type MonthlyPaymentAllocation = PaymentWithTenant & {
+  allocatedAmount: number
+  coverageMonth: string
+  coverageDate: Date
 }
 
 export type ExpenseWithProperty = {
@@ -91,10 +99,6 @@ function getExpenseMonth(expense: Expense) {
   return expense.expenseDate.toISOString().slice(0, 7)
 }
 
-function getPaymentDateMonth(payment: RentPayment) {
-  return payment.paymentDate.toISOString().slice(0, 7)
-}
-
 function buildTenantBalances(
   tenantRows: TenantWithUnit[],
   paymentRows: PaymentWithTenant[],
@@ -126,6 +130,25 @@ function buildTenantBalances(
       ...balance
     } satisfies TenantBalance]
   })
+}
+
+function buildMonthlyPaymentAllocations(paymentRows: PaymentWithTenant[], month: string): MonthlyPaymentAllocation[] {
+  const period = parseMonth(month)
+
+  return paymentRows
+    .map((row) => {
+      const allocatedAmount = allocatedPaymentForPeriod(row.payment, period)
+      return allocatedAmount > 0
+        ? {
+            ...row,
+            allocatedAmount,
+            coverageMonth: period.month,
+            coverageDate: paymentCoverageDateForPeriod(row.payment, period)
+          }
+        : null
+    })
+    .filter((row): row is MonthlyPaymentAllocation => row !== null)
+    .sort((a, b) => b.coverageDate.getTime() - a.coverageDate.getTime())
 }
 
 function buildAlerts(tenantBalances: TenantBalance[], paymentRows: PaymentWithTenant[], expenseRows: ExpenseWithProperty[]) {
@@ -222,14 +245,17 @@ function buildCalendarEvents(
 
   for (const { payment, tenant, property, unit } of paymentRows) {
     const coverage = getPaymentCoverage(payment)
-    events.push({
-      id: `payment-${payment.id}`,
-      date: toEventDate(payment.paymentDate),
-      title: `${tenant.fullName} paid rent`,
-      type: 'payment',
-      detail: `${property.name}, Unit ${unit.unitNumber}, ${coverage.monthsCovered} month${coverage.monthsCovered === 1 ? '' : 's'} covered`,
-      severity: 'success'
-    })
+    for (const period of paymentCoveragePeriods(payment)) {
+      const allocatedAmount = allocatedPaymentForPeriod(payment, period)
+      events.push({
+        id: `payment-${payment.id}-${period.month}`,
+        date: toEventDate(paymentCoverageDateForPeriod(payment, period)),
+        title: `${tenant.fullName} rent paid`,
+        type: 'payment',
+        detail: `${property.name}, Unit ${unit.unitNumber}, ${allocatedAmount.toLocaleString('en-UG')} UGX allocated for ${period.month} from ${coverage.monthsCovered} month${coverage.monthsCovered === 1 ? '' : 's'} covered`,
+        severity: 'success'
+      })
+    }
   }
 
   for (const { expense, property, unit } of expenseRows) {
@@ -496,12 +522,12 @@ export async function getDashboardData(userId: number, month = currentPaymentMon
   ])
 
   const tenantBalances = buildTenantBalances(tenantRows, paymentRows, month)
-  const monthlyPayments = paymentRows.filter(({ payment }) => getPaymentDateMonth(payment) === month)
+  const monthlyPayments = buildMonthlyPaymentAllocations(paymentRows, month)
   const monthlyExpenses = expenseRows.filter(({ expense }) => getExpenseMonth(expense) === month)
   const activeTenants = tenantRows.filter(({ tenant }) => tenant.active)
   const totalExpected = sum(tenantBalances.map(({ unit }) => unit.rentAmount))
   const totalCollected = sum(paymentRows.map(({ payment }) => payment.amountPaid))
-  const collectedThisMonth = sum(monthlyPayments.map(({ payment }) => payment.amountPaid))
+  const collectedThisMonth = sum(monthlyPayments.map(({ allocatedAmount }) => allocatedAmount))
   const totalExpenses = sum(expenseRows.map(({ expense }) => expense.amount))
   const expensesThisMonth = sum(monthlyExpenses.map(({ expense }) => expense.amount))
   const totalOutstanding = sum(tenantBalances.map(({ balance }) => balance))
@@ -529,6 +555,7 @@ export async function getDashboardData(userId: number, month = currentPaymentMon
     units: unitRows,
     tenants: tenantRows,
     payments: paymentRows,
+    monthlyPayments,
     expenses: expenseRows,
     tenantBalances,
     alerts: buildAlerts(tenantBalances, paymentRows, expenseRows),

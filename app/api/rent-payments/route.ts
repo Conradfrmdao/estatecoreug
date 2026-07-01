@@ -3,7 +3,7 @@ import { requireCurrentAppUser } from '@/lib/auth'
 import { calculateBalanceAfterPayment, getTenantForUser, listPaymentsForUser } from '@/lib/data'
 import { db } from '@/lib/db'
 import { currentPaymentMonth } from '@/lib/format'
-import { calculateDueDate, monthFromDate, parseMonth } from '@/lib/rent-cycle'
+import { allocatedPaymentForPeriod, calculateDueDate, monthFromDate, parseMonth } from '@/lib/rent-cycle'
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 
@@ -24,13 +24,23 @@ export async function GET(req: Request) {
   const q = (url.searchParams.get('q') ?? '').toLowerCase()
   const month = url.searchParams.get('month') ?? ''
   const method = url.searchParams.get('method') ?? ''
+  let selectedPeriod: ReturnType<typeof parseMonth> | null = null
+
+  if (month) {
+    try {
+      selectedPeriod = parseMonth(month)
+    } catch {
+      return NextResponse.json({ error: 'Invalid payment month.' }, { status: 400 })
+    }
+  }
+
   const rows = await listPaymentsForUser(user.id)
   const filtered = rows.filter(({ payment, tenant, unit, property }) => {
     if (q && ![tenant.fullName, unit.unitNumber, property.name, payment.paymentMethod, payment.notes ?? ''].some((value) => value.toLowerCase().includes(q))) {
       return false
     }
 
-    if (month && payment.paymentMonth !== month) {
+    if (selectedPeriod && allocatedPaymentForPeriod(payment, selectedPeriod) <= 0) {
       return false
     }
 
@@ -44,6 +54,7 @@ export async function GET(req: Request) {
   return NextResponse.json(
     filtered.map(({ payment, tenant, unit, property }) => ({
       ...payment,
+      allocatedAmount: selectedPeriod ? allocatedPaymentForPeriod(payment, selectedPeriod) : payment.amountPaid,
       tenantName: tenant.fullName,
       unitNumber: unit.unitNumber,
       propertyName: property.name,

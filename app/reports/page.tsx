@@ -28,9 +28,9 @@ export default async function ReportsPage({
     }, 0)
 
     // Collected rent for this property in the selected month
-    const collected = data.payments.reduce((acc, { payment, unit }) => {
-      if (payment.paymentMonth === month && unit.propertyId === property.id) {
-        return acc + payment.amountPaid
+    const collected = data.monthlyPayments.reduce((acc, { allocatedAmount, unit }) => {
+      if (unit.propertyId === property.id) {
+        return acc + allocatedAmount
       }
       return acc
     }, 0)

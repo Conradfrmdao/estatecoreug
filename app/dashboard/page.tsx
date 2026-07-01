@@ -105,21 +105,21 @@ function KpiCard({
   const DirectionIcon = direction === 'up' ? ArrowUpRight : ArrowDownRight
 
   return (
-    <div className="flex h-[88px] items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${style.icon}`}>
-          <Icon className="h-4 w-4" strokeWidth={1.9} />
+    <div className="flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:min-h-[108px]">
+      <div className="min-w-0 space-y-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full sm:h-9 sm:w-9 ${style.icon}`}>
+            <Icon className="h-4 w-4" strokeWidth={1.9} />
+          </div>
+          <p className="min-w-0 text-[11px] font-bold leading-tight text-slate-600">{title}</p>
         </div>
-        <div className="min-w-0">
-          <p className="truncate text-[11px] font-semibold text-slate-600">{title}</p>
-          <p className={`mt-0.5 truncate text-lg font-black leading-none ${style.value}`}>{value}</p>
-          <p className={`mt-1 inline-flex max-w-full items-center gap-1 truncate text-[11px] font-semibold ${style.trend}`}>
-            <DirectionIcon className="h-3 w-3 shrink-0" strokeWidth={2} />
-            <span className="truncate">{sub}</span>
-          </p>
-        </div>
+        <p className={`text-xl font-black leading-tight tracking-normal xl:text-2xl ${style.value}`}>{value}</p>
+        <p className={`inline-flex max-w-full items-center gap-1 text-[11px] font-bold leading-tight ${style.trend}`}>
+          <DirectionIcon className="h-3 w-3 shrink-0" strokeWidth={2} />
+          <span className="truncate">{sub}</span>
+        </p>
       </div>
-      <div className="hidden shrink-0 sm:block">
+      <div className="hidden shrink-0 2xl:block">
         <Sparkline color={style.spark} />
       </div>
     </div>
@@ -138,14 +138,14 @@ function PortfolioMetric({
   icon: typeof Building2
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-2 px-2 py-1.5">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+    <div className="flex min-w-0 items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 md:rounded-none md:bg-transparent md:px-2 md:py-1.5">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200 md:h-9 md:w-9 md:bg-slate-100 md:ring-0">
         <Icon className="h-4 w-4" strokeWidth={1.8} />
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] font-medium text-slate-600">{label}</p>
+        <p className="truncate text-[10.5px] font-bold text-slate-600 md:text-[11px]">{label}</p>
         <p className="text-lg font-black leading-tight text-slate-950">{value}</p>
-        <p className="truncate text-[11px] text-slate-500">{sub}</p>
+        <p className="truncate text-[10.5px] text-slate-500 md:text-[11px]">{sub}</p>
       </div>
     </div>
   )
@@ -189,8 +189,8 @@ export default async function DashboardPage({
       )
     }
   }
-  for (const { payment } of data.payments) {
-    if (sameMonth(payment.paymentDate, month)) eventDays.set(dayOfMonth(payment.paymentDate), 'green')
+  for (const payment of data.monthlyPayments) {
+    if (sameMonth(payment.coverageDate, month)) eventDays.set(dayOfMonth(payment.coverageDate), 'green')
   }
   for (const { expense } of data.expenses) {
     if (sameMonth(expense.expenseDate, month)) eventDays.set(dayOfMonth(expense.expenseDate), 'amber')
@@ -202,15 +202,18 @@ export default async function DashboardPage({
     .slice(0, 3)
 
   const recentActivity = [
-    ...data.recentPayments.map(({ payment, tenant, property }) => ({
-      id: `payment-${payment.id}`,
+    ...data.monthlyPayments.map(({ payment, tenant, property, allocatedAmount, coverageDate, coverageMonth }) => ({
+      id: `payment-${payment.id}-${coverageMonth}`,
       type: 'payment' as const,
-      title: `Payment received from ${tenant.fullName}`,
+      title: `Rent covered for ${tenant.fullName}`,
       detail: property.name,
-      amount: payment.amountPaid,
-      date: payment.paymentDate
+      amount: allocatedAmount,
+      date: coverageDate
     })),
-    ...data.recentExpenses.map(({ expense, property }) => ({
+    ...data.expenses
+      .filter(({ expense }) => sameMonth(expense.expenseDate, month))
+      .slice(0, 5)
+      .map(({ expense, property }) => ({
       id: `expense-${expense.id}`,
       type: 'expense' as const,
       title: `Expense - ${expense.title}`,
@@ -227,7 +230,7 @@ export default async function DashboardPage({
     .slice(0, 2)
 
   return (
-    <div className="space-y-3 pb-4 animate-in">
+    <div className="space-y-3 pb-2 animate-in">
       <section className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Dashboard</h1>
@@ -242,7 +245,8 @@ export default async function DashboardPage({
             style={{ backgroundColor: '#00A550' }}
           >
             <Plus className="h-4 w-4" strokeWidth={2} />
-            Record Payment
+            <span className="hidden min-[360px]:inline">Record Payment</span>
+            <span className="min-[360px]:hidden">Record</span>
           </Link>
           <form className="grid gap-2 min-[390px]:grid-cols-[minmax(0,1fr)_auto]" method="get">
             <input
@@ -259,7 +263,7 @@ export default async function DashboardPage({
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-1 gap-2 min-[430px]:grid-cols-2 md:gap-3 xl:grid-cols-4">
         <KpiCard
           title="Collected This Month"
           value={currency(data.summary.collectedThisMonth)}
@@ -292,7 +296,7 @@ export default async function DashboardPage({
         />
       </section>
 
-      <section className="grid rounded-xl border border-slate-200 bg-white p-2 shadow-sm md:grid-cols-5 md:divide-x md:divide-slate-200">
+      <section className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm min-[390px]:grid-cols-3 md:grid-cols-5 md:gap-0 md:divide-x md:divide-slate-200 [&>*:last-child]:col-span-2 min-[390px]:[&>*:last-child]:col-span-1">
         <PortfolioMetric label="Properties" value={data.summary.totalProperties} sub="Total properties" icon={Building2} />
         <PortfolioMetric label="Units" value={data.summary.totalUnits} sub="Total units" icon={DoorOpen} />
         <PortfolioMetric label="Occupied" value={data.summary.occupiedUnits} sub="Units occupied" icon={UsersRound} />
@@ -300,7 +304,7 @@ export default async function DashboardPage({
         <PortfolioMetric label="Tenants" value={data.summary.activeTenants} sub="Active tenants" icon={UsersRound} />
       </section>
 
-      <section className="grid gap-3 xl:grid-cols-[1.05fr_1.15fr_1.25fr]">
+      <section className="grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-black text-slate-950">Payment Status</h2>
@@ -309,7 +313,7 @@ export default async function DashboardPage({
 
           <div className="mt-3 flex items-center gap-4">
             <div
-              className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full"
+              className="relative flex h-[5.5rem] w-[5.5rem] shrink-0 items-center justify-center rounded-full"
               style={{
                 background: activeCount
                   ? `conic-gradient(#007a3d 0deg ${paidDeg}deg, #f59e0b ${paidDeg}deg ${paidDeg + partialDeg}deg, #ef4444 ${paidDeg + partialDeg}deg 360deg)`
@@ -336,35 +340,63 @@ export default async function DashboardPage({
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="mt-3 border-t border-slate-100 pt-2">
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-xs font-black text-slate-950">Upcoming Payments</h3>
-              <Link href={`/tenants?month=${month}&status=unpaid`} className="text-xs font-bold text-emerald-700">View all</Link>
-            </div>
-            <div className="space-y-2">
-              {upcomingPayments.map((row) => (
-                <div key={row.tenant.id} className="flex items-start justify-between gap-3 text-xs">
-                  <div className="min-w-0">
-                    <p className="truncate font-bold text-slate-800">{row.tenant.fullName}</p>
-                    <p className="truncate text-xs text-slate-500">{row.property.name} - Unit {row.unit.unitNumber}</p>
-                  </div>
-                  <div className="max-w-[8rem] shrink-0 text-right">
-                    <p className="truncate font-bold text-slate-950">{currency(row.balance)}</p>
-                    <span className="rounded-md bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-600">
-                      {statusBadge(row.paymentStatus, row.daysUntilDue)}
-                    </span>
-                  </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-sm font-black text-slate-950">Upcoming Payments</h2>
+            <Link href={`/tenants?month=${month}&status=unpaid`} className="text-xs font-bold text-emerald-700">View all</Link>
+          </div>
+          <div className="space-y-2">
+            {upcomingPayments.map((row) => (
+              <div key={row.tenant.id} className="flex items-start justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 text-xs">
+                <div className="min-w-0">
+                  <p className="truncate font-bold text-slate-800">{row.tenant.fullName}</p>
+                  <p className="truncate text-xs text-slate-500">{row.property.name} - Unit {row.unit.unitNumber}</p>
                 </div>
-              ))}
-              {upcomingPayments.length === 0 && (
-                <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">No unpaid tenants for this period.</p>
-              )}
-            </div>
+                <div className="max-w-[8rem] shrink-0 text-right">
+                  <p className="truncate font-bold text-slate-950">{currency(row.balance)}</p>
+                  <span className="rounded-md bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-600">
+                    {statusBadge(row.paymentStatus, row.daysUntilDue)}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {upcomingPayments.length === 0 && (
+              <p className="rounded-lg bg-emerald-50 px-3 py-4 text-xs font-semibold text-emerald-700">No unpaid tenants for this period.</p>
+            )}
           </div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-sm font-black text-slate-950">Recent Activity</h2>
+            <Link href="/payments" className="text-xs font-bold text-emerald-700">View all</Link>
+          </div>
+          <div className="space-y-2.5">
+            {recentActivity.map((item) => (
+              <div key={item.id} className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${item.type === 'payment' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
+                    {item.type === 'payment' ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-bold text-slate-800">{item.title}</p>
+                    <p className="truncate text-xs text-slate-500">{item.detail} - {formatDate(item.date)}</p>
+                  </div>
+                </div>
+                <p className={`max-w-[7rem] shrink-0 truncate text-right text-xs font-black ${item.type === 'payment' ? 'text-emerald-700' : 'text-red-600'}`}>
+                  {item.type === 'payment' ? '+' : '-'} {currency(item.amount)}
+                </p>
+              </div>
+            ))}
+            {recentActivity.length === 0 && (
+              <p className="rounded-lg bg-slate-50 px-3 py-6 text-center text-xs font-semibold text-slate-500">No recent activity yet.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm lg:block">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-black text-slate-950">Live Calendar</h2>
             <Link href="/calendar" className="text-xs font-bold text-emerald-700">View calendar</Link>
@@ -423,34 +455,6 @@ export default async function DashboardPage({
                 <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">No events recorded today.</p>
               )}
             </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-black text-slate-950">Recent Activity</h2>
-            <Link href="/payments" className="text-xs font-bold text-emerald-700">View all</Link>
-          </div>
-          <div className="space-y-2.5">
-            {recentActivity.map((item) => (
-              <div key={item.id} className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${item.type === 'payment' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
-                    {item.type === 'payment' ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-bold text-slate-800">{item.title}</p>
-                    <p className="truncate text-xs text-slate-500">{item.detail} - {formatDate(item.date)}</p>
-                  </div>
-                </div>
-                <p className={`max-w-[7rem] shrink-0 truncate text-right text-xs font-black ${item.type === 'payment' ? 'text-emerald-700' : 'text-red-600'}`}>
-                  {item.type === 'payment' ? '+' : '-'} {currency(item.amount)}
-                </p>
-              </div>
-            ))}
-            {recentActivity.length === 0 && (
-              <p className="rounded-lg bg-slate-50 px-3 py-6 text-center text-xs font-semibold text-slate-500">No recent activity yet.</p>
-            )}
           </div>
         </div>
       </section>

@@ -9,6 +9,7 @@ import {
   Grid3X3,
   LayoutDashboard,
   MapPin,
+  Menu,
   ReceiptText,
   Settings,
   ShieldCheck,
@@ -18,7 +19,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import Image from 'next/image'
 import NotificationBell from '@/components/NotificationBell'
@@ -89,6 +90,11 @@ const mobileNavItems: NavItem[] = [
     icon: Building2
   },
   {
+    href: '/units',
+    label: 'Units',
+    icon: Grid3X3
+  },
+  {
     href: '/tenants',
     label: 'Tenants',
     icon: UsersRound
@@ -99,9 +105,27 @@ const mobileNavItems: NavItem[] = [
     icon: WalletCards
   },
   {
+    href: '/expenses',
+    label: 'Expenses',
+    icon: ReceiptText
+  }
+]
+
+const secondaryNavItems: NavItem[] = [
+  {
     href: '/calendar',
     label: 'Calendar',
     icon: CalendarDays
+  },
+  {
+    href: '/reports',
+    label: 'Reports',
+    icon: BarChart3
+  },
+  {
+    href: '/settings',
+    label: 'Settings',
+    icon: Settings
   }
 ]
 
@@ -135,6 +159,66 @@ function BrandLockup({ compact = false }: { compact?: boolean }) {
             Property Management
           </span>
         </span>
+      )}
+    </div>
+  )
+}
+
+function SecondaryMobileMenu({ pathname }: { pathname: string }) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const hasActiveSecondaryRoute = secondaryNavItems.some((item) => isActivePath(pathname, item.href))
+
+  useEffect(() => {
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick)
+  }, [])
+
+  return (
+    <div ref={containerRef} className="relative lg:hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-label="Open secondary navigation"
+        className={`flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition ${
+          hasActiveSecondaryRoute
+            ? 'border-transparent bg-emerald-600 text-white'
+            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+        }`}
+      >
+        <Menu aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-11 z-50 w-48 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+          {secondaryNavItems.map((item) => {
+            const active = isActivePath(pathname, item.href)
+            const Icon = item.icon
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                aria-current={active ? 'page' : undefined}
+                className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition ${
+                  active
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <Icon aria-hidden="true" className="h-4 w-4" strokeWidth={1.9} />
+                {item.label}
+              </Link>
+            )
+          })}
+        </div>
       )}
     </div>
   )
@@ -213,15 +297,8 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
             </Link>
 
             <div className="flex shrink-0 items-center gap-1.5">
-              <Link
-                href="/settings"
-                aria-label="Open settings"
-                aria-current={isActivePath(pathname, '/settings') ? 'page' : undefined}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50"
-                style={isActivePath(pathname, '/settings') ? { backgroundColor: 'var(--brand)', color: '#fff', borderColor: 'transparent' } : undefined}
-              >
-                <Settings aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.9} />
-              </Link>
+              <SecondaryMobileMenu pathname={pathname} />
+              <NotificationBell />
               <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm">
                 <UserButton />
               </div>
@@ -258,27 +335,29 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
           </div>
         </main>
 
-        <nav className="mobile-bottom-nav fixed left-2 right-2 z-40 mx-auto grid max-w-[430px] grid-cols-5 gap-1 rounded-2xl border border-slate-200/90 bg-white/95 p-1.5 shadow-[0_18px_48px_rgba(15,23,42,0.22)] backdrop-blur-xl lg:hidden" aria-label="Primary mobile navigation">
-          {mobileNavItems.map((item) => {
-            const active = isActivePath(pathname, item.href)
-            const Icon = item.icon
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? 'page' : undefined}
-                className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[9px] font-black leading-none transition ${
-                  active
-                    ? 'text-white shadow-sm'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-                style={active ? { backgroundColor: 'var(--brand)' } : undefined}
-              >
-                <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
-                <span className="block max-w-full truncate">{item.label}</span>
-              </Link>
-            )
-          })}
+        <nav className="mobile-bottom-nav fixed left-2 right-2 z-40 mx-auto max-w-[430px] overflow-hidden rounded-2xl border border-slate-200/90 bg-white/95 p-1.5 shadow-[0_18px_48px_rgba(15,23,42,0.22)] backdrop-blur-xl lg:hidden" aria-label="Primary mobile navigation">
+          <div className="mobile-bottom-nav-scroll flex gap-1 overflow-x-auto overscroll-x-contain">
+            {mobileNavItems.map((item) => {
+              const active = isActivePath(pathname, item.href)
+              const Icon = item.icon
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex min-w-[3.65rem] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[9.5px] font-black leading-none transition min-[390px]:min-w-[3.9rem] ${
+                    active
+                      ? 'text-white shadow-sm'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                  style={active ? { backgroundColor: 'var(--brand)' } : undefined}
+                >
+                  <Icon aria-hidden="true" className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9} />
+                  <span className="block max-w-full truncate">{item.label}</span>
+                </Link>
+              )
+            })}
+          </div>
         </nav>
       </div>
     </div>

@@ -99,9 +99,17 @@ body {
   bottom: calc(0.75rem + env(safe-area-inset-bottom));
 }
 
+.mobile-bottom-nav-scroll {
+  scrollbar-width: none;
+}
+
+.mobile-bottom-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 @media (max-width: 1023px) {
   .app-shell-main {
-    padding-bottom: calc(7.5rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
   }
 }
 

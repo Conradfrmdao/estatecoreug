@@ -7,6 +7,46 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
+const dayMs = 24 * 60 * 60 * 1000
+
+function startOfDay(value: Date) {
+  return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()))
+}
+
+function daysUntil(value: Date) {
+  return Math.ceil((startOfDay(value).getTime() - startOfDay(new Date()).getTime()) / dayMs)
+}
+
+function nextPaymentState(value: Date, active: boolean) {
+  if (!active) {
+    return {
+      badge: 'Inactive',
+      className: 'bg-slate-100 text-slate-500'
+    }
+  }
+
+  const days = daysUntil(value)
+
+  if (days < 0) {
+    return {
+      badge: `${Math.abs(days)} days late`,
+      className: 'bg-rose-50 text-rose-700'
+    }
+  }
+
+  if (days <= 4) {
+    return {
+      badge: days === 0 ? 'Due today' : `${days} days left`,
+      className: 'bg-orange-50 text-orange-700'
+    }
+  }
+
+  return {
+    badge: `${days} days left`,
+    className: 'bg-emerald-50 text-emerald-700'
+  }
+}
+
 export default async function TenantsPage({
   searchParams
 }: {
@@ -70,12 +110,16 @@ export default async function TenantsPage({
                 <th>Unit & Property</th>
                 <th>Contact</th>
                 <th>Move In Date</th>
+                <th>Next Payment</th>
                 <th>Status</th>
                 <th className="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ tenant, unit, property }) => (
+              {rows.map(({ tenant, unit, property }) => {
+                const nextPayment = nextPaymentState(tenant.rentDueDate, tenant.active)
+
+                return (
                 <tr key={tenant.id}>
                   <td data-label="Tenant">
                     <div className="flex items-center gap-3">
@@ -102,6 +146,12 @@ export default async function TenantsPage({
                   </td>
                   <td data-label="Move In Date" style={{ color: '#64748b', fontSize: '0.875rem' }}>
                     {formatDate(tenant.moveInDate)}
+                  </td>
+                  <td data-label="Next Payment">
+                    <span className="block text-sm font-semibold text-slate-800">{formatDate(tenant.rentDueDate)}</span>
+                    <span className={`mt-1 inline-flex rounded-full px-2 py-1 text-[11px] font-black ${nextPayment.className}`}>
+                      {nextPayment.badge}
+                    </span>
                   </td>
                   <td data-label="Status">
                     {tenant.active ? (
@@ -132,7 +182,8 @@ export default async function TenantsPage({
                     </div>
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>
