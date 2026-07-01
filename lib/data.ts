@@ -13,10 +13,11 @@ import {
   type User
 } from '@/drizzle/schema'
 import { db } from '@/lib/db'
-import { currentPaymentMonth } from '@/lib/format'
+import { currentPaymentMonth, dateKey } from '@/lib/format'
 import {
   allocatedPaymentForPeriod,
   calculateTenantPeriodBalance,
+  daysUntilDate,
   getPaymentCoverage,
   paymentCoverageDateForPeriod,
   paymentCoveragePeriods,
@@ -96,7 +97,7 @@ function sum(values: number[]) {
 }
 
 function getExpenseMonth(expense: Expense) {
-  return expense.expenseDate.toISOString().slice(0, 7)
+  return dateKey(expense.expenseDate).slice(0, 7)
 }
 
 function buildTenantBalances(
@@ -152,7 +153,7 @@ function buildMonthlyPaymentAllocations(paymentRows: PaymentWithTenant[], month:
 }
 
 function buildAlerts(tenantBalances: TenantBalance[], paymentRows: PaymentWithTenant[], expenseRows: ExpenseWithProperty[]) {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = dateKey()
   const alerts: AppAlert[] = []
 
   for (const row of tenantBalances) {
@@ -185,7 +186,7 @@ function buildAlerts(tenantBalances: TenantBalance[], paymentRows: PaymentWithTe
   }
 
   for (const { payment, tenant } of paymentRows.slice(0, 10)) {
-    if (payment.paymentDate.toISOString().slice(0, 10) === today) {
+    if (dateKey(payment.paymentDate) === today) {
       alerts.push({
         id: `paid-${payment.id}`,
         title: 'Payment recorded today',
@@ -196,7 +197,7 @@ function buildAlerts(tenantBalances: TenantBalance[], paymentRows: PaymentWithTe
   }
 
   for (const { expense } of expenseRows.slice(0, 10)) {
-    if (expense.expenseDate.toISOString().slice(0, 10) === today) {
+    if (dateKey(expense.expenseDate) === today) {
       alerts.push({
         id: `expense-${expense.id}`,
         title: 'Expense recorded today',
@@ -231,7 +232,7 @@ function buildCalendarEvents(
     })
 
     if (tenant.active) {
-      const overdue = tenant.rentDueDate < new Date()
+      const overdue = daysUntilDate(tenant.rentDueDate) < 0
       events.push({
         id: `due-${tenant.id}`,
         date: toEventDate(tenant.rentDueDate),

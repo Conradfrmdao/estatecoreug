@@ -22,9 +22,36 @@ export type TenantCycleLike = {
 }
 
 const dayMs = 24 * 60 * 60 * 1000
+const defaultTimeZone = 'Africa/Kampala'
 
 export function startOfUtcDay(value: Date) {
   return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()))
+}
+
+export function dateKeyInTimeZone(value = new Date(), timeZone = defaultTimeZone) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(value)
+
+  const year = parts.find((part) => part.type === 'year')?.value ?? '1970'
+  const month = parts.find((part) => part.type === 'month')?.value ?? '01'
+  const day = parts.find((part) => part.type === 'day')?.value ?? '01'
+
+  return `${year}-${month}-${day}`
+}
+
+export function startOfTimeZoneDay(value: Date, timeZone = defaultTimeZone) {
+  return new Date(`${dateKeyInTimeZone(value, timeZone)}T00:00:00.000Z`)
+}
+
+export function daysUntilDate(value: Date, referenceDate = new Date(), timeZone = defaultTimeZone) {
+  const dueDay = startOfTimeZoneDay(value, timeZone)
+  const referenceDay = startOfTimeZoneDay(referenceDate, timeZone)
+
+  return Math.ceil((dueDay.getTime() - referenceDay.getTime()) / dayMs)
 }
 
 export function addMonths(date: Date, months: number) {
@@ -127,9 +154,7 @@ export function calculateTenantPeriodBalance(
   )
   const balance = Math.max(row.unit.rentAmount - amountPaid, 0)
   const dueDate = new Date(row.tenant.rentDueDate)
-  const referenceDay = startOfUtcDay(referenceDate)
-  const dueDay = startOfUtcDay(dueDate)
-  const daysUntilDue = Math.ceil((dueDay.getTime() - referenceDay.getTime()) / dayMs)
+  const daysUntilDue = daysUntilDate(dueDate, referenceDate)
 
   let paymentStatus: TenantRentStatus = 'unpaid'
   if (balance <= 0) {

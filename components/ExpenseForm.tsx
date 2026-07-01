@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import FormNotice from '@/components/FormNotice'
+import { dateKey } from '@/lib/format'
 
 type PropertyOption = { id: number; name: string }
 type UnitOption = { id: number; unitNumber: string; propertyId: number }
@@ -30,7 +31,7 @@ export default function ExpenseForm({ initialData }: ExpenseFormProps) {
   const [category, setCategory] = useState(initialData?.category ?? 'repairs')
   const [amount, setAmount] = useState(initialData ? String(initialData.amount) : '')
   const [expenseDate, setExpenseDate] = useState(
-    initialData?.expenseDate ?? new Date().toISOString().slice(0, 10)
+    initialData?.expenseDate ?? dateKey()
   )
   const [description, setDescription] = useState(initialData?.description ?? '')
   const [isSaving, setIsSaving] = useState(false)

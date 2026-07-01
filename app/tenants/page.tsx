@@ -2,20 +2,11 @@ import DeleteButton from '@/components/DeleteButton'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { listTenantsForUser } from '@/lib/data'
 import { formatDate } from '@/lib/format'
+import { daysUntilDate } from '@/lib/rent-cycle'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
-
-const dayMs = 24 * 60 * 60 * 1000
-
-function startOfDay(value: Date) {
-  return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()))
-}
-
-function daysUntil(value: Date) {
-  return Math.ceil((startOfDay(value).getTime() - startOfDay(new Date()).getTime()) / dayMs)
-}
 
 function nextPaymentState(value: Date, active: boolean) {
   if (!active) {
@@ -25,7 +16,7 @@ function nextPaymentState(value: Date, active: boolean) {
     }
   }
 
-  const days = daysUntil(value)
+  const days = daysUntilDate(value)
 
   if (days < 0) {
     return {

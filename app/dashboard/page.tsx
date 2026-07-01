@@ -105,15 +105,15 @@ function KpiCard({
   const DirectionIcon = direction === 'up' ? ArrowUpRight : ArrowDownRight
 
   return (
-    <div className="flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:min-h-[108px]">
+    <div className="flex min-h-[106px] flex-col justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:min-h-[108px] sm:p-4">
       <div className="min-w-0 space-y-2">
         <div className="flex min-w-0 items-center gap-2">
           <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full sm:h-9 sm:w-9 ${style.icon}`}>
             <Icon className="h-4 w-4" strokeWidth={1.9} />
           </div>
-          <p className="min-w-0 text-[11px] font-bold leading-tight text-slate-600">{title}</p>
+          <p className="min-w-0 text-[10.5px] font-bold leading-tight text-slate-600 sm:text-[11px]">{title}</p>
         </div>
-        <p className={`text-xl font-black leading-tight tracking-normal xl:text-2xl ${style.value}`}>{value}</p>
+        <p className={`text-base font-black leading-tight tracking-normal [overflow-wrap:anywhere] min-[390px]:text-lg sm:text-xl xl:text-2xl ${style.value}`}>{value}</p>
         <p className={`inline-flex max-w-full items-center gap-1 text-[11px] font-bold leading-tight ${style.trend}`}>
           <DirectionIcon className="h-3 w-3 shrink-0" strokeWidth={2} />
           <span className="truncate">{sub}</span>
@@ -226,7 +226,7 @@ export default async function DashboardPage({
     .slice(0, 4)
 
   const todayEvents = recentActivity
-    .filter((item) => item.date.toISOString().slice(0, 10) === today.toISOString().slice(0, 10))
+    .filter((item) => dateKey(item.date) === todayKey)
     .slice(0, 2)
 
   return (
@@ -263,7 +263,7 @@ export default async function DashboardPage({
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-2 min-[430px]:grid-cols-2 md:gap-3 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-2 md:gap-3 xl:grid-cols-4">
         <KpiCard
           title="Collected This Month"
           value={currency(data.summary.collectedThisMonth)}
@@ -396,7 +396,7 @@ export default async function DashboardPage({
           </div>
         </div>
 
-        <div className="hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm lg:block">
+        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-black text-slate-950">Live Calendar</h2>
             <Link href="/calendar" className="text-xs font-bold text-emerald-700">View calendar</Link>

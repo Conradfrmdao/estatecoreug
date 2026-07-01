@@ -1,6 +1,6 @@
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getDashboardData } from '@/lib/data'
-import { currency, currentPaymentMonth, formatDate, monthLabel } from '@/lib/format'
+import { currency, currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -38,7 +38,7 @@ export default async function ReportsPage({
     // Expenses for this property in the selected month
     const expenses = data.expenses.reduce((acc, { expense }) => {
       // Parse expense month
-      const expMonth = expense.expenseDate.toISOString().slice(0, 7)
+      const expMonth = dateKey(expense.expenseDate).slice(0, 7)
       if (expMonth === month && expense.propertyId === property.id) {
         return acc + expense.amount
       }
@@ -59,7 +59,7 @@ export default async function ReportsPage({
   // Expense breakdown by category
   const expenseByCategory = new Map<string, number>()
   data.expenses.forEach(({ expense }) => {
-    const expMonth = expense.expenseDate.toISOString().slice(0, 7)
+    const expMonth = dateKey(expense.expenseDate).slice(0, 7)
     if (expMonth === month) {
       expenseByCategory.set(
         expense.category,

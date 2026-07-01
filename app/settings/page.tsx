@@ -25,10 +25,10 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-7xl animate-in">
-      <section className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <section className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-widest" style={{ color: '#00A550' }}>Workspace settings</p>
-          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Settings</h1>
+          <h1 className="mt-1 text-xl font-black tracking-tight text-slate-950 sm:text-3xl">Settings</h1>
           <p className="mt-1 text-sm text-slate-500">Account, access, and Ugandan property-management defaults.</p>
         </div>
         {dbUser.role === 'admin' && (
@@ -43,19 +43,19 @@ export default async function SettingsPage() {
         )}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.25fr_0.9fr_0.85fr]">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="grid gap-3 sm:gap-4 xl:grid-cols-[1.25fr_0.9fr_0.85fr]">
+        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
           <div className="flex items-start gap-3 sm:items-center sm:gap-4">
             {clerkUser?.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={clerkUser.imageUrl}
                 alt={dbUser.name}
-                className="h-16 w-16 rounded-2xl border-2 object-cover"
+                className="h-14 w-14 rounded-2xl border-2 object-cover sm:h-16 sm:w-16"
                 style={{ borderColor: '#00A550' }}
               />
             ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl text-xl font-black text-white" style={{ backgroundColor: '#00A550' }}>
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-black text-white sm:h-16 sm:w-16" style={{ backgroundColor: '#00A550' }}>
                 {initials}
               </div>
             )}
@@ -80,7 +80,7 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
               <LockKeyhole className="h-5 w-5" strokeWidth={1.9} />
@@ -98,7 +98,7 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600">
               <UserRound className="h-5 w-5" strokeWidth={1.9} />

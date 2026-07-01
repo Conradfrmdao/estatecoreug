@@ -1,6 +1,6 @@
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getDashboardData } from '@/lib/data'
-import { currentPaymentMonth, monthLabel } from '@/lib/format'
+import { currentPaymentMonth, dateKey, monthLabel } from '@/lib/format'
 import { ReportDocument } from '@/lib/pdf/reports'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { NextResponse } from 'next/server'
@@ -81,7 +81,7 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
     } else if (type === 'income-expense') {
       const expenseByCategory = new Map<string, number>()
       dashboardData.expenses.forEach(({ expense }) => {
-        const expMonth = expense.expenseDate.toISOString().slice(0, 7)
+        const expMonth = dateKey(expense.expenseDate).slice(0, 7)
         if (expMonth === month) {
           expenseByCategory.set(
             expense.category,
@@ -96,7 +96,7 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
       })).sort((a, b) => b.amount - a.amount)
 
       const recentExpenses = dashboardData.expenses
-        .filter(({ expense }) => expense.expenseDate.toISOString().slice(0, 7) === month)
+        .filter(({ expense }) => dateKey(expense.expenseDate).slice(0, 7) === month)
         .map(({ expense, property }) => ({
           title: expense.title,
           category: expense.category,

@@ -34,33 +34,33 @@ export default async function AdminPage() {
   )
 
   return (
-    <div className="space-y-6 animate-in">
-      <section className="flex flex-col gap-2">
+    <div className="space-y-4 animate-in sm:space-y-6">
+      <section className="flex flex-col gap-1.5">
         <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#00A550' }}>Platform owner</p>
-        <h1 className="text-2xl font-bold sm:text-3xl" style={{ color: '#1a1a2e' }}>Admin Panel</h1>
+        <h1 className="text-xl font-black tracking-tight sm:text-3xl" style={{ color: '#1a1a2e' }}>Admin Panel</h1>
         <p className="text-sm text-slate-500">Approve accounts, monitor usage, and protect tenant data boundaries.</p>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border bg-white p-5 text-center" style={{ borderColor: '#e2e8f0' }}>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Users</p>
-          <p className="mt-2 text-3xl font-bold" style={{ color: '#1a1a2e' }}>{totals.users}</p>
+      <section className="grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-4">
+        <div className="rounded-xl border bg-white p-3 text-center shadow-sm sm:p-5" style={{ borderColor: '#e2e8f0' }}>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:text-xs">Users</p>
+          <p className="mt-1 text-2xl font-black sm:mt-2 sm:text-3xl" style={{ color: '#1a1a2e' }}>{totals.users}</p>
         </div>
-        <div className="rounded-xl border bg-white p-5 text-center" style={{ borderColor: '#e2e8f0' }}>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Properties</p>
-          <p className="mt-2 text-3xl font-bold" style={{ color: '#1a1a2e' }}>{totals.properties}</p>
+        <div className="rounded-xl border bg-white p-3 text-center shadow-sm sm:p-5" style={{ borderColor: '#e2e8f0' }}>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:text-xs">Properties</p>
+          <p className="mt-1 text-2xl font-black sm:mt-2 sm:text-3xl" style={{ color: '#1a1a2e' }}>{totals.properties}</p>
         </div>
-        <div className="rounded-xl border bg-white p-5 text-center" style={{ borderColor: '#e2e8f0' }}>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Tenants</p>
-          <p className="mt-2 text-3xl font-bold" style={{ color: '#1a1a2e' }}>{totals.tenants}</p>
+        <div className="rounded-xl border bg-white p-3 text-center shadow-sm sm:p-5" style={{ borderColor: '#e2e8f0' }}>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:text-xs">Tenants</p>
+          <p className="mt-1 text-2xl font-black sm:mt-2 sm:text-3xl" style={{ color: '#1a1a2e' }}>{totals.tenants}</p>
         </div>
-        <div className="rounded-xl border bg-white p-5 text-center" style={{ borderColor: '#e2e8f0' }}>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Payments</p>
-          <p className="mt-2 text-2xl font-bold" style={{ color: '#00A550' }}>{currency(totals.payments)}</p>
+        <div className="rounded-xl border bg-white p-3 text-center shadow-sm sm:p-5" style={{ borderColor: '#e2e8f0' }}>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:text-xs">Payments</p>
+          <p className="mt-1 text-base font-black [overflow-wrap:anywhere] sm:mt-2 sm:text-2xl" style={{ color: '#00A550' }}>{currency(totals.payments)}</p>
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-xl border bg-white" style={{ borderColor: '#e2e8f0' }}>
+      <section className="overflow-hidden rounded-xl border bg-white shadow-sm" style={{ borderColor: '#e2e8f0' }}>
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>

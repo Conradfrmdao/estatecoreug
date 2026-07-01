@@ -3,6 +3,7 @@
 import React, { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import FormNotice from '@/components/FormNotice'
+import { currentPaymentMonth, dateKey } from '@/lib/format'
 
 type TenantOption = {
   id: number
@@ -55,14 +56,14 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
   const [tenantId, setTenantId] = useState<number | ''>(initialData?.tenantId ?? '')
   const [amountPaid, setAmountPaid] = useState(initialData ? String(initialData.amountPaid) : '')
   const [paymentMonth, setPaymentMonth] = useState(
-    initialData?.paymentMonth ?? new Date().toISOString().slice(0, 7)
+    initialData?.paymentMonth ?? currentPaymentMonth()
   )
   const [monthsCovered, setMonthsCovered] = useState(initialData?.monthsCovered ?? 1)
   const [customMonths, setCustomMonths] = useState(String(initialData?.monthsCovered ?? 2))
   const [coverageStart, setCoverageStart] = useState(initialData?.coverageStart ?? '')
   const [coverageEnd, setCoverageEnd] = useState(initialData?.coverageEnd ?? '')
   const [paymentDate, setPaymentDate] = useState(
-    initialData?.paymentDate ?? new Date().toISOString().slice(0, 10)
+    initialData?.paymentDate ?? dateKey()
   )
   const [paymentMethod, setPaymentMethod] = useState(initialData?.paymentMethod ?? 'cash')
   const [notes, setNotes] = useState(initialData?.notes ?? '')

@@ -4,6 +4,8 @@ import {
   allocatedPaymentForPeriod,
   calculateDueDate,
   calculateTenantPeriodBalance,
+  dateKeyInTimeZone,
+  daysUntilDate,
   paymentCoverageDateForPeriod,
   paymentCoveragePeriods,
   parseMonth
@@ -141,4 +143,27 @@ test('marks unpaid tenants as due today, upcoming, or overdue for alerts', () =>
   assert.equal(dueToday?.paymentStatus, 'due_today')
   assert.equal(upcoming?.paymentStatus, 'upcoming')
   assert.equal(overdue?.paymentStatus, 'overdue')
+})
+
+test('counts days left using the Kampala calendar day', () => {
+  const dueDate = new Date('2026-10-01T00:00:00.000Z')
+  const julyFirstKampala = new Date('2026-07-01T12:00:00.000Z')
+  const julySecondKampala = new Date('2026-07-01T22:30:00.000Z')
+  const fourDaysLeftKampala = new Date('2026-09-26T22:30:00.000Z')
+
+  assert.equal(dateKeyInTimeZone(julyFirstKampala), '2026-07-01')
+  assert.equal(daysUntilDate(dueDate, julyFirstKampala), 92)
+  assert.equal(dateKeyInTimeZone(julySecondKampala), '2026-07-02')
+  assert.equal(daysUntilDate(dueDate, julySecondKampala), 91)
+  assert.equal(daysUntilDate(dueDate, fourDaysLeftKampala), 4)
+
+  const balance = calculateTenantPeriodBalance(
+    { tenant: { ...baseTenant, rentDueDate: dueDate }, unit: baseUnit },
+    [],
+    parseMonth('2026-09'),
+    julySecondKampala
+  )
+
+  assert.equal(balance?.daysUntilDue, 91)
+  assert.equal(balance?.paymentStatus, 'unpaid')
 })

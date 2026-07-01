@@ -103,15 +103,15 @@ const mobileNavItems: NavItem[] = [
     href: '/payments',
     label: 'Payments',
     icon: WalletCards
-  },
-  {
-    href: '/expenses',
-    label: 'Expenses',
-    icon: ReceiptText
   }
 ]
 
 const secondaryNavItems: NavItem[] = [
+  {
+    href: '/expenses',
+    label: 'Expenses',
+    icon: ReceiptText
+  },
   {
     href: '/calendar',
     label: 'Calendar',
@@ -297,11 +297,11 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
             </Link>
 
             <div className="flex shrink-0 items-center gap-1.5">
-              <SecondaryMobileMenu pathname={pathname} />
               <NotificationBell />
               <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm">
                 <UserButton />
               </div>
+              <SecondaryMobileMenu pathname={pathname} />
             </div>
           </div>
         </header>
@@ -345,7 +345,7 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
                   key={item.href}
                   href={item.href}
                   aria-current={active ? 'page' : undefined}
-                  className={`flex min-w-[3.65rem] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[9.5px] font-black leading-none transition min-[390px]:min-w-[3.9rem] ${
+                  className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[9.5px] font-black leading-none transition ${
                     active
                       ? 'text-white shadow-sm'
                       : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
