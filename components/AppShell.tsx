@@ -23,6 +23,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import Image from 'next/image'
 import NotificationBell from '@/components/NotificationBell'
+import SupportChatWidget from '@/components/SupportChatWidget'
 
 type NavItem = {
   href: string
@@ -272,6 +273,12 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
             )
           })}
         </nav>
+
+        {!isAdmin && (
+          <div className="border-t border-slate-200 p-3">
+            <SupportChatWidget />
+          </div>
+        )}
 
       </aside>
 

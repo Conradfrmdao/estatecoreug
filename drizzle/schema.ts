@@ -85,6 +85,26 @@ export const expenses = pgTable('expenses', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
 })
 
+export const supportConversations = pgTable('support_conversations', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  adminId: integer('admin_id').references(() => users.id, { onDelete: 'set null' }),
+  subject: varchar('subject', { length: 255 }).default('Support request').notNull(),
+  status: varchar('status', { length: 50 }).default('open').notNull(),
+  lastMessageAt: timestamp('last_message_at', { withTimezone: true }).defaultNow().notNull(),
+  endedAt: timestamp('ended_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+})
+
+export const supportMessages = pgTable('support_messages', {
+  id: serial('id').primaryKey(),
+  conversationId: integer('conversation_id').notNull().references(() => supportConversations.id, { onDelete: 'cascade' }),
+  senderUserId: integer('sender_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  senderRole: varchar('sender_role', { length: 50 }).notNull(),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+})
+
 export const usersRelations = relations(users, ({ many }) => ({
   properties: many(properties)
 }))
@@ -138,9 +158,36 @@ export const expensesRelations = relations(expenses, ({ one }) => ({
   })
 }))
 
+export const supportConversationsRelations = relations(supportConversations, ({ one, many }) => ({
+  user: one(users, {
+    fields: [supportConversations.userId],
+    references: [users.id],
+    relationName: 'supportConversationUser'
+  }),
+  admin: one(users, {
+    fields: [supportConversations.adminId],
+    references: [users.id],
+    relationName: 'supportConversationAdmin'
+  }),
+  messages: many(supportMessages)
+}))
+
+export const supportMessagesRelations = relations(supportMessages, ({ one }) => ({
+  conversation: one(supportConversations, {
+    fields: [supportMessages.conversationId],
+    references: [supportConversations.id]
+  }),
+  sender: one(users, {
+    fields: [supportMessages.senderUserId],
+    references: [users.id]
+  })
+}))
+
 export type User = typeof users.$inferSelect
 export type Property = typeof properties.$inferSelect
 export type Unit = typeof units.$inferSelect
 export type Tenant = typeof tenants.$inferSelect
 export type RentPayment = typeof rentPayments.$inferSelect
 export type Expense = typeof expenses.$inferSelect
+export type SupportConversation = typeof supportConversations.$inferSelect
+export type SupportMessage = typeof supportMessages.$inferSelect

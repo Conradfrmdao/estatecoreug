@@ -10,10 +10,11 @@ export const dynamic = 'force-dynamic'
 export default async function ExpensesPage({
   searchParams
 }: {
-  searchParams?: { q?: string }
+  searchParams?: Promise<{ q?: string }>
 }) {
   const user = await requireCurrentAppUser()
-  const q = (searchParams?.q ?? '').toLowerCase()
+  const params = await searchParams
+  const q = (params?.q ?? '').trim().toLowerCase()
   const expenseRows = await listExpensesForUser(user.id)
 
   const rows = q
@@ -23,7 +24,10 @@ export default async function ExpensesPage({
           expense.category,
           expense.description ?? '',
           property.name,
-          unit?.unitNumber ?? ''
+          unit?.unitNumber ?? '',
+          String(expense.amount),
+          currency(expense.amount),
+          formatDate(expense.expenseDate)
         ].some((val) => val.toLowerCase().includes(q))
       )
     : expenseRows
@@ -69,8 +73,8 @@ export default async function ExpensesPage({
         style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         <input
           name="q"
-          defaultValue={searchParams?.q ?? ''}
-          placeholder="Search expenses by title, property, or category…"
+          defaultValue={params?.q ?? ''}
+          placeholder="Search expenses by title, property, unit, amount, or category..."
           className="field-input min-w-0 flex-1"
         />
         <button
@@ -79,6 +83,14 @@ export default async function ExpensesPage({
         >
           Search
         </button>
+        {q && (
+          <Link
+            href="/expenses"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 sm:w-auto"
+          >
+            Clear
+          </Link>
+        )}
       </form>
 
       {/* Table */}

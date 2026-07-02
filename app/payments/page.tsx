@@ -11,20 +11,26 @@ export const dynamic = 'force-dynamic'
 export default async function PaymentsPage({
   searchParams
 }: {
-  searchParams?: { q?: string }
+  searchParams?: Promise<{ q?: string }>
 }) {
   const user = await requireCurrentAppUser()
-  const q = (searchParams?.q ?? '').toLowerCase()
+  const params = await searchParams
+  const q = (params?.q ?? '').trim().toLowerCase()
   const paymentRows = await listPaymentsForUser(user.id)
 
   const rows = q
     ? paymentRows.filter(({ payment, tenant, unit, property }) =>
         [
           tenant.fullName,
+          tenant.email ?? '',
           unit.unitNumber,
           property.name,
           payment.paymentMonth,
           payment.paymentMethod,
+          formatDate(payment.paymentDate),
+          String(payment.amountPaid),
+          currency(payment.amountPaid),
+          ...paymentCoveragePeriods(payment).map((period) => monthLabel(period.month)),
           payment.notes ?? ''
         ].some((val) => val.toLowerCase().includes(q))
       )
@@ -54,8 +60,8 @@ export default async function PaymentsPage({
         style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         <input
           name="q"
-          defaultValue={searchParams?.q ?? ''}
-          placeholder="Search payments by tenant, unit, month, or method…"
+          defaultValue={params?.q ?? ''}
+          placeholder="Search payments by tenant, unit, month, amount, or method..."
           className="field-input min-w-0 flex-1"
         />
         <button
@@ -64,6 +70,14 @@ export default async function PaymentsPage({
         >
           Search
         </button>
+        {q && (
+          <Link
+            href="/payments"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 sm:w-auto"
+          >
+            Clear
+          </Link>
+        )}
       </form>
 
       {/* Table */}

@@ -41,15 +41,16 @@ function nextPaymentState(value: Date, active: boolean) {
 export default async function TenantsPage({
   searchParams
 }: {
-  searchParams?: { q?: string }
+  searchParams?: Promise<{ q?: string }>
 }) {
   const user = await requireCurrentAppUser()
-  const q = (searchParams?.q ?? '').toLowerCase()
+  const params = await searchParams
+  const q = (params?.q ?? '').trim().toLowerCase()
   const tenantRows = await listTenantsForUser(user.id)
 
   const rows = q
     ? tenantRows.filter(({ tenant, unit, property }) =>
-        [tenant.fullName, tenant.phone, tenant.email ?? '', unit.unitNumber, property.name]
+        [tenant.fullName, tenant.phone, tenant.email ?? '', unit.unitNumber, property.name, tenant.active ? 'active' : 'inactive', formatDate(tenant.moveInDate), formatDate(tenant.rentDueDate)]
           .some((val) => val.toLowerCase().includes(q))
       )
     : tenantRows
@@ -78,8 +79,8 @@ export default async function TenantsPage({
         style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         <input
           name="q"
-          defaultValue={searchParams?.q ?? ''}
-          placeholder="Search by name, phone, unit, or property…"
+          defaultValue={params?.q ?? ''}
+          placeholder="Search by name, email, phone, unit, property, or status..."
           className="field-input min-w-0 flex-1"
         />
         <button
@@ -88,6 +89,14 @@ export default async function TenantsPage({
         >
           Search
         </button>
+        {q && (
+          <Link
+            href="/tenants"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 sm:w-auto"
+          >
+            Clear
+          </Link>
+        )}
       </form>
 
       {/* Table */}

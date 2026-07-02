@@ -1,4 +1,5 @@
 import AdminUserActions from '@/components/AdminUserActions'
+import AdminSupportInbox from '@/components/AdminSupportInbox'
 import { requireAdminUser } from '@/lib/auth'
 import { listUsersWithStats } from '@/lib/data'
 import { currency, formatDate } from '@/lib/format'
@@ -35,10 +36,13 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-4 animate-in sm:space-y-6">
-      <section className="flex flex-col gap-1.5">
-        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#00A550' }}>Platform owner</p>
-        <h1 className="text-xl font-black tracking-tight sm:text-3xl" style={{ color: '#1a1a2e' }}>Admin Panel</h1>
-        <p className="text-sm text-slate-500">Approve accounts, monitor usage, and protect tenant data boundaries.</p>
+      <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#00A550' }}>Platform owner</p>
+          <h1 className="text-xl font-black tracking-tight sm:text-3xl" style={{ color: '#1a1a2e' }}>Admin Panel</h1>
+          <p className="text-sm text-slate-500">Approve accounts, monitor usage, and protect tenant data boundaries.</p>
+        </div>
+        <AdminSupportInbox users={users.map(({ user }) => ({ id: user.id, name: user.name, email: user.email }))} />
       </section>
 
       <section className="grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-4">
