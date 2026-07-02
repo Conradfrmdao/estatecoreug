@@ -47,7 +47,7 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#071a0f] text-white">
-      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#071a0f]/94 text-white shadow-[0_18px_45px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#071a0f]/94 pt-[env(safe-area-inset-top)] text-white shadow-[0_18px_45px_rgba(0,0,0,0.22)] backdrop-blur-xl">
         <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:min-h-20 sm:px-6 lg:px-8">
           <Link href="/" className="flex min-w-0 items-center gap-2.5 sm:gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/95 shadow-sm ring-1 ring-white/15 sm:h-14 sm:w-14">
@@ -102,7 +102,7 @@ export default async function Home() {
                 Estate Core UG Property Management Solutions
               </p>
               <h1 className="mt-3 max-w-4xl text-[clamp(2.15rem,11vw,3.5rem)] font-black leading-[1.02] sm:mt-4 sm:text-[clamp(3.4rem,6vw,5.75rem)] sm:leading-[0.96]">
-                Crafting Rental Operations That Matter
+                Smart Property Management for Modern Landlords
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-200 sm:mt-5 sm:text-lg sm:leading-7 lg:text-xl lg:leading-8">
                 Manage units, tenants, rent coverage, receipts, expenses, calendar reminders, and approval controls without spreadsheets or guesswork.
