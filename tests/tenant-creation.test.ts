@@ -15,7 +15,7 @@ test('plans tenant creation without requiring a visible payment date', () => {
     moveInDate: '2026-07-01',
     monthsCovered: 3,
     recordFirstPayment: true,
-    paymentAmount: 900000,
+    paymentAmount: '900,000',
     paymentMethod: 'cash',
     active: true
   }, now)
@@ -34,7 +34,7 @@ test('builds first payment coverage from move-in to next due date', () => {
     moveInDate: '2026-01-31',
     monthsCovered: 1,
     recordFirstPayment: true,
-    paymentAmount: 500000,
+    paymentAmount: '500000',
     paymentMethod: 'mobile_money'
   }, new Date('2026-01-30T12:00:00.000Z'))
   const payment = buildFirstPaymentValues(plan, 44, 500000)
@@ -69,7 +69,7 @@ test('rejects invalid tenant creation payloads', () => {
       recordFirstPayment: true,
       paymentAmount: 0
     }),
-    /positive first payment amount/
+    /positive whole UGX amount/
   )
 })
 

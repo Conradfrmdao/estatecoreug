@@ -1,4 +1,5 @@
 import { buildPaymentAllocationPlan, calculateDueDate } from './rent-cycle.ts'
+import { parseMoneyAmount } from './money.ts'
 
 export type TenantCreationPlan = {
   unitId: number
@@ -58,16 +59,14 @@ export function planTenantCreation(body: Record<string, unknown>, now = new Date
   const monthsCovered = parsePositiveInteger(body.monthsCovered, 1)
   const active = parseBoolean(body.active, true)
   const recordFirstPayment = parseBoolean(body.recordFirstPayment, false)
-  const paymentAmount = Number(body.paymentAmount ?? 0)
+  const paymentAmount = recordFirstPayment
+    ? parseMoneyAmount(body.paymentAmount, 'First payment amount')
+    : 0
   const paymentDate = parseDate(body.paymentDate) ?? now
   const paymentMethod = String(body.paymentMethod ?? 'cash').trim() || 'cash'
 
   if (!unitId || !Number.isInteger(unitId) || unitId < 1 || !fullName || !phone || !moveInDate) {
     throw new Error('Unit, name, phone, and move-in date are required.')
-  }
-
-  if (recordFirstPayment && (!Number.isFinite(paymentAmount) || paymentAmount <= 0)) {
-    throw new Error('A positive first payment amount is required.')
   }
 
   return {

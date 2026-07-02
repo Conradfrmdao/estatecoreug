@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import FormNotice from '@/components/FormNotice'
 import { currency, currentPaymentMonth, dateKey, monthLabel } from '@/lib/format'
+import { cleanMoneyInput } from '@/lib/money'
 
 type TenantOption = {
   id: number
@@ -129,7 +130,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
 
     const payload = {
       tenantId: Number(tenantId),
-      amountPaid: Number(amountPaid),
+      amountPaid,
       paymentMonth,
       coverageStart,
       coverageEnd,
@@ -217,10 +218,11 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
         <div>
           <label className="field-label">Amount paid (UGX)</label>
           <input
-            type="number"
-            min="0"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
             value={amountPaid}
-            onChange={(e) => setAmountPaid(e.target.value)}
+            onChange={(e) => setAmountPaid(cleanMoneyInput(e.target.value))}
             required
             className="field-input"
           />

@@ -2,6 +2,7 @@ import { rentPayments, tenants } from '@/drizzle/schema'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { buildRentPaymentPlanForTenant, listPaymentsForUser } from '@/lib/data'
 import { db } from '@/lib/db'
+import { MoneyInputError, parseMoneyAmount } from '@/lib/money'
 import { allocatedPaymentForPeriod, parseMonth, PaymentAllocationError } from '@/lib/rent-cycle'
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
     const user = await requireCurrentAppUser()
     const body = await req.json()
     const tenantId = Number(body.tenantId)
-    const amountPaid = Number(body.amountPaid)
+    const amountPaid = parseMoneyAmount(body.amountPaid, 'Amount paid')
     const paymentDate = body.paymentDate ? new Date(body.paymentDate) : new Date()
     const paymentMethod = String(body.paymentMethod ?? 'other').trim()
     const notes = body.notes ? String(body.notes).trim() : null
@@ -116,6 +117,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json(created, { status: 201 })
   } catch (error) {
+    if (error instanceof MoneyInputError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
     console.error('Failed to save payment:', error)
     return NextResponse.json({ error: 'Failed to save payment. Check the tenant, coverage dates, and database connection.' }, { status: 500 })
   }

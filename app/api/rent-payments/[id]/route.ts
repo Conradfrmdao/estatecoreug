@@ -2,6 +2,7 @@ import { rentPayments, tenants } from '@/drizzle/schema'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { buildRentPaymentPlanForTenant, getPaymentForUser, recalculateTenantRentDueDate } from '@/lib/data'
 import { db } from '@/lib/db'
+import { MoneyInputError, parseMoneyAmount } from '@/lib/money'
 import { PaymentAllocationError } from '@/lib/rent-cycle'
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
@@ -55,7 +56,15 @@ export async function PATCH(req: Request, { params }: PaymentRouteContext) {
 
   const body = await req.json()
   const tenantId = Number(body.tenantId)
-  const amountPaid = Number(body.amountPaid)
+  let amountPaid: number
+  try {
+    amountPaid = parseMoneyAmount(body.amountPaid, 'Amount paid')
+  } catch (error) {
+    if (error instanceof MoneyInputError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+    throw error
+  }
   const paymentDate = body.paymentDate ? new Date(body.paymentDate) : new Date()
   const paymentMethod = String(body.paymentMethod ?? 'other').trim()
   const notes = body.notes ? String(body.notes).trim() : null

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import FormNotice from '@/components/FormNotice'
+import { cleanMoneyInput } from '@/lib/money'
 
 type Unit = {
   id: number
@@ -97,7 +98,7 @@ export default function TenantForm({ initialData }: TenantFormProps) {
       active,
       monthsCovered,
       recordFirstPayment,
-      paymentAmount: Number(paymentAmount),
+      paymentAmount,
       paymentMethod
     }
     const res = await fetch(initialData ? `/api/tenants/${initialData.id}` : '/api/tenants', {
@@ -253,10 +254,11 @@ export default function TenantForm({ initialData }: TenantFormProps) {
               <div>
                 <label className="field-label">First payment amount</label>
                 <input
-                  type="number"
-                  min="1"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
                   value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  onChange={(e) => setPaymentAmount(cleanMoneyInput(e.target.value))}
                   required
                   className="field-input"
                 />
