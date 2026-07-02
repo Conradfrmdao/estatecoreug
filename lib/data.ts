@@ -370,7 +370,7 @@ export async function listPaymentsForUser(userId: number) {
     .innerJoin(units, eq(units.id, rentPayments.unitId))
     .innerJoin(properties, eq(properties.id, units.propertyId))
     .where(eq(properties.userId, userId))
-    .orderBy(desc(rentPayments.paymentDate))
+    .orderBy(desc(rentPayments.createdAt), desc(rentPayments.paymentDate), desc(rentPayments.id))
 }
 
 export async function listExpensesForUser(userId: number) {

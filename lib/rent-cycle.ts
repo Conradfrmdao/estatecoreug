@@ -24,6 +24,14 @@ export type TenantCycleLike = {
 
 const dayMs = 24 * 60 * 60 * 1000
 const defaultTimeZone = 'Africa/Kampala'
+const tinyBalanceTolerance = 100
+
+export class PaymentAllocationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'PaymentAllocationError'
+  }
+}
 
 function monthIndex(month: string) {
   const [year, monthNumber] = month.split('-').map(Number)
@@ -355,6 +363,17 @@ export function buildPaymentAllocationPlan(params: {
 
   if (remaining > 0) {
     throw new Error('Payment allocation is too far into the future.')
+  }
+
+  const tinyResidual = allocations.find((allocation) =>
+    allocation.balanceAfterAllocation > 0 &&
+    allocation.balanceAfterAllocation <= tinyBalanceTolerance
+  )
+
+  if (tinyResidual) {
+    throw new PaymentAllocationError(
+      `This payment leaves only ${tinyResidual.balanceAfterAllocation.toLocaleString('en-UG')} UGX for ${tinyResidual.month}. Enter the exact settling amount instead.`
+    )
   }
 
   const months = sortedUniqueMonths(allocations.map((allocation) => allocation.month))

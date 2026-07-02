@@ -10,6 +10,7 @@ import {
   daysUntilDate,
   paymentCoverageDateForPeriod,
   paymentCoveragePeriods,
+  PaymentAllocationError,
   parseMonth
 } from '../lib/rent-cycle.ts'
 
@@ -147,6 +148,34 @@ test('allocates top-up payments to the oldest unpaid balance before future rent'
       ]
     }).toISOString().slice(0, 10),
     '2026-08-01'
+  )
+})
+
+test('rejects tiny accidental residual balances instead of saving confusing carry-forward cents', () => {
+  const firstPayment = buildPaymentAllocationPlan({
+    amountPaid: 250000,
+    moveInDate: new Date('2026-07-02T00:00:00.000Z'),
+    rentAmount: 350000,
+    payments: [],
+    preferredStartDate: new Date('2026-07-02T00:00:00.000Z')
+  })
+
+  assert.throws(
+    () => buildPaymentAllocationPlan({
+      amountPaid: 449994,
+      moveInDate: new Date('2026-07-02T00:00:00.000Z'),
+      rentAmount: 350000,
+      payments: [{
+        amountPaid: 250000,
+        paymentMonth: firstPayment.paymentMonth,
+        coverageStart: firstPayment.coverageStart,
+        coverageEnd: firstPayment.coverageEnd,
+        monthsCovered: firstPayment.monthsCovered,
+        allocations: firstPayment.allocations
+      }],
+      preferredStartDate: firstPayment.nextRentDueDate
+    }),
+    (error) => error instanceof PaymentAllocationError && /only 6 UGX/.test(error.message)
   )
 })
 

@@ -2,6 +2,7 @@ import { rentPayments, tenants } from '@/drizzle/schema'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { buildRentPaymentPlanForTenant, getPaymentForUser, recalculateTenantRentDueDate } from '@/lib/data'
 import { db } from '@/lib/db'
+import { PaymentAllocationError } from '@/lib/rent-cycle'
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 
@@ -68,13 +69,21 @@ export async function PATCH(req: Request, { params }: PaymentRouteContext) {
     return NextResponse.json({ error: 'Payment coverage dates are invalid.' }, { status: 400 })
   }
 
-  const plan = await buildRentPaymentPlanForTenant({
-    userId: user.id,
-    tenantId,
-    amountPaid,
-    preferredStartDate: preferredStartDate ? new Date(preferredStartDate) : undefined,
-    ignorePaymentId: id
-  })
+  let plan
+  try {
+    plan = await buildRentPaymentPlanForTenant({
+      userId: user.id,
+      tenantId,
+      amountPaid,
+      preferredStartDate: preferredStartDate ? new Date(preferredStartDate) : undefined,
+      ignorePaymentId: id
+    })
+  } catch (error) {
+    if (error instanceof PaymentAllocationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+    throw error
+  }
 
   if (!plan) {
     return NextResponse.json({ error: 'Tenant not found.' }, { status: 404 })
