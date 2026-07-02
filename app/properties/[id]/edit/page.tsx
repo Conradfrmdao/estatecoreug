@@ -6,9 +6,14 @@ import { notFound } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-export default async function EditPropertyPage({ params }: { params: { id: string } }) {
+type EditPropertyPageProps = {
+  params: Promise<{ id: string }>
+}
+
+export default async function EditPropertyPage({ params }: EditPropertyPageProps) {
   const user = await requireCurrentAppUser()
-  const property = await getPropertyForUser(user.id, Number(params.id))
+  const { id } = await params
+  const property = await getPropertyForUser(user.id, Number(id))
 
   if (!property) notFound()
 

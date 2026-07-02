@@ -10,10 +10,11 @@ export const dynamic = 'force-dynamic'
 export default async function EditPaymentPage({
   params
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
   const user = await requireCurrentAppUser()
-  const paymentId = Number(params.id)
+  const { id } = await params
+  const paymentId = Number(id)
   if (Number.isNaN(paymentId)) {
     notFound()
   }

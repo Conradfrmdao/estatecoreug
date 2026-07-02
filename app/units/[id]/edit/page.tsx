@@ -6,9 +6,14 @@ import { notFound } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-export default async function EditUnitPage({ params }: { params: { id: string } }) {
+type EditUnitPageProps = {
+  params: Promise<{ id: string }>
+}
+
+export default async function EditUnitPage({ params }: EditUnitPageProps) {
   const user = await requireCurrentAppUser()
-  const row = await getUnitForUser(user.id, Number(params.id))
+  const { id } = await params
+  const row = await getUnitForUser(user.id, Number(id))
 
   if (!row) notFound()
 

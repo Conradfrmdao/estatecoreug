@@ -10,10 +10,11 @@ export const dynamic = 'force-dynamic'
 export default async function EditTenantPage({
   params
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
   const user = await requireCurrentAppUser()
-  const tenantId = Number(params.id)
+  const { id } = await params
+  const tenantId = Number(id)
   if (Number.isNaN(tenantId)) {
     notFound()
   }
