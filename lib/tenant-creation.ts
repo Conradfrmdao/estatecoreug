@@ -1,4 +1,4 @@
-import { calculateDueDate, monthFromDate } from './rent-cycle.ts'
+import { buildPaymentAllocationPlan, calculateDueDate } from './rent-cycle.ts'
 
 export type TenantCreationPlan = {
   unitId: number
@@ -86,20 +86,34 @@ export function planTenantCreation(body: Record<string, unknown>, now = new Date
   }
 }
 
-export function buildFirstPaymentValues(plan: TenantCreationPlan, tenantId: number, rentAmount: number) {
-  const allocatedAmount = Math.round(plan.paymentAmount / plan.monthsCovered)
+export function buildFirstPaymentPlan(plan: TenantCreationPlan, tenantId: number, rentAmount: number) {
+  const allocation = buildPaymentAllocationPlan({
+    amountPaid: plan.paymentAmount,
+    moveInDate: plan.moveInDate,
+    rentAmount,
+    payments: [],
+    preferredStartDate: plan.moveInDate
+  })
 
   return {
-    tenantId,
-    unitId: plan.unitId,
-    amountPaid: plan.paymentAmount,
-    balanceAfterPayment: Math.max(rentAmount - allocatedAmount, 0),
-    paymentMonth: monthFromDate(plan.moveInDate),
-    coverageStart: plan.moveInDate,
-    coverageEnd: plan.rentDueDate,
-    monthsCovered: plan.monthsCovered,
-    paymentDate: plan.paymentDate,
-    paymentMethod: plan.paymentMethod,
-    notes: `First rent payment covering ${plan.monthsCovered} month${plan.monthsCovered === 1 ? '' : 's'} from move-in.`
+    nextRentDueDate: allocation.nextRentDueDate,
+    paymentValues: {
+      tenantId,
+      unitId: plan.unitId,
+      amountPaid: plan.paymentAmount,
+      balanceAfterPayment: allocation.balanceAfterPayment,
+      paymentMonth: allocation.paymentMonth,
+      coverageStart: allocation.coverageStart,
+      coverageEnd: allocation.coverageEnd,
+      monthsCovered: allocation.monthsCovered,
+      allocations: allocation.allocations,
+      paymentDate: plan.paymentDate,
+      paymentMethod: plan.paymentMethod,
+      notes: `First rent payment from move-in.`
+    }
   }
+}
+
+export function buildFirstPaymentValues(plan: TenantCreationPlan, tenantId: number, rentAmount: number) {
+  return buildFirstPaymentPlan(plan, tenantId, rentAmount).paymentValues
 }

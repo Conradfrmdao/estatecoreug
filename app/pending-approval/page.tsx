@@ -27,6 +27,11 @@ const statusCopy = {
   }
 }
 
+const supportContact = {
+  phone: '+256 751929535',
+  email: 'godlovesconrad@gmail.com'
+}
+
 export default async function PendingApprovalPage() {
   const user = await getCurrentAppUser()
 
@@ -82,6 +87,11 @@ export default async function PendingApprovalPage() {
             <div className="mt-3 inline-flex rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">
               Status: {user.accountStatus}
             </div>
+          </div>
+          <div className="mt-4 rounded-xl border bg-white p-4 text-left text-sm" style={{ borderColor: '#e2e8f0' }}>
+            <p className="font-black text-slate-950">Support contact</p>
+            <p className="mt-2 text-slate-600">Phone: {supportContact.phone}</p>
+            <p className="mt-1 text-slate-600">Email: {supportContact.email}</p>
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <Link

@@ -46,6 +46,12 @@ test('builds first payment coverage from move-in to next due date', () => {
   assert.equal(payment.coverageEnd.toISOString().slice(0, 10), '2026-02-28')
   assert.equal(payment.balanceAfterPayment, 0)
   assert.equal(payment.paymentMethod, 'mobile_money')
+  assert.deepEqual(payment.allocations, [{
+    month: '2026-01',
+    amount: 500000,
+    rentAmount: 500000,
+    balanceAfterAllocation: 0
+  }])
 })
 
 test('rejects invalid tenant creation payloads', () => {

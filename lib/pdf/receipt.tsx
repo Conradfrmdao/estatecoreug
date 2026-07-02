@@ -126,6 +126,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 8,
     color: '#94a3b8'
+  },
+  allocationSection: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginBottom: 20
+  },
+  allocationTitle: {
+    backgroundColor: '#f8fafc',
+    padding: 8,
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#0f172a'
+  },
+  allocationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    padding: 8
   }
 })
 
@@ -140,6 +161,12 @@ interface ReceiptProps {
     coverageEnd?: string | Date
     paymentDate: string | Date
     paymentMethod: string
+    allocations?: Array<{
+      month: string
+      amount: number
+      rentAmount: number
+      balanceAfterAllocation: number
+    }> | null
     notes?: string | null
     tenantName: string
     unitNumber: string
@@ -158,6 +185,17 @@ export function ReceiptDocument({ payment }: ReceiptProps) {
 
   const formatUGX = (amount: number) => {
     return `UGX ${amount.toLocaleString('en-US')}`
+  }
+  const allocations = Array.isArray(payment.allocations) ? payment.allocations : []
+  const formatMonth = (month: string) => {
+    const [year, monthNumber] = month.split('-').map(Number)
+    if (!year || !monthNumber) {
+      return month
+    }
+    return new Intl.DateTimeFormat('en-UG', {
+      month: 'long',
+      year: 'numeric'
+    }).format(new Date(Date.UTC(year, monthNumber - 1, 1)))
   }
 
   return (
@@ -189,7 +227,7 @@ export function ReceiptDocument({ payment }: ReceiptProps) {
           <View style={styles.metaCol}>
             <Text style={styles.metaLabel}>Rent Coverage</Text>
             <Text style={styles.metaValue}>
-              {payment.monthsCovered ?? 1} month{(payment.monthsCovered ?? 1) === 1 ? '' : 's'}
+              {allocations.length || payment.monthsCovered || 1} month{(allocations.length || payment.monthsCovered || 1) === 1 ? '' : 's'}
             </Text>
           </View>
         </View>
@@ -213,6 +251,21 @@ export function ReceiptDocument({ payment }: ReceiptProps) {
           </View>
         </View>
 
+        {allocations.length > 0 && (
+          <View style={styles.allocationSection}>
+            <Text style={styles.allocationTitle}>Payment allocation</Text>
+            {allocations.map((allocation) => (
+              <View key={`${allocation.month}-${allocation.amount}`} style={styles.allocationRow}>
+                <Text style={{ fontSize: 9 }}>{formatMonth(allocation.month)}</Text>
+                <Text style={{ fontSize: 9 }}>Applied: {formatUGX(allocation.amount)}</Text>
+                <Text style={{ fontSize: 9 }}>
+                  Balance: {allocation.balanceAfterAllocation > 0 ? formatUGX(allocation.balanceAfterAllocation) : 'Fully paid'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Summary Totals */}
         <View style={styles.totalSection}>
           <View style={styles.totalTable}>
@@ -221,11 +274,11 @@ export function ReceiptDocument({ payment }: ReceiptProps) {
               <Text style={{ fontSize: 9 }}>{formatUGX(payment.rentAmount)}</Text>
             </View>
             <View style={styles.totalRow}>
-              <Text style={{ fontSize: 9 }}>Total Paid:</Text>
+              <Text style={{ fontSize: 9 }}>Transaction Paid:</Text>
               <Text style={{ fontSize: 9, fontWeight: 'bold' }}>{formatUGX(payment.amountPaid)}</Text>
             </View>
             <View style={[styles.totalRow, styles.grandTotalRow]}>
-              <Text style={[styles.grandTotalText, { fontSize: 9 }]}>Balance:</Text>
+              <Text style={[styles.grandTotalText, { fontSize: 9 }]}>Balance After Payment:</Text>
               <Text style={[styles.grandTotalText, { fontSize: 9 }]}>{formatUGX(payment.balanceAfterPayment)}</Text>
             </View>
           </View>

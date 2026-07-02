@@ -1,21 +1,11 @@
 import { rentPayments, tenants } from '@/drizzle/schema'
 import { requireCurrentAppUser } from '@/lib/auth'
-import { calculateBalanceAfterPayment, getPaymentForUser, getTenantForUser } from '@/lib/data'
+import { buildRentPaymentPlanForTenant, getPaymentForUser, recalculateTenantRentDueDate } from '@/lib/data'
 import { db } from '@/lib/db'
-import { calculateDueDate, monthFromDate, parseMonth } from '@/lib/rent-cycle'
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
-
-function parseMonthsCovered(value: unknown) {
-  const number = Number(value ?? 1)
-  if (!Number.isFinite(number)) {
-    return 1
-  }
-
-  return Math.max(1, Math.trunc(number))
-}
 
 function parseId(value: string) {
   const id = Number(value)
@@ -65,44 +55,28 @@ export async function PATCH(req: Request, { params }: PaymentRouteContext) {
   const body = await req.json()
   const tenantId = Number(body.tenantId)
   const amountPaid = Number(body.amountPaid)
-  const requestedPaymentMonth = String(body.paymentMonth ?? '').trim()
   const paymentDate = body.paymentDate ? new Date(body.paymentDate) : new Date()
   const paymentMethod = String(body.paymentMethod ?? 'other').trim()
-  const monthsCovered = parseMonthsCovered(body.monthsCovered)
   const notes = body.notes ? String(body.notes).trim() : null
+  const preferredStartDate = body.coverageStart ? new Date(body.coverageStart) : existing.payment.coverageStart
 
-  if (!tenantId || !Number.isFinite(amountPaid) || amountPaid <= 0 || !requestedPaymentMonth || Number.isNaN(paymentDate.valueOf())) {
-    return NextResponse.json({ error: 'Tenant, positive amount, payment month, and payment date are required.' }, { status: 400 })
+  if (!tenantId || !Number.isFinite(amountPaid) || amountPaid <= 0 || Number.isNaN(paymentDate.valueOf())) {
+    return NextResponse.json({ error: 'Tenant, positive amount, and payment date are required.' }, { status: 400 })
   }
 
-  const tenantRow = await getTenantForUser(user.id, tenantId)
-
-  if (!tenantRow) {
-    return NextResponse.json({ error: 'Tenant not found.' }, { status: 404 })
-  }
-
-  const coverageStart = body.coverageStart
-    ? new Date(body.coverageStart)
-    : existing.payment.coverageStart ?? parseMonth(requestedPaymentMonth).start
-  const coverageEnd = body.coverageEnd
-    ? new Date(body.coverageEnd)
-    : calculateDueDate(coverageStart, monthsCovered)
-  const paymentMonth = monthFromDate(coverageStart)
-
-  if (Number.isNaN(coverageStart.valueOf()) || Number.isNaN(coverageEnd.valueOf()) || coverageEnd <= coverageStart) {
+  if (preferredStartDate && Number.isNaN(new Date(preferredStartDate).valueOf())) {
     return NextResponse.json({ error: 'Payment coverage dates are invalid.' }, { status: 400 })
   }
 
-  const balance = await calculateBalanceAfterPayment({
+  const plan = await buildRentPaymentPlanForTenant({
     userId: user.id,
     tenantId,
     amountPaid,
-    paymentMonth,
-    monthsCovered,
+    preferredStartDate: preferredStartDate ? new Date(preferredStartDate) : undefined,
     ignorePaymentId: id
   })
 
-  if (!balance) {
+  if (!plan) {
     return NextResponse.json({ error: 'Tenant not found.' }, { status: 404 })
   }
 
@@ -110,13 +84,14 @@ export async function PATCH(req: Request, { params }: PaymentRouteContext) {
     .update(rentPayments)
     .set({
       tenantId,
-      unitId: balance.unitId,
+      unitId: plan.unitId,
       amountPaid,
-      balanceAfterPayment: balance.balanceAfterPayment,
-      paymentMonth,
-      coverageStart,
-      coverageEnd,
-      monthsCovered,
+      balanceAfterPayment: plan.balanceAfterPayment,
+      paymentMonth: plan.paymentMonth,
+      coverageStart: plan.coverageStart,
+      coverageEnd: plan.coverageEnd,
+      monthsCovered: plan.monthsCovered,
+      allocations: plan.allocations,
       paymentDate,
       paymentMethod,
       notes
@@ -124,12 +99,10 @@ export async function PATCH(req: Request, { params }: PaymentRouteContext) {
     .where(eq(rentPayments.id, id))
     .returning()
 
-  if (coverageEnd > tenantRow.tenant.rentDueDate) {
-    await db
-      .update(tenants)
-      .set({ rentDueDate: coverageEnd })
-      .where(eq(tenants.id, tenantId))
-  }
+  await db
+    .update(tenants)
+    .set({ rentDueDate: plan.nextRentDueDate })
+    .where(eq(tenants.id, tenantId))
 
   return NextResponse.json(updated)
 }
@@ -149,6 +122,8 @@ export async function DELETE(_req: Request, { params }: PaymentRouteContext) {
     return NextResponse.json({ error: 'Payment not found.' }, { status: 404 })
   }
 
+  const tenantId = existing.payment.tenantId
   await db.delete(rentPayments).where(eq(rentPayments.id, id))
+  await recalculateTenantRentDueDate(user.id, tenantId)
   return NextResponse.json({ ok: true })
 }

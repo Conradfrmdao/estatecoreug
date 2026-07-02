@@ -103,34 +103,34 @@ export default async function ReportsPage({
       </section>
 
       {/* Financial Summary Cards */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border bg-white p-5 space-y-2" style={{ borderColor: '#e2e8f0' }}>
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Income Collected</span>
-          <span className="text-2xl font-bold block" style={{ color: '#00A550' }}>
+      <section className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
+        <div className="rounded-xl border bg-white p-3 space-y-1.5 sm:p-5 sm:space-y-2" style={{ borderColor: '#e2e8f0' }}>
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block sm:text-xs">Income Collected</span>
+          <span className="text-base font-bold block leading-tight sm:text-2xl" style={{ color: '#00A550' }}>
             {currency(data.summary.collectedThisMonth)}
           </span>
           <span className="text-xs text-slate-500 block">for {monthLabel(month)}</span>
         </div>
 
-        <div className="rounded-xl border bg-white p-5 space-y-2" style={{ borderColor: '#e2e8f0' }}>
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Outstanding Rent</span>
-          <span className="text-2xl font-bold block text-amber-600">
+        <div className="rounded-xl border bg-white p-3 space-y-1.5 sm:p-5 sm:space-y-2" style={{ borderColor: '#e2e8f0' }}>
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block sm:text-xs">Outstanding Rent</span>
+          <span className="text-base font-bold block leading-tight text-amber-600 sm:text-2xl">
             {currency(data.summary.totalOutstanding)}
           </span>
           <span className="text-xs text-slate-500 block">unpaid balances</span>
         </div>
 
-        <div className="rounded-xl border bg-white p-5 space-y-2" style={{ borderColor: '#e2e8f0' }}>
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Monthly Expenses</span>
-          <span className="text-2xl font-bold block text-rose-600">
+        <div className="rounded-xl border bg-white p-3 space-y-1.5 sm:p-5 sm:space-y-2" style={{ borderColor: '#e2e8f0' }}>
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block sm:text-xs">Monthly Expenses</span>
+          <span className="text-base font-bold block leading-tight text-rose-600 sm:text-2xl">
             {currency(data.summary.expensesThisMonth)}
           </span>
           <span className="text-xs text-slate-500 block">maintenance & operations</span>
         </div>
 
-        <div className="rounded-xl border bg-white p-5 space-y-2" style={{ borderColor: '#e2e8f0' }}>
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Net Operating Income</span>
-          <span className="text-2xl font-bold block" style={{ color: data.summary.netThisMonth >= 0 ? '#00A550' : '#e11d48' }}>
+        <div className="rounded-xl border bg-white p-3 space-y-1.5 sm:p-5 sm:space-y-2" style={{ borderColor: '#e2e8f0' }}>
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block sm:text-xs">Net Operating Income</span>
+          <span className="text-base font-bold block leading-tight sm:text-2xl" style={{ color: data.summary.netThisMonth >= 0 ? '#00A550' : '#e11d48' }}>
             {currency(data.summary.netThisMonth)}
           </span>
           <span className="text-xs text-slate-500 block">collected - expenses</span>

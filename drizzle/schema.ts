@@ -1,5 +1,12 @@
 import { relations, sql } from 'drizzle-orm'
-import { boolean, integer, pgTable, serial, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
+import { boolean, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
+
+export type RentPaymentAllocation = {
+  month: string
+  amount: number
+  rentAmount: number
+  balanceAfterAllocation: number
+}
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -59,6 +66,7 @@ export const rentPayments = pgTable('rent_payments', {
   coverageStart: timestamp('coverage_start', { withTimezone: true }).notNull(),
   coverageEnd: timestamp('coverage_end', { withTimezone: true }).notNull(),
   monthsCovered: integer('months_covered').default(1).notNull(),
+  allocations: jsonb('allocations').$type<RentPaymentAllocation[]>(),
   paymentDate: timestamp('payment_date', { withTimezone: true }).defaultNow().notNull(),
   paymentMethod: varchar('payment_method', { length: 100 }).notNull(),
   notes: text('notes'),

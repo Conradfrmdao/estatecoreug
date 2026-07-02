@@ -16,15 +16,18 @@ import { db } from '@/lib/db'
 import { currentPaymentMonth, dateKey } from '@/lib/format'
 import {
   allocatedPaymentForPeriod,
+  buildPaymentAllocationPlan,
   calculateTenantPeriodBalance,
+  calculateNextRentDueDate,
   daysUntilDate,
+  findOldestOutstandingRent,
   getPaymentCoverage,
   paymentCoverageDateForPeriod,
   paymentCoveragePeriods,
   parseMonth,
   type TenantRentStatus
 } from '@/lib/rent-cycle'
-import { and, desc, eq, ne } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 
 export type UnitWithProperty = {
   unit: Unit
@@ -62,6 +65,13 @@ export type TenantBalance = TenantWithUnit & {
   dueDate: Date
   daysUntilDue: number
   paymentStatus: TenantRentStatus
+}
+
+export type TenantPaymentTarget = TenantWithUnit & {
+  targetMonth: string
+  targetDueDate: Date
+  targetAmountPaid: number
+  targetBalance: number
 }
 
 export type UserWithStats = {
@@ -457,12 +467,40 @@ export async function listTenantBalances(userId: number, month = currentPaymentM
   return buildTenantBalances(tenantRows, paymentRows, month)
 }
 
-export async function calculateBalanceAfterPayment(params: {
+export async function listTenantPaymentTargets(userId: number) {
+  const tenantRows = await listTenantsForUser(userId)
+  const paymentRows = await listPaymentsForUser(userId)
+  const paymentsByTenant = new Map<number, RentPayment[]>()
+
+  for (const { payment } of paymentRows) {
+    const rows = paymentsByTenant.get(payment.tenantId) ?? []
+    rows.push(payment)
+    paymentsByTenant.set(payment.tenantId, rows)
+  }
+
+  return tenantRows.map((row) => {
+    const target = findOldestOutstandingRent({
+      moveInDate: row.tenant.moveInDate,
+      rentAmount: row.unit.rentAmount,
+      payments: paymentsByTenant.get(row.tenant.id) ?? [],
+      preferredStartDate: row.tenant.rentDueDate
+    })
+
+    return {
+      ...row,
+      targetMonth: target.month,
+      targetDueDate: target.dueDate,
+      targetAmountPaid: target.amountPaid,
+      targetBalance: target.balance
+    } satisfies TenantPaymentTarget
+  })
+}
+
+export async function buildRentPaymentPlanForTenant(params: {
   userId: number
   tenantId: number
   amountPaid: number
-  paymentMonth: string
-  monthsCovered?: number
+  preferredStartDate?: Date
   ignorePaymentId?: number
 }) {
   const tenantRow = await getTenantForUser(params.userId, params.tenantId)
@@ -471,40 +509,51 @@ export async function calculateBalanceAfterPayment(params: {
     return null
   }
 
-  const period = parseMonth(params.paymentMonth)
-  const paymentRows = await db
-    .select({
-      amountPaid: rentPayments.amountPaid,
-      paymentMonth: rentPayments.paymentMonth,
-      coverageStart: rentPayments.coverageStart,
-      coverageEnd: rentPayments.coverageEnd,
-      monthsCovered: rentPayments.monthsCovered
-    })
-    .from(rentPayments)
-    .where(
-      params.ignorePaymentId
-        ? and(
-            eq(rentPayments.tenantId, params.tenantId),
-            ne(rentPayments.id, params.ignorePaymentId)
-          )
-        : and(
-            eq(rentPayments.tenantId, params.tenantId)
-          )
+  const paymentRows = (await listPaymentsForUser(params.userId))
+    .filter(({ payment }) =>
+      payment.tenantId === params.tenantId &&
+      (!params.ignorePaymentId || payment.id !== params.ignorePaymentId)
     )
-  const alreadyPaid = sum(
-    paymentRows.map((payment) => allocatedPaymentForPeriod(payment, period))
-  )
-  const allocatedCurrentPayment = Math.round(
-    params.amountPaid / Math.max(1, params.monthsCovered ?? 1)
-  )
+    .map(({ payment }) => payment)
+
+  const plan = buildPaymentAllocationPlan({
+    amountPaid: params.amountPaid,
+    moveInDate: tenantRow.tenant.moveInDate,
+    rentAmount: tenantRow.unit.rentAmount,
+    payments: paymentRows,
+    preferredStartDate: params.preferredStartDate ?? tenantRow.tenant.rentDueDate
+  })
 
   return {
+    ...plan,
+    tenantRow,
     unitId: tenantRow.unit.id,
-    balanceAfterPayment: Math.max(
-      tenantRow.unit.rentAmount - alreadyPaid - allocatedCurrentPayment,
-      0
-    )
+    paymentsBeforePayment: paymentRows
   }
+}
+
+export async function recalculateTenantRentDueDate(userId: number, tenantId: number) {
+  const tenantRow = await getTenantForUser(userId, tenantId)
+
+  if (!tenantRow) {
+    return null
+  }
+
+  const paymentRows = (await listPaymentsForUser(userId))
+    .filter(({ payment }) => payment.tenantId === tenantId)
+    .map(({ payment }) => payment)
+  const nextRentDueDate = calculateNextRentDueDate({
+    moveInDate: tenantRow.tenant.moveInDate,
+    rentAmount: tenantRow.unit.rentAmount,
+    payments: paymentRows
+  })
+
+  await db
+    .update(tenants)
+    .set({ rentDueDate: nextRentDueDate })
+    .where(eq(tenants.id, tenantId))
+
+  return nextRentDueDate
 }
 
 export async function getDashboardData(userId: number, month = currentPaymentMonth()) {

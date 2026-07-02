@@ -1,22 +1,12 @@
 import { rentPayments, tenants } from '@/drizzle/schema'
 import { requireCurrentAppUser } from '@/lib/auth'
-import { calculateBalanceAfterPayment, getTenantForUser, listPaymentsForUser } from '@/lib/data'
+import { buildRentPaymentPlanForTenant, listPaymentsForUser } from '@/lib/data'
 import { db } from '@/lib/db'
-import { currentPaymentMonth } from '@/lib/format'
-import { allocatedPaymentForPeriod, calculateDueDate, monthFromDate, parseMonth } from '@/lib/rent-cycle'
+import { allocatedPaymentForPeriod, parseMonth } from '@/lib/rent-cycle'
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
-
-function parseMonthsCovered(value: unknown) {
-  const number = Number(value ?? 1)
-  if (!Number.isFinite(number)) {
-    return 1
-  }
-
-  return Math.max(1, Math.trunc(number))
-}
 
 export async function GET(req: Request) {
   const user = await requireCurrentAppUser()
@@ -69,43 +59,27 @@ export async function POST(req: Request) {
     const body = await req.json()
     const tenantId = Number(body.tenantId)
     const amountPaid = Number(body.amountPaid)
-    const requestedPaymentMonth = String(body.paymentMonth ?? currentPaymentMonth()).trim()
     const paymentDate = body.paymentDate ? new Date(body.paymentDate) : new Date()
     const paymentMethod = String(body.paymentMethod ?? 'other').trim()
-    const monthsCovered = parseMonthsCovered(body.monthsCovered)
     const notes = body.notes ? String(body.notes).trim() : null
+    const preferredStartDate = body.coverageStart ? new Date(body.coverageStart) : undefined
 
-    if (!tenantId || !Number.isFinite(amountPaid) || amountPaid <= 0 || !requestedPaymentMonth || Number.isNaN(paymentDate.valueOf())) {
-      return NextResponse.json({ error: 'Tenant, positive amount, payment month, and payment date are required.' }, { status: 400 })
+    if (!tenantId || !Number.isFinite(amountPaid) || amountPaid <= 0 || Number.isNaN(paymentDate.valueOf())) {
+      return NextResponse.json({ error: 'Tenant, positive amount, and payment date are required.' }, { status: 400 })
     }
 
-    const tenantRow = await getTenantForUser(user.id, tenantId)
-
-    if (!tenantRow) {
-      return NextResponse.json({ error: 'Tenant not found.' }, { status: 404 })
-    }
-
-    const coverageStart = body.coverageStart
-      ? new Date(body.coverageStart)
-      : tenantRow.tenant.rentDueDate ?? parseMonth(requestedPaymentMonth).start
-    const coverageEnd = body.coverageEnd
-      ? new Date(body.coverageEnd)
-      : calculateDueDate(coverageStart, monthsCovered)
-    const paymentMonth = monthFromDate(coverageStart)
-
-    if (Number.isNaN(coverageStart.valueOf()) || Number.isNaN(coverageEnd.valueOf()) || coverageEnd <= coverageStart) {
+    if (preferredStartDate && Number.isNaN(preferredStartDate.valueOf())) {
       return NextResponse.json({ error: 'Payment coverage dates are invalid.' }, { status: 400 })
     }
 
-    const balance = await calculateBalanceAfterPayment({
+    const plan = await buildRentPaymentPlanForTenant({
       userId: user.id,
       tenantId,
       amountPaid,
-      paymentMonth,
-      monthsCovered
+      preferredStartDate
     })
 
-    if (!balance) {
+    if (!plan) {
       return NextResponse.json({ error: 'Tenant not found.' }, { status: 404 })
     }
 
@@ -113,25 +87,24 @@ export async function POST(req: Request) {
       .insert(rentPayments)
       .values({
         tenantId,
-        unitId: balance.unitId,
+        unitId: plan.unitId,
         amountPaid,
-        balanceAfterPayment: balance.balanceAfterPayment,
-        paymentMonth,
-        coverageStart,
-        coverageEnd,
-        monthsCovered,
+        balanceAfterPayment: plan.balanceAfterPayment,
+        paymentMonth: plan.paymentMonth,
+        coverageStart: plan.coverageStart,
+        coverageEnd: plan.coverageEnd,
+        monthsCovered: plan.monthsCovered,
+        allocations: plan.allocations,
         paymentDate,
         paymentMethod,
         notes
       })
       .returning()
 
-    if (coverageEnd > tenantRow.tenant.rentDueDate) {
-      await db
-        .update(tenants)
-        .set({ rentDueDate: coverageEnd })
-        .where(eq(tenants.id, tenantId))
-    }
+    await db
+      .update(tenants)
+      .set({ rentDueDate: plan.nextRentDueDate })
+      .where(eq(tenants.id, tenantId))
 
     return NextResponse.json(created, { status: 201 })
   } catch (error) {

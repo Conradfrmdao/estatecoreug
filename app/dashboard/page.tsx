@@ -19,6 +19,7 @@ import {
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getDashboardData } from '@/lib/data'
 import { currency, currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
+import { paymentCoveragePeriods } from '@/lib/rent-cycle'
 
 export const dynamic = 'force-dynamic'
 
@@ -202,13 +203,15 @@ export default async function DashboardPage({
     .slice(0, 3)
 
   const recentActivity = [
-    ...data.monthlyPayments.map(({ payment, tenant, property, allocatedAmount, coverageDate, coverageMonth }) => ({
-      id: `payment-${payment.id}-${coverageMonth}`,
+    ...data.recentPayments
+      .filter(({ payment }) => sameMonth(payment.paymentDate, month))
+      .map(({ payment, tenant, property }) => ({
+      id: `payment-${payment.id}`,
       type: 'payment' as const,
-      title: `Rent covered for ${tenant.fullName}`,
-      detail: property.name,
-      amount: allocatedAmount,
-      date: coverageDate
+      title: `Payment received from ${tenant.fullName}`,
+      detail: `${property.name} - ${paymentCoveragePeriods(payment).map((period) => monthLabel(period.month)).join(', ')}`,
+      amount: payment.amountPaid,
+      date: payment.paymentDate
     })),
     ...data.expenses
       .filter(({ expense }) => sameMonth(expense.expenseDate, month))

@@ -3,7 +3,7 @@
 import React, { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import FormNotice from '@/components/FormNotice'
-import { currentPaymentMonth, dateKey } from '@/lib/format'
+import { currency, currentPaymentMonth, dateKey, monthLabel } from '@/lib/format'
 
 type TenantOption = {
   id: number
@@ -13,6 +13,10 @@ type TenantOption = {
   propertyName: string
   rentAmount: number
   rentDueDate: string
+  targetMonth?: string
+  targetDueDate?: string
+  targetAmountPaid?: number
+  targetBalance?: number
 }
 
 type PaymentFormProps = {
@@ -47,6 +51,16 @@ function addMonths(dateString: string, months: number) {
   return next.toISOString().slice(0, 10)
 }
 
+function suggestedAmountForTenant(tenant: TenantOption, months: number) {
+  const targetBalance = Number(tenant.targetBalance ?? tenant.rentAmount)
+  const firstMonthBalance = targetBalance > 0 ? targetBalance : tenant.rentAmount
+  return firstMonthBalance + Math.max(0, months - 1) * tenant.rentAmount
+}
+
+function targetDateForTenant(tenant: TenantOption) {
+  return (tenant.targetDueDate ?? tenant.rentDueDate).slice(0, 10)
+}
+
 function PaymentFormFields({ initialData }: PaymentFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -79,7 +93,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
           const matchingTenant = data?.find((t: any) => t.id === Number(queryTenantId))
           if (matchingTenant) {
             setTenantId(matchingTenant.id)
-            setAmountPaid(String(matchingTenant.rentAmount))
+            setAmountPaid(String(suggestedAmountForTenant(matchingTenant, 1)))
           }
         }
       })
@@ -93,17 +107,18 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
       return
     }
 
-    const nextStart = selectedTenant.rentDueDate.slice(0, 10)
-    setCoverageStart(nextStart)
-    setPaymentMonth(nextStart.slice(0, 7))
-  }, [initialData, selectedTenant])
+    const targetStart = targetDateForTenant(selectedTenant)
+    setCoverageStart(targetStart)
+    setPaymentMonth(selectedTenant.targetMonth ?? targetStart.slice(0, 7))
+    setAmountPaid(String(suggestedAmountForTenant(selectedTenant, monthsCovered)))
+  }, [initialData, monthsCovered, selectedTenant])
 
   useEffect(() => {
     const nextCoverageEnd = addMonths(coverageStart, monthsCovered)
     setCoverageEnd(nextCoverageEnd)
 
     if (selectedTenant && !initialData) {
-      setAmountPaid(String(selectedTenant.rentAmount * monthsCovered))
+      setAmountPaid(String(suggestedAmountForTenant(selectedTenant, monthsCovered)))
     }
   }, [coverageStart, initialData, monthsCovered, selectedTenant])
 
@@ -158,7 +173,11 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
             setTenantId(nextId)
             const matching = tenants.find((t) => t.id === nextId)
             if (matching) {
-              setAmountPaid(String(matching.rentAmount))
+              const targetStart = targetDateForTenant(matching)
+              setCoverageStart(targetStart)
+              setPaymentMonth(matching.targetMonth ?? targetStart.slice(0, 7))
+              setMonthsCovered(1)
+              setAmountPaid(String(suggestedAmountForTenant(matching, 1)))
             }
           }}
           required
@@ -174,8 +193,23 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
       </div>
 
       {selectedTenant ? (
-        <div className="rounded-xl border bg-slate-50 p-4 text-sm text-slate-700" style={{ borderColor: '#e2e8f0' }}>
-          <strong>Unit {selectedTenant.unitNumber} Rent:</strong> UGX {selectedTenant.rentAmount.toLocaleString()} per month
+        <div className="grid gap-3 rounded-xl border bg-slate-50 p-4 text-sm text-slate-700 sm:grid-cols-3" style={{ borderColor: '#e2e8f0' }}>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Monthly rent</p>
+            <p className="mt-1 font-black text-slate-950">{currency(selectedTenant.rentAmount)}</p>
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Outstanding to pay</p>
+            <p className="mt-1 font-black text-amber-700">
+              {currency(Number(selectedTenant.targetBalance ?? selectedTenant.rentAmount))}
+            </p>
+            <p className="mt-0.5 text-xs text-slate-500">{monthLabel(selectedTenant.targetMonth ?? paymentMonth)}</p>
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Already paid</p>
+            <p className="mt-1 font-black text-emerald-700">{currency(Number(selectedTenant.targetAmountPaid ?? 0))}</p>
+            <p className="mt-0.5 text-xs text-slate-500">Extra money carries forward.</p>
+          </div>
         </div>
       ) : null}
 
@@ -193,9 +227,9 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
         </div>
 
         <div>
-          <label className="field-label">Payment month</label>
+          <label className="field-label">Applies first to</label>
           <div className="field-input bg-slate-50 text-slate-700">
-            {coverageStart ? coverageStart.slice(0, 7) : paymentMonth}
+            {monthLabel(paymentMonth)}
           </div>
         </div>
       </div>
@@ -203,7 +237,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
       <section className="rounded-xl border bg-white p-4" style={{ borderColor: '#e2e8f0' }}>
         <div className="flex flex-col gap-1">
           <p className="text-sm font-semibold" style={{ color: '#1a1a2e' }}>Rent coverage</p>
-          <p className="text-xs text-slate-500">Choose the number of months this payment covers.</p>
+          <p className="text-xs text-slate-500">Money is applied to the oldest unpaid balance first; any extra moves into the next month.</p>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
           <div>

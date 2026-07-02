@@ -1,8 +1,8 @@
 import { rentPayments, tenants, units } from '@/drizzle/schema'
 import { requireCurrentAppUser } from '@/lib/auth'
-import { getUnitForUser, listTenantsForUser } from '@/lib/data'
+import { getUnitForUser, listTenantPaymentTargets, listTenantsForUser } from '@/lib/data'
 import { db } from '@/lib/db'
-import { buildFirstPaymentValues, planTenantCreation } from '@/lib/tenant-creation'
+import { buildFirstPaymentPlan, planTenantCreation } from '@/lib/tenant-creation'
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 
@@ -29,7 +29,7 @@ export async function GET(req: Request) {
   const q = (url.searchParams.get('q') ?? '').toLowerCase()
   const active = url.searchParams.get('active')
   const unitId = url.searchParams.get('unitId') ?? ''
-  const rows = await listTenantsForUser(user.id)
+  const rows = await listTenantPaymentTargets(user.id)
 
   const filtered = rows.filter(({ tenant, unit, property }) => {
     if (q && ![tenant.fullName, tenant.phone, tenant.email ?? '', unit.unitNumber, property.name].some((value) => value.toLowerCase().includes(q))) {
@@ -52,11 +52,15 @@ export async function GET(req: Request) {
   })
 
   return NextResponse.json(
-    filtered.map(({ tenant, unit, property }) => ({
-      ...tenant,
-      unitNumber: unit.unitNumber,
-      rentAmount: unit.rentAmount,
-      propertyName: property.name
+    filtered.map((row) => ({
+      ...row.tenant,
+      unitNumber: row.unit.unitNumber,
+      rentAmount: row.unit.rentAmount,
+      propertyName: row.property.name,
+      targetMonth: row.targetMonth,
+      targetDueDate: row.targetDueDate,
+      targetAmountPaid: row.targetAmountPaid,
+      targetBalance: row.targetBalance
     }))
   )
 }
@@ -106,9 +110,12 @@ export async function POST(req: Request) {
     created = tenant
 
     if (plan.recordFirstPayment) {
-      await db.insert(rentPayments).values(
-        buildFirstPaymentValues(plan, tenant.id, unit.unit.rentAmount)
-      )
+      const firstPayment = buildFirstPaymentPlan(plan, tenant.id, unit.unit.rentAmount)
+      await db.insert(rentPayments).values(firstPayment.paymentValues)
+      await db
+        .update(tenants)
+        .set({ rentDueDate: firstPayment.nextRentDueDate })
+        .where(eq(tenants.id, tenant.id))
     }
 
     if (plan.active) {

@@ -41,6 +41,7 @@ export async function GET(_req: Request, { params }: ReceiptRouteContext) {
       coverageStart: row.payment.coverageStart,
       coverageEnd: row.payment.coverageEnd,
       monthsCovered: row.payment.monthsCovered,
+      allocations: row.payment.allocations,
       paymentDate: row.payment.paymentDate,
       paymentMethod: row.payment.paymentMethod,
       notes: row.payment.notes,

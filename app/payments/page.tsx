@@ -2,6 +2,7 @@ import DeleteButton from '@/components/DeleteButton'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { listPaymentsForUser } from '@/lib/data'
 import { currency, formatDate, monthLabel } from '@/lib/format'
+import { paymentCoveragePeriods } from '@/lib/rent-cycle'
 import { Download, Plus } from 'lucide-react'
 import Link from 'next/link'
 
@@ -106,7 +107,7 @@ export default async function PaymentsPage({
                     </div>
                   </td>
                   <td data-label="Rent Coverage" style={{ color: '#374151', fontSize: '0.875rem' }}>
-                    {monthLabel(payment.paymentMonth)}
+                    {paymentCoveragePeriods(payment).map((period) => monthLabel(period.month)).join(', ')}
                     <span className="mt-1 block text-xs text-slate-400">
                       {payment.monthsCovered} month{payment.monthsCovered === 1 ? '' : 's'}
                     </span>

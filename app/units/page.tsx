@@ -50,20 +50,20 @@ export default async function UnitsPage({
       </section>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-3 sm:gap-4">
-        <div className="rounded-xl border bg-white p-4 text-center"
+      <div className="grid grid-cols-2 gap-2 min-[430px]:grid-cols-3 sm:gap-4">
+        <div className="rounded-xl border bg-white p-3 text-center sm:p-4"
           style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <p className="text-2xl font-bold" style={{ color: '#1a1a2e' }}>{unitRows.length}</p>
+          <p className="text-xl font-bold sm:text-2xl" style={{ color: '#1a1a2e' }}>{unitRows.length}</p>
           <p className="text-xs mt-1" style={{ color: '#64748b' }}>Total Units</p>
         </div>
-        <div className="rounded-xl border bg-white p-4 text-center"
+        <div className="rounded-xl border bg-white p-3 text-center sm:p-4"
           style={{ borderColor: '#e2e8f0', backgroundColor: '#e6f7ef', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <p className="text-2xl font-bold" style={{ color: '#007038' }}>{occupiedCount}</p>
+          <p className="text-xl font-bold sm:text-2xl" style={{ color: '#007038' }}>{occupiedCount}</p>
           <p className="text-xs mt-1" style={{ color: '#00A550' }}>Occupied</p>
         </div>
-        <div className="rounded-xl border bg-white p-4 text-center"
+        <div className="col-span-2 rounded-xl border bg-white p-3 text-center min-[430px]:col-span-1 sm:p-4"
           style={{ borderColor: '#fef3c7', backgroundColor: '#fffbeb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <p className="text-2xl font-bold" style={{ color: '#92400e' }}>{vacantCount}</p>
+          <p className="text-xl font-bold sm:text-2xl" style={{ color: '#92400e' }}>{vacantCount}</p>
           <p className="text-xs mt-1" style={{ color: '#f59e0b' }}>Vacant</p>
         </div>
       </div>
