@@ -74,6 +74,40 @@ export type TenantPaymentTarget = TenantWithUnit & {
   targetBalance: number
 }
 
+export type PropertyUnitSummary = UnitWithProperty & {
+  activeTenant: Tenant | null
+  tenantBalance: TenantBalance | null
+  monthlyAmountPaid: number
+  monthlyBalance: number
+  monthlyExpenses: number
+}
+
+export type PropertySummaryData = {
+  property: Property
+  month: string
+  summary: {
+    totalUnits: number
+    occupiedUnits: number
+    vacantUnits: number
+    activeTenants: number
+    totalTenants: number
+    monthlyRentRoll: number
+    monthlyExpected: number
+    collectedThisMonth: number
+    totalCollected: number
+    outstandingRent: number
+    expensesThisMonth: number
+    totalExpenses: number
+    netThisMonth: number
+  }
+  unitSummaries: PropertyUnitSummary[]
+  tenantBalances: TenantBalance[]
+  monthlyPayments: MonthlyPaymentAllocation[]
+  recentPayments: PaymentWithTenant[]
+  monthlyExpenses: ExpenseWithProperty[]
+  recentExpenses: ExpenseWithProperty[]
+}
+
 export type UserWithStats = {
   user: User
   stats: {
@@ -611,6 +645,86 @@ export async function getDashboardData(userId: number, month = currentPaymentMon
     alerts: buildAlerts(tenantBalances, paymentRows, expenseRows),
     recentPayments: paymentRows.slice(0, 5),
     recentExpenses: expenseRows.slice(0, 5)
+  }
+}
+
+export async function getPropertySummaryData(
+  userId: number,
+  propertyId: number,
+  month = currentPaymentMonth()
+): Promise<PropertySummaryData | null> {
+  const data = await getDashboardData(userId, month)
+  const property = data.properties.find((row) => row.id === propertyId)
+
+  if (!property) {
+    return null
+  }
+
+  const unitSummariesBase = data.units.filter(({ unit }) => unit.propertyId === propertyId)
+  const propertyUnitIds = new Set(unitSummariesBase.map(({ unit }) => unit.id))
+  const propertyTenants = data.tenants.filter(({ tenant }) => propertyUnitIds.has(tenant.unitId))
+  const propertyTenantBalances = data.tenantBalances.filter(({ unit }) => unit.propertyId === propertyId)
+  const propertyMonthlyPayments = data.monthlyPayments.filter(({ unit }) => unit.propertyId === propertyId)
+  const propertyPayments = data.payments.filter(({ unit }) => unit.propertyId === propertyId)
+  const propertyExpenses = data.expenses.filter(({ expense }) => expense.propertyId === propertyId)
+  const propertyMonthlyExpenses = propertyExpenses.filter(({ expense }) => getExpenseMonth(expense) === month)
+
+  const unitSummaries = unitSummariesBase.map((row) => {
+    const activeTenant = propertyTenants.find(({ tenant }) =>
+      tenant.unitId === row.unit.id && tenant.active
+    )?.tenant ?? null
+    const tenantBalance = activeTenant
+      ? propertyTenantBalances.find(({ tenant }) => tenant.id === activeTenant.id) ?? null
+      : null
+    const monthlyAmountPaid = sum(
+      propertyMonthlyPayments
+        .filter(({ unit }) => unit.id === row.unit.id)
+        .map(({ allocatedAmount }) => allocatedAmount)
+    )
+    const monthlyExpenses = sum(
+      propertyMonthlyExpenses
+        .filter(({ expense }) => expense.unitId === row.unit.id)
+        .map(({ expense }) => expense.amount)
+    )
+
+    return {
+      ...row,
+      activeTenant,
+      tenantBalance,
+      monthlyAmountPaid,
+      monthlyBalance: tenantBalance?.balance ?? 0,
+      monthlyExpenses
+    } satisfies PropertyUnitSummary
+  })
+
+  const occupiedUnits = unitSummaries.filter(({ unit }) => unit.status === 'occupied').length
+  const collectedThisMonth = sum(propertyMonthlyPayments.map(({ allocatedAmount }) => allocatedAmount))
+  const expensesThisMonth = sum(propertyMonthlyExpenses.map(({ expense }) => expense.amount))
+
+  return {
+    property,
+    month,
+    summary: {
+      totalUnits: unitSummaries.length,
+      occupiedUnits,
+      vacantUnits: unitSummaries.length - occupiedUnits,
+      activeTenants: propertyTenants.filter(({ tenant }) => tenant.active).length,
+      totalTenants: propertyTenants.length,
+      monthlyRentRoll: sum(unitSummaries.map(({ unit }) => unit.rentAmount)),
+      monthlyExpected: sum(propertyTenantBalances.map(({ unit }) => unit.rentAmount)),
+      collectedThisMonth,
+      totalCollected: sum(propertyPayments.map(({ payment }) => payment.amountPaid)),
+      outstandingRent: sum(propertyTenantBalances.map(({ balance }) => balance)),
+      expensesThisMonth,
+      totalExpenses: sum(propertyExpenses.map(({ expense }) => expense.amount)),
+      netThisMonth: collectedThisMonth - expensesThisMonth
+    },
+    unitSummaries,
+    tenantBalances: propertyTenantBalances,
+    monthlyPayments: propertyMonthlyPayments,
+    recentPayments: propertyPayments.slice(0, 8),
+    monthlyExpenses: propertyMonthlyExpenses,
+    recentExpenses: propertyExpenses.slice(0, 8)
   }
 }
 

@@ -1,6 +1,7 @@
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getDashboardData } from '@/lib/data'
 import { currency, currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
+import { Download } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -301,6 +302,7 @@ export default async function ReportsPage({
                   <th>Monthly Collected</th>
                   <th>Monthly Expenses</th>
                   <th>Net Cash Flow</th>
+                  <th>Property Report</th>
                 </tr>
               </thead>
               <tbody>
@@ -327,11 +329,21 @@ export default async function ReportsPage({
                     <td data-label="Net Cash Flow" className="text-xs font-bold" style={{ color: net >= 0 ? '#00A550' : '#e11d48' }}>
                       {currency(net)}
                     </td>
+                    <td data-label="Property Report">
+                      <a
+                        href={`/api/reports/property-detail?month=${month}&propertyId=${property.id}`}
+                        download
+                        className="inline-flex min-h-10 items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                      >
+                        <Download className="h-3.5 w-3.5" strokeWidth={2} />
+                        Download
+                      </a>
+                    </td>
                   </tr>
                 ))}
                 {propertyStats.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-sm text-slate-400">
+                    <td colSpan={8} className="py-8 text-center text-sm text-slate-400">
                       No properties found in your portfolio.
                     </td>
                   </tr>

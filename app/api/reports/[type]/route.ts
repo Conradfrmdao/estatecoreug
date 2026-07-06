@@ -1,5 +1,5 @@
 import { requireCurrentAppUser } from '@/lib/auth'
-import { getDashboardData } from '@/lib/data'
+import { getDashboardData, getPropertySummaryData } from '@/lib/data'
 import { currentPaymentMonth, dateKey, monthLabel } from '@/lib/format'
 import { ReportDocument } from '@/lib/pdf/reports'
 import { renderToBuffer } from '@react-pdf/renderer'
@@ -24,12 +24,15 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
     const { searchParams } = new URL(req.url)
     const month = searchParams.get('month') ?? currentPaymentMonth()
     const { type } = await params
-
-    const dashboardData = await getDashboardData(user.id, month)
-
+    let dashboardData: Awaited<ReturnType<typeof getDashboardData>> | null = null
     let reportProps: any = null
+    const loadDashboardData = async () => {
+      dashboardData ??= await getDashboardData(user.id, month)
+      return dashboardData
+    }
 
     if (type === 'monthly-rent') {
+      const dashboardData = await loadDashboardData()
       const payments = dashboardData.monthlyPayments
         .map(({ payment, tenant, unit, property, allocatedAmount, coverageDate }) => ({
           id: payment.id,
@@ -55,6 +58,7 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
         }
       }
     } else if (type === 'unpaid-tenants') {
+      const dashboardData = await loadDashboardData()
       const unpaid = dashboardData.tenantBalances
         .filter((tb) => tb.balance > 0)
         .map((tb) => ({
@@ -79,6 +83,7 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
         }
       }
     } else if (type === 'income-expense') {
+      const dashboardData = await loadDashboardData()
       const expenseByCategory = new Map<string, number>()
       dashboardData.expenses.forEach(({ expense }) => {
         const expMonth = dateKey(expense.expenseDate).slice(0, 7)
@@ -117,7 +122,28 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
           recentExpenses
         }
       }
+    } else if (type === 'property-detail') {
+      const propertyId = Number(searchParams.get('propertyId'))
+
+      if (!Number.isInteger(propertyId) || propertyId < 1) {
+        return NextResponse.json({ error: 'A valid property id is required.' }, { status: 400 })
+      }
+
+      const propertyData = await getPropertySummaryData(user.id, propertyId, month)
+
+      if (!propertyData) {
+        return NextResponse.json({ error: 'Property not found.' }, { status: 404 })
+      }
+
+      reportProps = {
+        type: 'property-detail',
+        title: `${propertyData.property.name} Property Report - ${monthLabel(month)}`,
+        propertyName: propertyData.property.name,
+        month: monthLabel(month),
+        data: propertyData
+      }
     } else if (type === 'property-summary') {
+      const dashboardData = await loadDashboardData()
       const propertyData = dashboardData.properties.map((property) => {
         const pUnits = dashboardData.units.filter(({ unit }) => unit.propertyId === property.id)
         const occupiedUnits = pUnits.filter(({ unit }) => unit.status === 'occupied')
@@ -146,7 +172,11 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
 
     const element = React.createElement(ReportDocument, reportProps)
     const buffer: Buffer = await renderToBuffer(element as any)
-    const filename = safeFilenamePart(`estatecore-${type}-${month}`)
+    const filename = safeFilenamePart(
+      type === 'property-detail' && reportProps?.propertyName
+        ? `estatecore-${reportProps.propertyName}-${month}-property-report`
+        : `estatecore-${type}-${month}`
+    )
 
     return new Response(new Uint8Array(buffer), {
       headers: {

@@ -1,7 +1,7 @@
 import DeleteButton from '@/components/DeleteButton'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { listPropertiesForUser, listUnitsForUser } from '@/lib/data'
-import { Plus } from 'lucide-react'
+import { Eye, Plus } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -85,7 +85,12 @@ export default async function PropertiesPage({
                           style={{ backgroundColor: '#00A550' }}>
                           {property.name.charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-semibold" style={{ color: '#1a1a2e' }}>{property.name}</span>
+                        <Link
+                          href={`/properties/${property.id}`}
+                          className="font-semibold text-slate-950 transition hover:text-emerald-700"
+                        >
+                          {property.name}
+                        </Link>
                       </div>
                     </td>
                     <td data-label="Location" style={{ color: '#64748b' }}>
@@ -107,6 +112,14 @@ export default async function PropertiesPage({
                     </td>
                     <td data-label="Actions">
                       <div className="flex justify-end items-center gap-2">
+                        <Link
+                          href={`/properties/${property.id}`}
+                          className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition hover:bg-slate-50"
+                          style={{ borderColor: '#e2e8f0', color: '#00A550' }}
+                        >
+                          <Eye aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
+                          View
+                        </Link>
                         <Link
                           href={`/properties/${property.id}/edit`}
                           className="rounded-lg border px-3 py-1.5 text-xs font-medium transition hover:bg-slate-50"

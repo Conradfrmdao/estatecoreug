@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import path from 'path'
+import type { PropertySummaryData } from '@/lib/data'
 
 const styles = StyleSheet.create({
   page: {
@@ -201,7 +202,20 @@ interface PropertySummaryReportProps {
   }>
 }
 
-type ReportProps = MonthlyRentReportProps | UnpaidTenantsReportProps | IncomeExpenseReportProps | PropertySummaryReportProps
+interface PropertyDetailReportProps {
+  type: 'property-detail'
+  title: string
+  propertyName: string
+  month: string
+  data: PropertySummaryData
+}
+
+type ReportProps =
+  | MonthlyRentReportProps
+  | UnpaidTenantsReportProps
+  | IncomeExpenseReportProps
+  | PropertySummaryReportProps
+  | PropertyDetailReportProps
 
 export function ReportDocument(props: ReportProps) {
   const logoPath = path.join(process.cwd(), 'public/estatecore-lockup.png')
@@ -226,6 +240,7 @@ export function ReportDocument(props: ReportProps) {
           {props.type === 'monthly-rent' && <Text style={styles.metaText}>Month: {props.month}</Text>}
           {props.type === 'unpaid-tenants' && <Text style={styles.metaText}>As of Month: {props.month}</Text>}
           {props.type === 'income-expense' && <Text style={styles.metaText}>Period: {props.monthRange}</Text>}
+          {props.type === 'property-detail' && <Text style={styles.metaText}>Property: {props.propertyName} | Month: {props.month}</Text>}
         </View>
 
         {/* Report Content */}
@@ -403,6 +418,117 @@ export function ReportDocument(props: ReportProps) {
                   <Text style={{ width: '10%', textAlign: 'right', color: '#166534', fontWeight: 'bold' }}>{p.occupancyRate}%</Text>
                 </View>
               ))}
+            </View>
+          </View>
+        )}
+
+        {props.type === 'property-detail' && (
+          <View>
+            <View style={styles.summaryGrid}>
+              <View style={styles.summaryCard}>
+                <Text style={{ color: '#64748b', fontSize: 8 }}>UNITS</Text>
+                <Text style={styles.summaryVal}>{props.data.summary.totalUnits}</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={{ color: '#64748b', fontSize: 8 }}>ACTIVE TENANTS</Text>
+                <Text style={styles.summaryVal}>{props.data.summary.activeTenants}</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={{ color: '#64748b', fontSize: 8 }}>RENT ROLL</Text>
+                <Text style={styles.summaryVal}>{formatUGX(props.data.summary.monthlyRentRoll)}</Text>
+              </View>
+            </View>
+            <View style={styles.summaryGrid}>
+              <View style={styles.summaryCard}>
+                <Text style={{ color: '#64748b', fontSize: 8 }}>COLLECTED</Text>
+                <Text style={styles.summaryVal}>{formatUGX(props.data.summary.collectedThisMonth)}</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={{ color: '#64748b', fontSize: 8 }}>OUTSTANDING</Text>
+                <Text style={[styles.summaryVal, { color: '#b45309' }]}>{formatUGX(props.data.summary.outstandingRent)}</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={{ color: '#64748b', fontSize: 8 }}>EXPENSES</Text>
+                <Text style={[styles.summaryVal, { color: '#991b1b' }]}>{formatUGX(props.data.summary.expensesThisMonth)}</Text>
+              </View>
+            </View>
+
+            <Text style={styles.sectionTitle}>Units, Tenants, Rent, and Balances</Text>
+            <View style={styles.table}>
+              <View style={[styles.tableRow, styles.tableHeader]}>
+                <Text style={[styles.th, { width: '13%' }]}>Unit</Text>
+                <Text style={[styles.th, { width: '24%' }]}>Tenant</Text>
+                <Text style={[styles.th, { width: '16%', textAlign: 'right' }]}>Rent</Text>
+                <Text style={[styles.th, { width: '16%', textAlign: 'right' }]}>Paid</Text>
+                <Text style={[styles.th, { width: '16%', textAlign: 'right' }]}>Outstanding</Text>
+                <Text style={[styles.th, { width: '15%', textAlign: 'right' }]}>Expenses</Text>
+              </View>
+              {props.data.unitSummaries.length === 0 ? (
+                <View style={styles.tableRow}>
+                  <Text style={{ width: '100%', textAlign: 'center', color: '#94a3b8' }}>No units found for this property.</Text>
+                </View>
+              ) : (
+                props.data.unitSummaries.map((row, index) => (
+                  <View key={row.unit.id} style={index % 2 === 0 ? styles.tableRow : styles.tableRowAlternate}>
+                    <Text style={{ width: '13%', fontWeight: 'bold' }}>Unit {row.unit.unitNumber}</Text>
+                    <Text style={{ width: '24%' }}>{row.activeTenant?.fullName ?? 'Vacant'}</Text>
+                    <Text style={{ width: '16%', textAlign: 'right' }}>{formatUGX(row.unit.rentAmount)}</Text>
+                    <Text style={{ width: '16%', textAlign: 'right', color: '#166534' }}>{formatUGX(row.monthlyAmountPaid)}</Text>
+                    <Text style={{ width: '16%', textAlign: 'right', color: row.monthlyBalance > 0 ? '#b45309' : '#64748b' }}>
+                      {formatUGX(row.monthlyBalance)}
+                    </Text>
+                    <Text style={{ width: '15%', textAlign: 'right', color: '#991b1b' }}>{formatUGX(row.monthlyExpenses)}</Text>
+                  </View>
+                ))
+              )}
+            </View>
+
+            <Text style={styles.sectionTitle}>Recent Payments</Text>
+            <View style={styles.table}>
+              <View style={[styles.tableRow, styles.tableHeader]}>
+                <Text style={[styles.th, { width: '28%' }]}>Tenant</Text>
+                <Text style={[styles.th, { width: '18%' }]}>Unit</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'center' }]}>Date</Text>
+                <Text style={[styles.th, { width: '34%', textAlign: 'right' }]}>Amount</Text>
+              </View>
+              {props.data.recentPayments.length === 0 ? (
+                <View style={styles.tableRow}>
+                  <Text style={{ width: '100%', textAlign: 'center', color: '#94a3b8' }}>No payments recorded for this property.</Text>
+                </View>
+              ) : (
+                props.data.recentPayments.map((row, index) => (
+                  <View key={row.payment.id} style={index % 2 === 0 ? styles.tableRow : styles.tableRowAlternate}>
+                    <Text style={{ width: '28%' }}>{row.tenant.fullName}</Text>
+                    <Text style={{ width: '18%' }}>Unit {row.unit.unitNumber}</Text>
+                    <Text style={{ width: '20%', textAlign: 'center' }}>{new Date(row.payment.paymentDate).toLocaleDateString('en-GB')}</Text>
+                    <Text style={{ width: '34%', textAlign: 'right', color: '#166534', fontWeight: 'bold' }}>{formatUGX(row.payment.amountPaid)}</Text>
+                  </View>
+                ))
+              )}
+            </View>
+
+            <Text style={styles.sectionTitle}>Recent Expenses</Text>
+            <View style={styles.table}>
+              <View style={[styles.tableRow, styles.tableHeader]}>
+                <Text style={[styles.th, { width: '34%' }]}>Expense</Text>
+                <Text style={[styles.th, { width: '18%' }]}>Unit</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'center' }]}>Date</Text>
+                <Text style={[styles.th, { width: '28%', textAlign: 'right' }]}>Amount</Text>
+              </View>
+              {props.data.recentExpenses.length === 0 ? (
+                <View style={styles.tableRow}>
+                  <Text style={{ width: '100%', textAlign: 'center', color: '#94a3b8' }}>No expenses recorded for this property.</Text>
+                </View>
+              ) : (
+                props.data.recentExpenses.map((row, index) => (
+                  <View key={row.expense.id} style={index % 2 === 0 ? styles.tableRow : styles.tableRowAlternate}>
+                    <Text style={{ width: '34%' }}>{row.expense.title}</Text>
+                    <Text style={{ width: '18%' }}>{row.unit ? `Unit ${row.unit.unitNumber}` : 'Property'}</Text>
+                    <Text style={{ width: '20%', textAlign: 'center' }}>{new Date(row.expense.expenseDate).toLocaleDateString('en-GB')}</Text>
+                    <Text style={{ width: '28%', textAlign: 'right', color: '#991b1b', fontWeight: 'bold' }}>{formatUGX(row.expense.amount)}</Text>
+                  </View>
+                ))
+              )}
             </View>
           </View>
         )}
