@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import FormNotice from '@/components/FormNotice'
 import { cleanMoneyInput } from '@/lib/money'
-import { Building2, Check, ChevronLeft, Home, Search, X } from 'lucide-react'
+import { Check, Home, Search, X } from 'lucide-react'
 
 type Unit = {
   id: number
@@ -57,7 +57,6 @@ export default function TenantForm({ initialData }: TenantFormProps) {
   const [propertyId, setPropertyId] = useState<number | ''>('')
   const [unitPickerOpen, setUnitPickerOpen] = useState(false)
   const [pickerPropertyId, setPickerPropertyId] = useState<number | ''>('')
-  const [propertySearch, setPropertySearch] = useState('')
   const [unitSearch, setUnitSearch] = useState('')
   const [unitId, setUnitId] = useState<number | ''>(initialData?.unitId ?? '')
   const [fullName, setFullName] = useState(initialData?.fullName ?? '')
@@ -107,9 +106,6 @@ export default function TenantForm({ initialData }: TenantFormProps) {
       return map
     }, new Map<number, PropertyOption>()).values()
   ).sort((a, b) => a.name.localeCompare(b.name))
-  const filteredProperties = properties.filter((property) =>
-    !propertySearch.trim() || property.name.toLowerCase().includes(propertySearch.trim().toLowerCase())
-  )
   const selectedProperty = properties.find((property) => property.id === Number(propertyId))
   const pickerProperty = properties.find((property) => property.id === Number(pickerPropertyId))
   const unitsForPickerProperty = pickerPropertyId
@@ -132,15 +128,12 @@ export default function TenantForm({ initialData }: TenantFormProps) {
 
   function openUnitPicker() {
     setUnitPickerOpen(true)
-    setPickerPropertyId('')
-    setPropertySearch('')
+    setPickerPropertyId(propertyId)
     setUnitSearch('')
   }
 
   function closeUnitPicker() {
     setUnitPickerOpen(false)
-    setPickerPropertyId('')
-    setPropertySearch('')
     setUnitSearch('')
   }
 
@@ -244,12 +237,8 @@ export default function TenantForm({ initialData }: TenantFormProps) {
           <div className="max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
             <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
               <div className="min-w-0">
-                <p className="text-sm font-black text-slate-950">
-                  {pickerProperty ? pickerProperty.name : 'Choose property'}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {pickerProperty ? 'Select a unit inside this property.' : 'Select the property for this tenant.'}
-                </p>
+                <p className="text-sm font-black text-slate-950">Choose unit</p>
+                <p className="text-xs text-slate-500">Select a property first, then choose an available unit.</p>
               </div>
               <button
                 type="button"
@@ -262,103 +251,92 @@ export default function TenantForm({ initialData }: TenantFormProps) {
             </div>
 
             <div className="max-h-[72vh] overflow-y-auto p-4">
-              {!pickerProperty ? (
-                <div className="space-y-3">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={1.9} />
-                    <input
-                      value={propertySearch}
-                      onChange={(e) => setPropertySearch(e.target.value)}
-                      className="field-input pl-9"
-                      placeholder="Search property..."
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    {filteredProperties.map((property) => (
-                      <button
-                        key={property.id}
-                        type="button"
-                        onClick={() => {
-                          setPickerPropertyId(property.id)
-                          setUnitSearch('')
-                        }}
-                        className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
-                      >
-                        <span className="flex min-w-0 items-center gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-                            <Building2 className="h-4 w-4" strokeWidth={1.9} />
-                          </span>
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-black text-slate-950">{property.name}</span>
-                            <span className="block text-xs text-slate-500">{property.unitCount} unit{property.unitCount === 1 ? '' : 's'}</span>
-                          </span>
-                        </span>
-                        {property.id === propertyId && <Check className="h-4 w-4 shrink-0 text-emerald-700" strokeWidth={2} />}
-                      </button>
-                    ))}
-                    {filteredProperties.length === 0 && (
-                      <p className="rounded-xl bg-slate-50 px-3 py-6 text-center text-sm font-semibold text-slate-500">
-                        No properties match that search.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPickerPropertyId('')
+              <div className="space-y-4">
+                <div>
+                  <label className="field-label">Property</label>
+                  <select
+                    value={pickerPropertyId}
+                    onChange={(e) => {
+                      setPickerPropertyId(e.target.value ? Number(e.target.value) : '')
                       setUnitSearch('')
                     }}
-                    className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-slate-800"
+                    className="field-input"
                   >
-                    <ChevronLeft className="h-4 w-4" strokeWidth={1.9} />
-                    Back to properties
-                  </button>
-
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={1.9} />
-                    <input
-                      value={unitSearch}
-                      onChange={(e) => setUnitSearch(e.target.value)}
-                      className="field-input pl-9"
-                      placeholder="Search unit number, rent, or status..."
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    {unitOptions.map((unit) => {
-                      const disabled = unit.status === 'occupied' && unit.id !== initialData?.unitId
-                      return (
-                        <button
-                          key={unit.id}
-                          type="button"
-                          onClick={() => {
-                            if (!disabled) chooseUnit(unit)
-                          }}
-                          disabled={disabled}
-                          className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-60"
-                        >
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-black text-slate-950">Unit {unit.unitNumber}</span>
-                            <span className="block text-xs text-slate-500">
-                              {unit.rentAmount ? `UGX ${unit.rentAmount.toLocaleString()}/mo` : 'Rent not set'} {unit.status === 'occupied' ? '- Occupied' : '- Vacant'}
-                            </span>
-                          </span>
-                          {unit.id === unitId && <Check className="h-4 w-4 shrink-0 text-emerald-700" strokeWidth={2} />}
-                        </button>
-                      )
-                    })}
-                    {unitOptions.length === 0 && (
-                      <p className="rounded-xl bg-slate-50 px-3 py-6 text-center text-sm font-semibold text-slate-500">
-                        No units match that search.
-                      </p>
-                    )}
-                  </div>
+                    <option value="">Select property</option>
+                    {properties.map((property) => (
+                      <option key={property.id} value={property.id}>
+                        {property.name} ({property.unitCount} available unit{property.unitCount === 1 ? '' : 's'})
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
+
+                {pickerProperty ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-black text-slate-950">Available units</p>
+                        <p className="truncate text-xs text-slate-500">{pickerProperty.name}</p>
+                      </div>
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                        {unitOptions.length} unit{unitOptions.length === 1 ? '' : 's'}
+                      </span>
+                    </div>
+
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={1.9} />
+                      <input
+                        value={unitSearch}
+                        onChange={(e) => setUnitSearch(e.target.value)}
+                        className="field-input pl-9"
+                        placeholder="Search unit number, rent, or status..."
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      {unitOptions.map((unit) => {
+                        const disabled = unit.status === 'occupied' && unit.id !== initialData?.unitId
+                        return (
+                          <button
+                            key={unit.id}
+                            type="button"
+                            onClick={() => {
+                              if (!disabled) chooseUnit(unit)
+                            }}
+                            disabled={disabled}
+                            className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-60"
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-black text-slate-950">Unit {unit.unitNumber}</span>
+                              <span className="block text-xs text-slate-500">
+                                {unit.rentAmount ? `UGX ${unit.rentAmount.toLocaleString()}/mo` : 'Rent not set'} {unit.status === 'occupied' ? '- Occupied' : '- Vacant'}
+                              </span>
+                            </span>
+                            {unit.id === unitId && <Check className="h-4 w-4 shrink-0 text-emerald-700" strokeWidth={2} />}
+                          </button>
+                        )
+                      })}
+                      {unitOptions.length === 0 && (
+                        <p className="rounded-xl bg-slate-50 px-3 py-6 text-center text-sm font-semibold text-slate-500">
+                          No available units found for this property.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
+                    <Home className="mx-auto h-8 w-8 text-slate-300" strokeWidth={1.8} />
+                    <p className="mt-3 text-sm font-black text-slate-700">Select a property</p>
+                    <p className="mt-1 text-xs text-slate-500">Available units will appear here after you choose a property.</p>
+                  </div>
+                )}
+
+                {properties.length === 0 && (
+                  <p className="rounded-xl bg-amber-50 px-3 py-4 text-center text-sm font-semibold text-amber-800">
+                    No available units found. Add a vacant unit before creating a tenant.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
