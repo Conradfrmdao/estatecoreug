@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import FormNotice from '@/components/FormNotice'
 import { currency, currentPaymentMonth, dateKey, monthLabel } from '@/lib/format'
 import { cleanMoneyInput } from '@/lib/money'
+import { Building2, Check, ChevronLeft, Search, UserRound, X } from 'lucide-react'
 
 type TenantOption = {
   id: number
@@ -78,6 +79,8 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
 
   const [tenants, setTenants] = useState<TenantOption[]>([])
   const [propertyId, setPropertyId] = useState<number | ''>('')
+  const [tenantPickerOpen, setTenantPickerOpen] = useState(false)
+  const [pickerPropertyId, setPickerPropertyId] = useState<number | ''>('')
   const [propertySearch, setPropertySearch] = useState('')
   const [tenantSearch, setTenantSearch] = useState('')
   const [tenantId, setTenantId] = useState<number | ''>(initialData?.tenantId ?? '')
@@ -143,10 +146,11 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
     !propertySearch.trim() || property.name.toLowerCase().includes(propertySearch.trim().toLowerCase())
   )
   const selectedProperty = properties.find((property) => property.id === Number(propertyId))
-  const tenantsForProperty = propertyId
-    ? tenants.filter((tenant) => tenant.propertyId === Number(propertyId))
+  const pickerProperty = properties.find((property) => property.id === Number(pickerPropertyId))
+  const tenantsForPickerProperty = pickerPropertyId
+    ? tenants.filter((tenant) => tenant.propertyId === Number(pickerPropertyId))
     : []
-  const searchedTenants = tenantsForProperty.filter((tenant) => {
+  const searchedTenants = tenantsForPickerProperty.filter((tenant) => {
     const search = tenantSearch.trim().toLowerCase()
     if (!search) return true
 
@@ -158,9 +162,23 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
       tenant.propertyName
     ].some((value) => value.toLowerCase().includes(search))
   })
-  const tenantOptions = selectedTenant && selectedTenant.propertyId === Number(propertyId) && !searchedTenants.some((tenant) => tenant.id === selectedTenant.id)
+  const tenantOptions = selectedTenant && selectedTenant.propertyId === Number(pickerPropertyId) && !searchedTenants.some((tenant) => tenant.id === selectedTenant.id)
     ? [selectedTenant, ...searchedTenants]
     : searchedTenants
+
+  function openTenantPicker() {
+    setTenantPickerOpen(true)
+    setPickerPropertyId('')
+    setPropertySearch('')
+    setTenantSearch('')
+  }
+
+  function closeTenantPicker() {
+    setTenantPickerOpen(false)
+    setPickerPropertyId('')
+    setPropertySearch('')
+    setTenantSearch('')
+  }
 
   function selectTenant(nextTenantId: number | '') {
     setTenantId(nextTenantId)
@@ -173,6 +191,11 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
       setMonthsCovered(1)
       setAmountPaid(String(suggestedAmountForTenant(matching, 1)))
     }
+  }
+
+  function chooseTenant(tenant: TenantOption) {
+    selectTenant(tenant.id)
+    closeTenantPicker()
   }
 
   useEffect(() => {
@@ -198,6 +221,12 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+
+    if (!tenantId) {
+      setError('Please select a unit before saving the payment.')
+      return
+    }
+
     setIsSaving(true)
 
     const payload = {
@@ -237,92 +266,161 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
     <form onSubmit={handleSubmit} className="grid gap-5">
       <FormNotice message={error} />
 
-      <section className="rounded-xl border bg-white p-4" style={{ borderColor: '#e2e8f0' }}>
-        <div className="flex flex-col gap-1">
-          <p className="text-sm font-semibold" style={{ color: '#1a1a2e' }}>Property and tenant</p>
-          <p className="text-xs text-slate-500">Select a property first, then search only active tenants inside it.</p>
-        </div>
-
-        <div className="mt-4 grid gap-4">
-          <div>
-            <label className="field-label">Search property</label>
-            <input
-              value={propertySearch}
-              onChange={(e) => setPropertySearch(e.target.value)}
-              className="field-input"
-              placeholder="Type property name..."
-            />
-          </div>
-
-          <div>
-            <label className="field-label">Property</label>
-            <select
-              value={propertyId}
-              onChange={(e) => {
-                const nextPropertyId = e.target.value ? Number(e.target.value) : ''
-                setPropertyId(nextPropertyId)
-                setTenantSearch('')
-
-                if (!nextPropertyId || selectedTenant?.propertyId !== nextPropertyId) {
-                  setTenantId('')
-                  if (!initialData) {
-                    setAmountPaid('')
-                    setCoverageStart('')
-                    setCoverageEnd('')
-                    setPaymentMonth(currentPaymentMonth())
-                  }
-                }
-              }}
-              required
-              className="field-input"
-            >
-              <option value="">Select property</option>
-              {filteredProperties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.name} ({property.tenantCount} active tenant{property.tenantCount === 1 ? '' : 's'})
-                </option>
-              ))}
-              {selectedProperty && !filteredProperties.some((property) => property.id === selectedProperty.id) && (
-                <option value={selectedProperty.id}>{selectedProperty.name}</option>
-              )}
-            </select>
-          </div>
-
-          <div>
-            <label className="field-label">Search tenants in property</label>
-            <input
-              value={tenantSearch}
-              onChange={(e) => setTenantSearch(e.target.value)}
-              className="field-input"
-              placeholder={propertyId ? 'Type tenant, phone, email, or unit...' : 'Select a property first'}
-              disabled={!propertyId}
-            />
-          </div>
-
-          <div>
-            <label className="field-label">Tenant</label>
-            <select
-              value={tenantId}
-              onChange={(e) => selectTenant(e.target.value ? Number(e.target.value) : '')}
-              required
-              disabled={!propertyId}
-              className="field-input disabled:bg-slate-50 disabled:text-slate-400"
-            >
-              <option value="">{propertyId ? 'Select tenant' : 'Select property first'}</option>
-              {tenantOptions.map((tenant) => (
-                <option key={tenant.id} value={tenant.id}>
-                  {tenant.fullName} - Unit {tenant.unitNumber} (UGX {tenant.rentAmount.toLocaleString()}/mo)
-                </option>
-              ))}
-            </select>
-            {propertyId && tenantOptions.length === 0 && (
-              <p className="mt-2 text-xs font-semibold text-amber-700">
-                No active tenants match this search in {selectedProperty?.name ?? 'this property'}.
-              </p>
+      <div>
+        <label className="field-label">Unit / tenant</label>
+        <button
+          type="button"
+          onClick={openTenantPicker}
+          className="field-input flex min-h-[52px] items-center justify-between gap-3 text-left transition hover:border-emerald-300 hover:bg-emerald-50/30"
+        >
+          <span className="min-w-0">
+            {selectedTenant ? (
+              <>
+                <span className="block truncate text-sm font-black text-slate-950">
+                  Unit {selectedTenant.unitNumber}
+                </span>
+                <span className="mt-0.5 block truncate text-xs text-slate-500">
+                  {selectedTenant.fullName} - {selectedProperty?.name ?? selectedTenant.propertyName}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="block text-sm font-black text-slate-700">Select unit</span>
+                <span className="mt-0.5 block text-xs text-slate-500">Choose property, then unit</span>
+              </>
             )}
+          </span>
+          <UserRound className="h-5 w-5 shrink-0 text-emerald-700" strokeWidth={1.9} />
+        </button>
+      </div>
+
+      {tenantPickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 px-3 py-4 sm:items-center" role="dialog" aria-modal="true">
+          <div className="max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-sm font-black text-slate-950">
+                  {pickerProperty ? pickerProperty.name : 'Choose property'}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {pickerProperty ? 'Select the unit and tenant for this payment.' : 'Select the property for this payment.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeTenantPicker}
+                aria-label="Close tenant picker"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-50"
+              >
+                <X className="h-4 w-4" strokeWidth={2} />
+              </button>
+            </div>
+
+            <div className="max-h-[72vh] overflow-y-auto p-4">
+              {!pickerProperty ? (
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={1.9} />
+                    <input
+                      value={propertySearch}
+                      onChange={(e) => setPropertySearch(e.target.value)}
+                      className="field-input pl-9"
+                      placeholder="Search property..."
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    {filteredProperties.map((property) => (
+                      <button
+                        key={property.id}
+                        type="button"
+                        onClick={() => {
+                          setPickerPropertyId(property.id)
+                          setTenantSearch('')
+                        }}
+                        className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
+                      >
+                        <span className="flex min-w-0 items-center gap-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+                            <Building2 className="h-4 w-4" strokeWidth={1.9} />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-black text-slate-950">{property.name}</span>
+                            <span className="block text-xs text-slate-500">{property.tenantCount} occupied unit{property.tenantCount === 1 ? '' : 's'}</span>
+                          </span>
+                        </span>
+                        {property.id === propertyId && <Check className="h-4 w-4 shrink-0 text-emerald-700" strokeWidth={2} />}
+                      </button>
+                    ))}
+                    {filteredProperties.length === 0 && (
+                      <p className="rounded-xl bg-slate-50 px-3 py-6 text-center text-sm font-semibold text-slate-500">
+                        No properties match that search.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPickerPropertyId('')
+                      setTenantSearch('')
+                    }}
+                    className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-slate-800"
+                  >
+                    <ChevronLeft className="h-4 w-4" strokeWidth={1.9} />
+                    Back to properties
+                  </button>
+
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={1.9} />
+                    <input
+                      value={tenantSearch}
+                      onChange={(e) => setTenantSearch(e.target.value)}
+                      className="field-input pl-9"
+                      placeholder="Search unit, tenant, phone, or email..."
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    {tenantOptions.map((tenant) => (
+                      <button
+                        key={tenant.id}
+                        type="button"
+                        onClick={() => chooseTenant(tenant)}
+                        className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-black text-slate-950">Unit {tenant.unitNumber}</span>
+                          <span className="block text-xs text-slate-500">
+                            {tenant.fullName} - {currency(tenant.rentAmount)}/mo
+                          </span>
+                          <span className="block truncate text-xs text-slate-400">
+                            {tenant.phone || tenant.email || 'No contact saved'}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-right">
+                          <span className="block text-xs font-black uppercase tracking-[0.08em] text-slate-400">Due</span>
+                          <span className="block text-sm font-black text-amber-700">
+                            {currency(Number(tenant.targetBalance ?? tenant.rentAmount))}
+                          </span>
+                          {tenant.id === tenantId && <Check className="ml-auto mt-1 h-4 w-4 text-emerald-700" strokeWidth={2} />}
+                        </span>
+                      </button>
+                    ))}
+                    {tenantOptions.length === 0 && (
+                      <p className="rounded-xl bg-slate-50 px-3 py-6 text-center text-sm font-semibold text-slate-500">
+                        No tenants match that search.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </section>
+      )}
 
       {selectedTenant ? (
         <div className="grid gap-3 rounded-xl border bg-slate-50 p-4 text-sm text-slate-700 sm:grid-cols-3" style={{ borderColor: '#e2e8f0' }}>
