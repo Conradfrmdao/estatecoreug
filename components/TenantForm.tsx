@@ -7,10 +7,17 @@ import { cleanMoneyInput } from '@/lib/money'
 
 type Unit = {
   id: number
+  propertyId: number
   unitNumber: string
   propertyName?: string
   rentAmount?: number
   status?: string
+}
+
+type PropertyOption = {
+  id: number
+  name: string
+  unitCount: number
 }
 
 type TenantFormProps = {
@@ -46,6 +53,9 @@ function addMonths(dateString: string, months: number) {
 export default function TenantForm({ initialData }: TenantFormProps) {
   const router = useRouter()
   const [units, setUnits] = useState<Unit[]>([])
+  const [propertyId, setPropertyId] = useState<number | ''>('')
+  const [propertySearch, setPropertySearch] = useState('')
+  const [unitSearch, setUnitSearch] = useState('')
   const [unitId, setUnitId] = useState<number | ''>(initialData?.unitId ?? '')
   const [fullName, setFullName] = useState(initialData?.fullName ?? '')
   const [phone, setPhone] = useState(initialData?.phone ?? '')
@@ -64,11 +74,57 @@ export default function TenantForm({ initialData }: TenantFormProps) {
   useEffect(() => {
     fetch(initialData ? '/api/units' : '/api/units?status=vacant')
       .then((r) => r.json())
-      .then((data) => setUnits(data || []))
+      .then((data) => {
+        const rows = data || []
+        setUnits(rows)
+
+        const initialUnit = rows.find((unit: Unit) => unit.id === initialData?.unitId)
+        if (initialUnit) {
+          setPropertyId(initialUnit.propertyId)
+          return
+        }
+
+        const uniquePropertyIds = Array.from(new Set(rows.map((unit: Unit) => unit.propertyId)))
+        if (!initialData && uniquePropertyIds.length === 1) {
+          setPropertyId(Number(uniquePropertyIds[0]))
+        }
+      })
       .catch(() => setUnits([]))
   }, [initialData])
 
   const selectedUnit = units.find((unit) => unit.id === Number(unitId))
+  const properties = Array.from(
+    units.reduce((map, unit) => {
+      const existing = map.get(unit.propertyId)
+      map.set(unit.propertyId, {
+        id: unit.propertyId,
+        name: unit.propertyName ?? `Property ${unit.propertyId}`,
+        unitCount: (existing?.unitCount ?? 0) + 1
+      })
+      return map
+    }, new Map<number, PropertyOption>()).values()
+  ).sort((a, b) => a.name.localeCompare(b.name))
+  const filteredProperties = properties.filter((property) =>
+    !propertySearch.trim() || property.name.toLowerCase().includes(propertySearch.trim().toLowerCase())
+  )
+  const selectedProperty = properties.find((property) => property.id === Number(propertyId))
+  const unitsForProperty = propertyId
+    ? units.filter((unit) => unit.propertyId === Number(propertyId))
+    : []
+  const searchedUnits = unitsForProperty.filter((unit) => {
+    const search = unitSearch.trim().toLowerCase()
+    if (!search) return true
+
+    return [
+      unit.unitNumber,
+      unit.propertyName ?? '',
+      unit.status ?? '',
+      unit.rentAmount ? String(unit.rentAmount) : ''
+    ].some((value) => value.toLowerCase().includes(search))
+  })
+  const unitOptions = selectedUnit && selectedUnit.propertyId === Number(propertyId) && !searchedUnits.some((unit) => unit.id === selectedUnit.id)
+    ? [selectedUnit, ...searchedUnits]
+    : searchedUnits
 
   useEffect(() => {
     if (initialData) {
@@ -122,28 +178,101 @@ export default function TenantForm({ initialData }: TenantFormProps) {
     <form onSubmit={handleSubmit} className="grid gap-5">
       <FormNotice message={error} />
 
-      <div>
-        <label className="field-label">Unit</label>
-        <select
-          value={unitId}
-          onChange={(e) => setUnitId(Number(e.target.value))}
-          required
-          className="field-input"
-        >
-          <option value="">Select unit</option>
-          {units.map((u) => (
-            <option
-              key={u.id}
-              value={u.id}
-              disabled={u.status === 'occupied' && u.id !== initialData?.unitId}
+      <section className="rounded-xl border bg-white p-4" style={{ borderColor: '#e2e8f0' }}>
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-semibold" style={{ color: '#1a1a2e' }}>Property and unit</p>
+          <p className="text-xs text-slate-500">Select a property first, then search only the units inside it.</p>
+        </div>
+
+        <div className="mt-4 grid gap-4">
+          <div>
+            <label className="field-label">Search property</label>
+            <input
+              value={propertySearch}
+              onChange={(e) => setPropertySearch(e.target.value)}
+              className="field-input"
+              placeholder="Type property name..."
+            />
+          </div>
+
+          <div>
+            <label className="field-label">Property</label>
+            <select
+              value={propertyId}
+              onChange={(e) => {
+                const nextPropertyId = e.target.value ? Number(e.target.value) : ''
+                setPropertyId(nextPropertyId)
+                setUnitSearch('')
+
+                if (!nextPropertyId || selectedUnit?.propertyId !== nextPropertyId) {
+                  setUnitId('')
+                  if (!initialData) {
+                    setPaymentAmount('')
+                  }
+                }
+              }}
+              required
+              className="field-input"
             >
-              {u.propertyName ? `${u.propertyName} - ` : ''}Unit {u.unitNumber}
-              {u.rentAmount ? ` (UGX ${u.rentAmount.toLocaleString()}/mo)` : ''}
-              {u.status === 'occupied' && u.id !== initialData?.unitId ? ' - Occupied' : ''}
-            </option>
-          ))}
-        </select>
-      </div>
+              <option value="">Select property</option>
+              {filteredProperties.map((property) => (
+                <option key={property.id} value={property.id}>
+                  {property.name} ({property.unitCount} unit{property.unitCount === 1 ? '' : 's'})
+                </option>
+              ))}
+              {selectedProperty && !filteredProperties.some((property) => property.id === selectedProperty.id) && (
+                <option value={selectedProperty.id}>{selectedProperty.name}</option>
+              )}
+            </select>
+          </div>
+
+          <div>
+            <label className="field-label">Search units in property</label>
+            <input
+              value={unitSearch}
+              onChange={(e) => setUnitSearch(e.target.value)}
+              className="field-input"
+              placeholder={propertyId ? 'Type unit number, rent, or status...' : 'Select a property first'}
+              disabled={!propertyId}
+            />
+          </div>
+
+          <div>
+            <label className="field-label">Unit</label>
+            <select
+              value={unitId}
+              onChange={(e) => {
+                const nextUnitId = e.target.value ? Number(e.target.value) : ''
+                setUnitId(nextUnitId)
+                if (!nextUnitId && !initialData) {
+                  setPaymentAmount('')
+                }
+              }}
+              required
+              disabled={!propertyId}
+              className="field-input disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              <option value="">{propertyId ? 'Select unit' : 'Select property first'}</option>
+              {unitOptions.map((u) => (
+                <option
+                  key={u.id}
+                  value={u.id}
+                  disabled={u.status === 'occupied' && u.id !== initialData?.unitId}
+                >
+                  Unit {u.unitNumber}
+                  {u.rentAmount ? ` (UGX ${u.rentAmount.toLocaleString()}/mo)` : ''}
+                  {u.status === 'occupied' && u.id !== initialData?.unitId ? ' - Occupied' : ''}
+                </option>
+              ))}
+            </select>
+            {propertyId && unitOptions.length === 0 && (
+              <p className="mt-2 text-xs font-semibold text-amber-700">
+                No units match this search in {selectedProperty?.name ?? 'this property'}.
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
 
       <div>
         <label className="field-label">Full name</label>

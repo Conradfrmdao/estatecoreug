@@ -1,32 +1,87 @@
 import DeleteButton from '@/components/DeleteButton'
 import { requireCurrentAppUser } from '@/lib/auth'
-import { listUnitsForUser } from '@/lib/data'
+import { listPropertiesForUser, listUnitsForUser } from '@/lib/data'
 import { currency } from '@/lib/format'
-import { Plus } from 'lucide-react'
+import { Building2, ChevronRight, Plus } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
+type UnitsPageParams = {
+  q?: string
+  status?: string
+  propertyId?: string
+}
+
+function propertyHref(propertyId: number, params: { q: string; status: string }) {
+  const query = new URLSearchParams()
+  query.set('propertyId', String(propertyId))
+  if (params.q) query.set('q', params.q)
+  if (params.status) query.set('status', params.status)
+  return `/units?${query.toString()}`
+}
+
+function allUnitsHref(params: { q: string; status: string }) {
+  const query = new URLSearchParams()
+  if (params.q) query.set('q', params.q)
+  if (params.status) query.set('status', params.status)
+  const suffix = query.toString()
+  return suffix ? `/units?${suffix}` : '/units'
+}
+
 export default async function UnitsPage({
   searchParams
 }: {
-  searchParams?: { q?: string; status?: string }
+  searchParams?: Promise<UnitsPageParams>
 }) {
   const user = await requireCurrentAppUser()
-  const q = (searchParams?.q ?? '').toLowerCase()
-  const statusFilter = searchParams?.status ?? ''
+  const params = await searchParams
+  const q = (params?.q ?? '').trim().toLowerCase()
+  const statusFilter = params?.status ?? ''
+  const selectedPropertyId = Number(params?.propertyId ?? '')
+  const hasSelectedProperty = Number.isInteger(selectedPropertyId) && selectedPropertyId > 0
 
-  const unitRows = await listUnitsForUser(user.id)
+  const [properties, unitRows] = await Promise.all([
+    listPropertiesForUser(user.id),
+    listUnitsForUser(user.id)
+  ])
 
-  const rows = unitRows.filter(({ unit, property }) => {
+  const filteredRows = unitRows.filter(({ unit, property }) => {
     if (statusFilter && unit.status !== statusFilter) return false
+
     if (q) {
       return [unit.unitNumber, unit.status, property.name, property.location]
-        .some((v) => v.toLowerCase().includes(q))
+        .some((value) => value.toLowerCase().includes(q))
     }
+
     return true
   })
 
+  const propertyCards = properties
+    .map((property) => {
+      const allUnits = unitRows.filter(({ unit }) => unit.propertyId === property.id)
+      const units = filteredRows.filter(({ unit }) => unit.propertyId === property.id)
+      const propertyMatches = q
+        ? [property.name, property.location].some((value) => value.toLowerCase().includes(q))
+        : true
+
+      return {
+        property,
+        allUnits,
+        units,
+        propertyMatches,
+        occupiedCount: allUnits.filter(({ unit }) => unit.status === 'occupied').length,
+        vacantCount: allUnits.filter(({ unit }) => unit.status === 'vacant').length
+      }
+    })
+    .filter(({ units, propertyMatches }) => !q || propertyMatches || units.length > 0)
+
+  const selectedProperty = hasSelectedProperty
+    ? properties.find((property) => property.id === selectedPropertyId) ?? null
+    : null
+  const selectedRows = selectedProperty
+    ? filteredRows.filter(({ unit }) => unit.propertyId === selectedProperty.id)
+    : []
   const occupiedCount = unitRows.filter(({ unit }) => unit.status === 'occupied').length
   const vacantCount = unitRows.filter(({ unit }) => unit.status === 'vacant').length
 
@@ -36,7 +91,7 @@ export default async function UnitsPage({
         <div>
           <h1 className="text-2xl font-bold sm:text-3xl" style={{ color: '#1a1a2e' }}>Units</h1>
           <p className="mt-1.5 text-sm" style={{ color: '#64748b' }}>
-            All rental units across your properties.
+            Choose a property first, then view the units inside it.
           </p>
         </div>
         <Link
@@ -49,7 +104,6 @@ export default async function UnitsPage({
         </Link>
       </section>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 gap-2 min-[430px]:grid-cols-3 sm:gap-4">
         <div className="rounded-xl border bg-white p-3 text-center sm:p-4"
           style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
@@ -68,13 +122,13 @@ export default async function UnitsPage({
         </div>
       </div>
 
-      {/* Filters */}
       <form method="get" className="grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-center"
         style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        {hasSelectedProperty && <input type="hidden" name="propertyId" value={selectedPropertyId} />}
         <input
           name="q"
-          defaultValue={searchParams?.q ?? ''}
-          placeholder="Search unit, property…"
+          defaultValue={params?.q ?? ''}
+          placeholder="Search property, location, unit, or status..."
           className="field-input min-w-0"
         />
         <select
@@ -92,7 +146,7 @@ export default async function UnitsPage({
         >
           Filter
         </button>
-        {(q || statusFilter) && (
+        {(q || statusFilter || hasSelectedProperty) && (
           <Link href="/units"
             className="inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition"
             style={{ color: '#64748b', border: '1px solid #e2e8f0' }}>
@@ -101,81 +155,126 @@ export default async function UnitsPage({
         )}
       </form>
 
-      {/* Table */}
-      <section className="overflow-hidden rounded-xl border bg-white"
-        style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-        <div className="overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Unit</th>
-                <th>Property</th>
-                <th>Monthly Rent</th>
-                <th>Status</th>
-                <th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(({ unit, property }) => (
-                <tr key={unit.id}>
-                  <td data-label="Unit">
-                    <span className="font-semibold" style={{ color: '#1a1a2e' }}>
-                      Unit {unit.unitNumber}
-                    </span>
-                  </td>
-                  <td data-label="Property" style={{ color: '#64748b' }}>
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" />
-                      </svg>
-                      {property.name}
-                    </div>
-                  </td>
-                  <td data-label="Monthly Rent" className="font-semibold" style={{ color: '#1a1a2e' }}>
-                    {currency(unit.rentAmount)}
-                  </td>
-                  <td data-label="Status">
-                    {unit.status === 'occupied' ? (
-                      <span className="badge badge-green">Occupied</span>
-                    ) : (
-                      <span className="badge badge-amber">Vacant</span>
-                    )}
-                  </td>
-                  <td data-label="Actions">
-                    <div className="flex justify-end items-center gap-2">
-                      <Link
-                        href={`/units/${unit.id}/edit`}
-                        className="rounded-lg border px-3 py-1.5 text-xs font-medium transition hover:bg-slate-50"
-                        style={{ borderColor: '#e2e8f0', color: '#374151' }}
-                      >
-                        Edit
-                      </Link>
-                      <DeleteButton
-                        endpoint={`/api/units/${unit.id}`}
-                        confirmMessage="Delete this unit and all linked tenants, payments, and expenses?"
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-black text-slate-950">Properties</h2>
+          {hasSelectedProperty && (
+            <Link href={allUnitsHref({ q, status: statusFilter })} className="text-xs font-bold text-slate-500 hover:text-slate-800">
+              Show property list only
+            </Link>
+          )}
         </div>
-        {rows.length === 0 && (
-          <div className="py-14 text-center">
-            <div className="w-12 h-12 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-              style={{ backgroundColor: '#e6f7ef' }}>
-              <svg className="w-6 h-6" fill="none" stroke="#00A550" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium" style={{ color: '#374151' }}>No units found</p>
-            <p className="text-xs mt-1" style={{ color: '#94a3b8' }}>
-              {q || statusFilter ? 'Try a different filter' : 'Add your first unit to get started'}
-            </p>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {propertyCards.map(({ property, allUnits, units, occupiedCount: propertyOccupied, vacantCount: propertyVacant }) => {
+            const active = selectedProperty?.id === property.id
+            return (
+              <article
+                key={property.id}
+                className={`rounded-xl border bg-white p-4 shadow-sm transition ${active ? 'border-emerald-300 ring-2 ring-emerald-100' : 'border-slate-200'}`}
+              >
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                    <Building2 className="h-5 w-5" strokeWidth={1.9} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-sm font-black text-slate-950">{property.name}</h3>
+                    <p className="mt-0.5 truncate text-xs text-slate-500">{property.location}</p>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg bg-slate-50 px-2 py-2">
+                    <p className="text-base font-black text-slate-950">{allUnits.length}</p>
+                    <p className="text-[10px] font-bold uppercase text-slate-500">Units</p>
+                  </div>
+                  <div className="rounded-lg bg-emerald-50 px-2 py-2">
+                    <p className="text-base font-black text-emerald-700">{propertyOccupied}</p>
+                    <p className="text-[10px] font-bold uppercase text-emerald-700">Occupied</p>
+                  </div>
+                  <div className="rounded-lg bg-amber-50 px-2 py-2">
+                    <p className="text-base font-black text-amber-700">{propertyVacant}</p>
+                    <p className="text-[10px] font-bold uppercase text-amber-700">Vacant</p>
+                  </div>
+                </div>
+                <Link
+                  href={propertyHref(property.id, { q, status: statusFilter })}
+                  className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                >
+                  {units.length === allUnits.length ? 'Show units' : `Show ${units.length} matching units`}
+                  <ChevronRight className="h-4 w-4" strokeWidth={1.9} />
+                </Link>
+              </article>
+            )
+          })}
+        </div>
+        {propertyCards.length === 0 && (
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-10 text-center shadow-sm">
+            <p className="text-sm font-semibold text-slate-600">No properties match this filter.</p>
           </div>
         )}
       </section>
+
+      {selectedProperty && (
+        <section className="overflow-hidden rounded-xl border bg-white"
+          style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+          <div className="border-b border-slate-100 px-4 py-3">
+            <h2 className="text-sm font-black text-slate-950">{selectedProperty.name} Units</h2>
+            <p className="mt-0.5 text-xs text-slate-500">Only units under this property are shown.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Unit</th>
+                  <th>Monthly Rent</th>
+                  <th>Status</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedRows.map(({ unit }) => (
+                  <tr key={unit.id}>
+                    <td data-label="Unit">
+                      <span className="font-semibold" style={{ color: '#1a1a2e' }}>
+                        Unit {unit.unitNumber}
+                      </span>
+                    </td>
+                    <td data-label="Monthly Rent" className="font-semibold" style={{ color: '#1a1a2e' }}>
+                      {currency(unit.rentAmount)}
+                    </td>
+                    <td data-label="Status">
+                      {unit.status === 'occupied' ? (
+                        <span className="badge badge-green">Occupied</span>
+                      ) : (
+                        <span className="badge badge-amber">Vacant</span>
+                      )}
+                    </td>
+                    <td data-label="Actions">
+                      <div className="flex justify-end items-center gap-2">
+                        <Link
+                          href={`/units/${unit.id}/edit`}
+                          className="rounded-lg border px-3 py-1.5 text-xs font-medium transition hover:bg-slate-50"
+                          style={{ borderColor: '#e2e8f0', color: '#374151' }}
+                        >
+                          Edit
+                        </Link>
+                        <DeleteButton
+                          endpoint={`/api/units/${unit.id}`}
+                          confirmMessage="Delete this unit and all linked tenants, payments, and expenses?"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {selectedRows.length === 0 && (
+            <div className="py-12 text-center">
+              <p className="text-sm font-semibold text-slate-500">No units found for this property and filter.</p>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   )
 }

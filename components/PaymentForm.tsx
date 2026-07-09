@@ -9,8 +9,11 @@ import { cleanMoneyInput } from '@/lib/money'
 type TenantOption = {
   id: number
   fullName: string
+  phone?: string
+  email?: string | null
   unitId: number
   unitNumber: string
+  propertyId: number
   propertyName: string
   rentAmount: number
   rentDueDate: string
@@ -18,6 +21,12 @@ type TenantOption = {
   targetDueDate?: string
   targetAmountPaid?: number
   targetBalance?: number
+}
+
+type PropertyOption = {
+  id: number
+  name: string
+  tenantCount: number
 }
 
 type PaymentFormProps = {
@@ -68,6 +77,9 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
   const queryTenantId = searchParams.get('tenantId')
 
   const [tenants, setTenants] = useState<TenantOption[]>([])
+  const [propertyId, setPropertyId] = useState<number | ''>('')
+  const [propertySearch, setPropertySearch] = useState('')
+  const [tenantSearch, setTenantSearch] = useState('')
   const [tenantId, setTenantId] = useState<number | ''>(initialData?.tenantId ?? '')
   const [amountPaid, setAmountPaid] = useState(initialData ? String(initialData.amountPaid) : '')
   const [paymentMonth, setPaymentMonth] = useState(
@@ -86,12 +98,26 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch('/api/tenants?active=true')
+    fetch(initialData ? '/api/tenants' : '/api/tenants?active=true')
       .then((r) => r.json())
       .then((data) => {
-        setTenants(data || [])
+        const rows = data || []
+        setTenants(rows)
+
+        const preselectedTenant = rows.find((tenant: TenantOption) =>
+          tenant.id === Number(initialData?.tenantId ?? queryTenantId)
+        )
+        if (preselectedTenant) {
+          setPropertyId(preselectedTenant.propertyId)
+        } else {
+          const uniquePropertyIds = Array.from(new Set(rows.map((tenant: TenantOption) => tenant.propertyId)))
+          if (!initialData && uniquePropertyIds.length === 1) {
+            setPropertyId(Number(uniquePropertyIds[0]))
+          }
+        }
+
         if (!initialData && queryTenantId) {
-          const matchingTenant = data?.find((t: any) => t.id === Number(queryTenantId))
+          const matchingTenant = rows.find((t: TenantOption) => t.id === Number(queryTenantId))
           if (matchingTenant) {
             setTenantId(matchingTenant.id)
             setAmountPaid(String(suggestedAmountForTenant(matchingTenant, 1)))
@@ -102,6 +128,52 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
   }, [queryTenantId, initialData])
 
   const selectedTenant = tenants.find((tenant) => tenant.id === Number(tenantId))
+  const properties = Array.from(
+    tenants.reduce((map, tenant) => {
+      const existing = map.get(tenant.propertyId)
+      map.set(tenant.propertyId, {
+        id: tenant.propertyId,
+        name: tenant.propertyName,
+        tenantCount: (existing?.tenantCount ?? 0) + 1
+      })
+      return map
+    }, new Map<number, PropertyOption>()).values()
+  ).sort((a, b) => a.name.localeCompare(b.name))
+  const filteredProperties = properties.filter((property) =>
+    !propertySearch.trim() || property.name.toLowerCase().includes(propertySearch.trim().toLowerCase())
+  )
+  const selectedProperty = properties.find((property) => property.id === Number(propertyId))
+  const tenantsForProperty = propertyId
+    ? tenants.filter((tenant) => tenant.propertyId === Number(propertyId))
+    : []
+  const searchedTenants = tenantsForProperty.filter((tenant) => {
+    const search = tenantSearch.trim().toLowerCase()
+    if (!search) return true
+
+    return [
+      tenant.fullName,
+      tenant.phone ?? '',
+      tenant.email ?? '',
+      tenant.unitNumber,
+      tenant.propertyName
+    ].some((value) => value.toLowerCase().includes(search))
+  })
+  const tenantOptions = selectedTenant && selectedTenant.propertyId === Number(propertyId) && !searchedTenants.some((tenant) => tenant.id === selectedTenant.id)
+    ? [selectedTenant, ...searchedTenants]
+    : searchedTenants
+
+  function selectTenant(nextTenantId: number | '') {
+    setTenantId(nextTenantId)
+    const matching = tenants.find((tenant) => tenant.id === nextTenantId)
+    if (matching) {
+      const targetStart = targetDateForTenant(matching)
+      setPropertyId(matching.propertyId)
+      setCoverageStart(targetStart)
+      setPaymentMonth(matching.targetMonth ?? targetStart.slice(0, 7))
+      setMonthsCovered(1)
+      setAmountPaid(String(suggestedAmountForTenant(matching, 1)))
+    }
+  }
 
   useEffect(() => {
     if (!selectedTenant || initialData?.coverageStart) {
@@ -165,33 +237,92 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
     <form onSubmit={handleSubmit} className="grid gap-5">
       <FormNotice message={error} />
 
-      <div>
-        <label className="field-label">Tenant</label>
-        <select
-          value={tenantId}
-          onChange={(e) => {
-            const nextId = Number(e.target.value)
-            setTenantId(nextId)
-            const matching = tenants.find((t) => t.id === nextId)
-            if (matching) {
-              const targetStart = targetDateForTenant(matching)
-              setCoverageStart(targetStart)
-              setPaymentMonth(matching.targetMonth ?? targetStart.slice(0, 7))
-              setMonthsCovered(1)
-              setAmountPaid(String(suggestedAmountForTenant(matching, 1)))
-            }
-          }}
-          required
-          className="field-input"
-        >
-          <option value="">Select tenant</option>
-          {tenants.map((tenant) => (
-            <option key={tenant.id} value={tenant.id}>
-              {tenant.fullName} - {tenant.propertyName} / Unit {tenant.unitNumber} (UGX {tenant.rentAmount.toLocaleString()}/mo)
-            </option>
-          ))}
-        </select>
-      </div>
+      <section className="rounded-xl border bg-white p-4" style={{ borderColor: '#e2e8f0' }}>
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-semibold" style={{ color: '#1a1a2e' }}>Property and tenant</p>
+          <p className="text-xs text-slate-500">Select a property first, then search only active tenants inside it.</p>
+        </div>
+
+        <div className="mt-4 grid gap-4">
+          <div>
+            <label className="field-label">Search property</label>
+            <input
+              value={propertySearch}
+              onChange={(e) => setPropertySearch(e.target.value)}
+              className="field-input"
+              placeholder="Type property name..."
+            />
+          </div>
+
+          <div>
+            <label className="field-label">Property</label>
+            <select
+              value={propertyId}
+              onChange={(e) => {
+                const nextPropertyId = e.target.value ? Number(e.target.value) : ''
+                setPropertyId(nextPropertyId)
+                setTenantSearch('')
+
+                if (!nextPropertyId || selectedTenant?.propertyId !== nextPropertyId) {
+                  setTenantId('')
+                  if (!initialData) {
+                    setAmountPaid('')
+                    setCoverageStart('')
+                    setCoverageEnd('')
+                    setPaymentMonth(currentPaymentMonth())
+                  }
+                }
+              }}
+              required
+              className="field-input"
+            >
+              <option value="">Select property</option>
+              {filteredProperties.map((property) => (
+                <option key={property.id} value={property.id}>
+                  {property.name} ({property.tenantCount} active tenant{property.tenantCount === 1 ? '' : 's'})
+                </option>
+              ))}
+              {selectedProperty && !filteredProperties.some((property) => property.id === selectedProperty.id) && (
+                <option value={selectedProperty.id}>{selectedProperty.name}</option>
+              )}
+            </select>
+          </div>
+
+          <div>
+            <label className="field-label">Search tenants in property</label>
+            <input
+              value={tenantSearch}
+              onChange={(e) => setTenantSearch(e.target.value)}
+              className="field-input"
+              placeholder={propertyId ? 'Type tenant, phone, email, or unit...' : 'Select a property first'}
+              disabled={!propertyId}
+            />
+          </div>
+
+          <div>
+            <label className="field-label">Tenant</label>
+            <select
+              value={tenantId}
+              onChange={(e) => selectTenant(e.target.value ? Number(e.target.value) : '')}
+              required
+              disabled={!propertyId}
+              className="field-input disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              <option value="">{propertyId ? 'Select tenant' : 'Select property first'}</option>
+              {tenantOptions.map((tenant) => (
+                <option key={tenant.id} value={tenant.id}>
+                  {tenant.fullName} - Unit {tenant.unitNumber} (UGX {tenant.rentAmount.toLocaleString()}/mo)
+                </option>
+              ))}
+            </select>
+            {propertyId && tenantOptions.length === 0 && (
+              <p className="mt-2 text-xs font-semibold text-amber-700">
+                No active tenants match this search in {selectedProperty?.name ?? 'this property'}.
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
 
       {selectedTenant ? (
         <div className="grid gap-3 rounded-xl border bg-slate-50 p-4 text-sm text-slate-700 sm:grid-cols-3" style={{ borderColor: '#e2e8f0' }}>

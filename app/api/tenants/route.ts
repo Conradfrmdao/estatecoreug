@@ -56,6 +56,7 @@ export async function GET(req: Request) {
       ...row.tenant,
       unitNumber: row.unit.unitNumber,
       rentAmount: row.unit.rentAmount,
+      propertyId: row.property.id,
       propertyName: row.property.name,
       targetMonth: row.targetMonth,
       targetDueDate: row.targetDueDate,
