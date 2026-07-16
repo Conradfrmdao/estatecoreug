@@ -238,14 +238,26 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
 
   return (
     <div className="flex h-screen h-dvh w-full overflow-hidden bg-[#f8fafb]">
-      <aside className="hidden h-full w-[264px] flex-shrink-0 bg-[#063f35] text-white shadow-[8px_0_32px_rgba(2,44,37,0.10)] lg:flex lg:flex-col">
-        <div className="border-b border-white/10 px-5 py-5">
+      <aside className="relative isolate hidden h-full w-[264px] flex-shrink-0 overflow-hidden bg-[#063f35] text-white shadow-[8px_0_32px_rgba(2,44,37,0.10)] lg:flex lg:flex-col">
+        <div className="absolute inset-0 -z-30 overflow-hidden" aria-hidden="true">
+          <Image
+            src="/estatecore-hero-bg.png"
+            alt=""
+            fill
+            sizes="264px"
+            className="scale-110 object-cover object-[58%_center] blur-[6px] saturate-75"
+          />
+        </div>
+        <div className="absolute inset-0 -z-20 bg-[#063f35]/[0.68]" aria-hidden="true" />
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(2,49,41,0.38)_0%,rgba(3,74,60,0.58)_48%,rgba(2,49,41,0.84)_100%)]" aria-hidden="true" />
+
+        <div className="shrink-0 border-b border-white/10 px-5 py-4">
           <Link href="/dashboard" className="flex items-center gap-3">
             <BrandLockup inverse />
           </Link>
         </div>
 
-        <nav className="flex-1 space-y-1.5 overflow-y-auto px-4 py-6">
+        <nav className="min-h-0 flex-1 space-y-1 overflow-hidden px-4 py-2">
           {navItems.map((item) => {
             const active = isActivePath(pathname, item.href)
             const Icon = item.icon
@@ -254,7 +266,7 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
                 key={item.href}
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
-                className={`flex min-h-12 items-center gap-3 rounded-xl px-4 text-sm font-semibold transition-all duration-150 ${
+                className={`flex h-[clamp(2.25rem,5dvh,3rem)] min-h-0 items-center gap-3 rounded-xl px-4 text-sm font-semibold transition-all duration-150 ${
                   active
                     ? 'bg-[#0b8f67] text-white shadow-[0_8px_20px_rgba(0,0,0,0.14)]'
                     : 'text-emerald-50/75 hover:bg-white/10 hover:text-white'
@@ -268,7 +280,7 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
         </nav>
 
         {!isAdmin && (
-          <div className="border-t border-white/10 p-4">
+          <div className="shrink-0 border-t border-white/10 p-3">
             <SupportChatWidget />
           </div>
         )}
