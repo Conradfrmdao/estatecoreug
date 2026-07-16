@@ -2,6 +2,7 @@
 
 import { Headphones, Send, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 type SupportConversation = {
   id: number
@@ -93,6 +94,23 @@ export default function SupportChatWidget({
   }, [open])
 
   useEffect(() => {
+    if (!open) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpen(false)
+    }
+
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [open])
+
+  useEffect(() => {
     if (open) messageEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, open])
 
@@ -163,8 +181,8 @@ export default function SupportChatWidget({
         </button>
       )}
 
-      {open && (
-        <div className="fixed inset-0 z-[80] bg-slate-950/40 sm:bg-slate-950/20" onMouseDown={(event) => {
+      {open && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] bg-slate-950/40 sm:bg-slate-950/20" onMouseDown={(event) => {
           if (event.target === event.currentTarget) setOpen(false)
         }}>
           <section className="absolute inset-0 flex min-h-0 flex-col bg-white sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[36rem] sm:w-[25rem] sm:overflow-hidden sm:rounded-2xl sm:border sm:border-slate-200 sm:shadow-2xl lg:left-[17.5rem] lg:right-auto">
@@ -259,7 +277,8 @@ export default function SupportChatWidget({
               </div>
             </footer>
           </section>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
