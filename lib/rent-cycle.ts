@@ -1,6 +1,14 @@
 import type { RentPayment, RentPaymentAllocation, Tenant, Unit } from '@/drizzle/schema'
 
-export type TenantRentStatus = 'paid' | 'partial' | 'unpaid' | 'upcoming' | 'due_today' | 'overdue'
+export type TenantRentStatus = 'paid' | 'partial' | 'not_due' | 'unpaid' | 'upcoming' | 'due_today' | 'overdue'
+export type PaymentTiming = 'advance' | 'arrears'
+
+export type TenantPaymentTerms = {
+  paymentTiming: PaymentTiming
+  billingCycleMonths: number
+  coverageStart: Date
+  dueDate: Date
+}
 
 export type RentPeriod = {
   month: string
@@ -187,6 +195,67 @@ export function rentDueDateForPeriod(moveInDate: Date, period: RentPeriod) {
   return dueDate
 }
 
+function monthsBetweenDates(start: Date, end: Date) {
+  return Math.max(
+    0,
+    (end.getUTCFullYear() - start.getUTCFullYear()) * 12 +
+      end.getUTCMonth() - start.getUTCMonth()
+  )
+}
+
+export function inferTenantPaymentTerms(params: {
+  moveInDate: Date
+  rentDueDate: Date
+  rentAmount: number
+  payments: PaymentLike[]
+  paymentTiming?: string
+  billingCycleMonths?: number
+}): TenantPaymentTerms {
+  const coverageStart = calculateNextRentDueDate({
+    moveInDate: params.moveInDate,
+    rentAmount: params.rentAmount,
+    payments: params.payments
+  })
+  const dueDate = new Date(params.rentDueDate)
+  if (params.paymentTiming === 'advance' || params.paymentTiming === 'arrears') {
+    const paymentTiming = params.paymentTiming
+    return {
+      paymentTiming,
+      billingCycleMonths: paymentTiming === 'arrears'
+        ? Math.max(1, Math.trunc(params.billingCycleMonths ?? 1))
+        : 1,
+      coverageStart,
+      dueDate: paymentTiming === 'arrears' ? dueDate : coverageStart
+    }
+  }
+
+  const billingCycleMonths = monthsBetweenDates(coverageStart, dueDate)
+  const isArrears = billingCycleMonths > 0 && dueDate.getTime() > coverageStart.getTime()
+
+  return {
+    paymentTiming: isArrears ? 'arrears' : 'advance',
+    billingCycleMonths: isArrears ? billingCycleMonths : 1,
+    coverageStart,
+    dueDate: isArrears ? dueDate : coverageStart
+  }
+}
+
+export function scheduledRentDueDateForPeriod(
+  moveInDate: Date,
+  period: RentPeriod,
+  terms: Pick<TenantPaymentTerms, 'paymentTiming' | 'billingCycleMonths'>
+) {
+  if (terms.paymentTiming === 'advance') {
+    return rentDueDateForPeriod(moveInDate, period)
+  }
+
+  const moveInMonth = monthFromDate(moveInDate)
+  const monthOffset = Math.max(0, compareMonths(period.month, moveInMonth))
+  const cycleMonths = Math.max(1, Math.trunc(terms.billingCycleMonths))
+  const cycleEndOffset = (Math.floor(monthOffset / cycleMonths) + 1) * cycleMonths
+  return addMonths(moveInDate, cycleEndOffset)
+}
+
 export function getPaymentCoverage(payment: PaymentLike) {
   const start = payment.coverageStart
     ? new Date(payment.coverageStart)
@@ -253,6 +322,24 @@ function paidByMonth(payments: PaymentLike[]) {
   }
 
   return totals
+}
+
+export function outstandingRentForPeriods(params: {
+  startMonth: string
+  months: number
+  rentAmount: number
+  payments: PaymentLike[]
+}) {
+  const totals = paidByMonth(params.payments)
+  let cursor = params.startMonth
+  let outstanding = 0
+
+  for (let index = 0; index < Math.max(1, Math.trunc(params.months)); index += 1) {
+    outstanding += Math.max(params.rentAmount - (totals.get(cursor) ?? 0), 0)
+    cursor = nextMonth(cursor)
+  }
+
+  return outstanding
 }
 
 export function calculateNextRentDueDate(params: {
@@ -428,10 +515,25 @@ export function calculateTenantPeriodBalance(
     0
   )
   const balance = Math.max(row.unit.rentAmount - amountPaid, 0)
-  const dueDate = new Date(row.tenant.rentDueDate)
+  const terms = inferTenantPaymentTerms({
+    moveInDate,
+    rentDueDate: row.tenant.rentDueDate,
+    rentAmount: row.unit.rentAmount,
+    payments,
+    paymentTiming: row.tenant.paymentTiming,
+    billingCycleMonths: row.tenant.billingCycleMonths
+  })
+  const storedDueDate = new Date(row.tenant.rentDueDate)
+  const scheduledDueDate = scheduledRentDueDateForPeriod(moveInDate, period, terms)
+  const isCurrentArrearsCycle = terms.paymentTiming === 'arrears' &&
+    period.start >= parseMonth(monthFromDate(terms.coverageStart)).start &&
+    period.start < terms.dueDate
+  const dueDate = isCurrentArrearsCycle || monthFromDate(storedDueDate) === period.month
+    ? storedDueDate
+    : scheduledDueDate
   const daysUntilDue = daysUntilDate(dueDate, referenceDate)
 
-  let paymentStatus: TenantRentStatus = 'unpaid'
+  let paymentStatus: TenantRentStatus = 'not_due'
   if (balance <= 0) {
     paymentStatus = 'paid'
   } else if (amountPaid > 0) {

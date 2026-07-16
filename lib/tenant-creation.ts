@@ -1,4 +1,4 @@
-import { buildPaymentAllocationPlan, calculateDueDate } from './rent-cycle.ts'
+import { buildPaymentAllocationPlan, calculateDueDate, type PaymentTiming } from './rent-cycle.ts'
 import { parseMoneyAmount } from './money.ts'
 
 export type TenantCreationPlan = {
@@ -10,6 +10,7 @@ export type TenantCreationPlan = {
   monthsCovered: number
   rentDueDate: Date
   active: boolean
+  paymentTiming: PaymentTiming
   recordFirstPayment: boolean
   paymentAmount: number
   paymentDate: Date
@@ -58,7 +59,11 @@ export function planTenantCreation(body: Record<string, unknown>, now = new Date
   const moveInDate = parseDate(body.moveInDate)
   const monthsCovered = parsePositiveInteger(body.monthsCovered, 1)
   const active = parseBoolean(body.active, true)
-  const recordFirstPayment = parseBoolean(body.recordFirstPayment, false)
+  const requestedFirstPayment = parseBoolean(body.recordFirstPayment, false)
+  const paymentTiming: PaymentTiming = body.paymentTiming === 'advance' || body.paymentTiming === 'arrears'
+    ? body.paymentTiming
+    : requestedFirstPayment ? 'advance' : 'arrears'
+  const recordFirstPayment = paymentTiming === 'advance'
   const paymentAmount = recordFirstPayment
     ? parseMoneyAmount(body.paymentAmount, 'First payment amount')
     : 0
@@ -78,6 +83,7 @@ export function planTenantCreation(body: Record<string, unknown>, now = new Date
     monthsCovered,
     rentDueDate: calculateDueDate(moveInDate, monthsCovered),
     active,
+    paymentTiming,
     recordFirstPayment,
     paymentAmount,
     paymentDate,

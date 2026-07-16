@@ -60,8 +60,12 @@ export async function GET(req: Request) {
       propertyName: row.property.name,
       targetMonth: row.targetMonth,
       targetDueDate: row.targetDueDate,
+      targetCoverageStart: row.targetCoverageStart,
       targetAmountPaid: row.targetAmountPaid,
-      targetBalance: row.targetBalance
+      targetBalance: row.targetBalance,
+      targetScheduledBalance: row.targetScheduledBalance,
+      paymentTiming: row.paymentTiming,
+      billingCycleMonths: row.billingCycleMonths
     }))
   )
 }
@@ -105,6 +109,8 @@ export async function POST(req: Request) {
         email: plan.email,
         moveInDate: plan.moveInDate,
         rentDueDate: plan.rentDueDate,
+        paymentTiming: plan.paymentTiming,
+        billingCycleMonths: plan.monthsCovered,
         active: plan.active
       })
       .returning()

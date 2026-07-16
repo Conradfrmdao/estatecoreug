@@ -3,6 +3,7 @@ node_modules
 *.tsbuildinfo
 dev-server*.log
 screenshots/
+backups/
 .agents
 .vercel
 

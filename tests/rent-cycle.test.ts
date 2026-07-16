@@ -11,7 +11,8 @@ import {
   paymentCoverageDateForPeriod,
   paymentCoveragePeriods,
   PaymentAllocationError,
-  parseMonth
+  parseMonth,
+  scheduledRentDueDateForPeriod
 } from '../lib/rent-cycle.ts'
 
 const baseTenant = {
@@ -22,6 +23,8 @@ const baseTenant = {
   email: null,
   moveInDate: new Date('2026-01-10T00:00:00.000Z'),
   rentDueDate: new Date('2026-02-10T00:00:00.000Z'),
+  paymentTiming: 'advance',
+  billingCycleMonths: 1,
   active: true,
   createdAt: new Date('2026-01-01T00:00:00.000Z')
 }
@@ -279,12 +282,80 @@ test('counts days left using the Kampala calendar day', () => {
   assert.equal(daysUntilDate(dueDate, fourDaysLeftKampala), 4)
 
   const balance = calculateTenantPeriodBalance(
-    { tenant: { ...baseTenant, rentDueDate: dueDate }, unit: baseUnit },
+    {
+      tenant: {
+        ...baseTenant,
+        rentDueDate: dueDate,
+        paymentTiming: 'arrears',
+        billingCycleMonths: 9
+      },
+      unit: baseUnit
+    },
     [],
     parseMonth('2026-09'),
     julySecondKampala
   )
 
   assert.equal(balance?.daysUntilDue, 91)
-  assert.equal(balance?.paymentStatus, 'unpaid')
+  assert.equal(balance?.paymentStatus, 'not_due')
+})
+
+test('keeps end-of-period rent not due until the agreed date', () => {
+  const tenant = {
+    ...baseTenant,
+    moveInDate: new Date('2026-07-01T00:00:00.000Z'),
+    rentDueDate: new Date('2026-08-01T00:00:00.000Z'),
+    paymentTiming: 'arrears',
+    billingCycleMonths: 1
+  }
+  const beforeDue = calculateTenantPeriodBalance(
+    { tenant, unit: baseUnit },
+    [],
+    parseMonth('2026-07'),
+    new Date('2026-07-16T00:00:00.000Z')
+  )
+  const dueToday = calculateTenantPeriodBalance(
+    { tenant, unit: baseUnit },
+    [],
+    parseMonth('2026-07'),
+    new Date('2026-08-01T00:00:00.000Z')
+  )
+
+  assert.equal(beforeDue?.paymentStatus, 'not_due')
+  assert.equal(beforeDue?.dueDate.toISOString().slice(0, 10), '2026-08-01')
+  assert.equal(dueToday?.paymentStatus, 'due_today')
+})
+
+test('preserves a three-month arrears due date after partial and complete payments', () => {
+  const moveInDate = new Date('2026-07-01T00:00:00.000Z')
+  const terms = { paymentTiming: 'arrears' as const, billingCycleMonths: 3 }
+  const partial = buildPaymentAllocationPlan({
+    amountPaid: 500000,
+    moveInDate,
+    rentAmount: 500000,
+    payments: []
+  })
+  const complete = buildPaymentAllocationPlan({
+    amountPaid: 1500000,
+    moveInDate,
+    rentAmount: 500000,
+    payments: []
+  })
+
+  assert.equal(
+    scheduledRentDueDateForPeriod(
+      moveInDate,
+      parseMonth(partial.nextRentDueDate.toISOString().slice(0, 7)),
+      terms
+    ).toISOString().slice(0, 10),
+    '2026-10-01'
+  )
+  assert.equal(
+    scheduledRentDueDateForPeriod(
+      moveInDate,
+      parseMonth(complete.nextRentDueDate.toISOString().slice(0, 7)),
+      terms
+    ).toISOString().slice(0, 10),
+    '2027-01-01'
+  )
 })

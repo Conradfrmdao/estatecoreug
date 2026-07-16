@@ -55,6 +55,11 @@ export async function GET(_req: Request, { params }: RouteContext) {
     .where(eq(supportMessages.conversationId, id))
     .orderBy(supportMessages.createdAt, supportMessages.id)
 
+  await db
+    .update(supportConversations)
+    .set(user.role === 'admin' ? { adminReadAt: new Date() } : { landlordReadAt: new Date() })
+    .where(eq(supportConversations.id, id))
+
   return NextResponse.json({ conversation, messages })
 }
 
@@ -94,7 +99,8 @@ export async function POST(req: Request, { params }: RouteContext) {
       .update(supportConversations)
       .set({
         adminId: user.role === 'admin' ? user.id : conversation.adminId,
-        lastMessageAt: now
+        lastMessageAt: now,
+        ...(user.role === 'admin' ? { adminReadAt: now } : { landlordReadAt: now })
       })
       .where(eq(supportConversations.id, id))
 

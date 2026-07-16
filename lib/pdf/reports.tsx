@@ -192,6 +192,7 @@ interface IncomeExpenseReportProps {
 interface PropertySummaryReportProps {
   type: 'property-summary'
   title: string
+  month: string
   data: Array<{
     id: number
     name: string
@@ -199,6 +200,11 @@ interface PropertySummaryReportProps {
     unitsCount: number
     occupiedCount: number
     occupancyRate: number
+    expected: number
+    collected: number
+    outstanding: number
+    expenses: number
+    net: number
   }>
 }
 
@@ -224,7 +230,7 @@ export function ReportDocument(props: ReportProps) {
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" orientation={props.type === 'property-summary' ? 'landscape' : 'portrait'} style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
           <Image src={logoPath} style={styles.logo} />
@@ -240,6 +246,7 @@ export function ReportDocument(props: ReportProps) {
           {props.type === 'monthly-rent' && <Text style={styles.metaText}>Month: {props.month}</Text>}
           {props.type === 'unpaid-tenants' && <Text style={styles.metaText}>As of Month: {props.month}</Text>}
           {props.type === 'income-expense' && <Text style={styles.metaText}>Period: {props.monthRange}</Text>}
+          {props.type === 'property-summary' && <Text style={styles.metaText}>Month: {props.month}</Text>}
           {props.type === 'property-detail' && <Text style={styles.metaText}>Property: {props.propertyName} | Month: {props.month}</Text>}
         </View>
 
@@ -403,19 +410,25 @@ export function ReportDocument(props: ReportProps) {
             <Text style={styles.sectionTitle}>Portfolio Performance Breakdown</Text>
             <View style={styles.table}>
               <View style={[styles.tableRow, styles.tableHeader]}>
-                <Text style={[styles.th, { width: '30%' }]}>Property</Text>
-                <Text style={[styles.th, { width: '30%' }]}>Location</Text>
-                <Text style={[styles.th, { width: '15%', textAlign: 'center' }]}>Total Units</Text>
-                <Text style={[styles.th, { width: '15%', textAlign: 'center' }]}>Occupied</Text>
-                <Text style={[styles.th, { width: '10%', textAlign: 'right' }]}>Rate</Text>
+                <Text style={[styles.th, { width: '20%' }]}>Property</Text>
+                <Text style={[styles.th, { width: '8%', textAlign: 'center' }]}>Units</Text>
+                <Text style={[styles.th, { width: '10%', textAlign: 'center' }]}>Occupied</Text>
+                <Text style={[styles.th, { width: '14%', textAlign: 'right' }]}>Expected</Text>
+                <Text style={[styles.th, { width: '14%', textAlign: 'right' }]}>Collected</Text>
+                <Text style={[styles.th, { width: '14%', textAlign: 'right' }]}>Outstanding</Text>
+                <Text style={[styles.th, { width: '10%', textAlign: 'right' }]}>Expenses</Text>
+                <Text style={[styles.th, { width: '10%', textAlign: 'right' }]}>Net</Text>
               </View>
               {props.data.map((p, i) => (
                 <View key={p.id} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlternate}>
-                  <Text style={{ width: '30%', fontWeight: 'bold' }}>{p.name}</Text>
-                  <Text style={{ width: '30%' }}>{p.location}</Text>
-                  <Text style={{ width: '15%', textAlign: 'center' }}>{p.unitsCount}</Text>
-                  <Text style={{ width: '15%', textAlign: 'center' }}>{p.occupiedCount}</Text>
-                  <Text style={{ width: '10%', textAlign: 'right', color: '#166534', fontWeight: 'bold' }}>{p.occupancyRate}%</Text>
+                  <Text style={{ width: '20%', fontWeight: 'bold' }}>{p.name}</Text>
+                  <Text style={{ width: '8%', textAlign: 'center' }}>{p.unitsCount}</Text>
+                  <Text style={{ width: '10%', textAlign: 'center' }}>{p.occupiedCount} ({p.occupancyRate}%)</Text>
+                  <Text style={{ width: '14%', textAlign: 'right' }}>{formatUGX(p.expected)}</Text>
+                  <Text style={{ width: '14%', textAlign: 'right', color: '#166534' }}>{formatUGX(p.collected)}</Text>
+                  <Text style={{ width: '14%', textAlign: 'right', color: '#b45309' }}>{formatUGX(p.outstanding)}</Text>
+                  <Text style={{ width: '10%', textAlign: 'right', color: '#991b1b' }}>{formatUGX(p.expenses)}</Text>
+                  <Text style={{ width: '10%', textAlign: 'right', fontWeight: 'bold' }}>{formatUGX(p.net)}</Text>
                 </View>
               ))}
             </View>

@@ -138,7 +138,7 @@ function currentPageTitle(pathname: string, navItems: NavItem[]) {
   return navItems.find((item) => isActivePath(pathname, item.href))?.label ?? 'Dashboard'
 }
 
-function BrandLockup({ compact = false }: { compact?: boolean }) {
+function BrandLockup({ compact = false, inverse = false }: { compact?: boolean; inverse?: boolean }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
       <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#071a0f] shadow-sm ring-1 ring-black/5">
@@ -153,10 +153,10 @@ function BrandLockup({ compact = false }: { compact?: boolean }) {
       </span>
       {!compact && (
         <span className="min-w-0 leading-none">
-          <span className="block text-[16px] font-extrabold" style={{ color: 'var(--foreground)' }}>
+          <span className={`block text-[17px] font-extrabold ${inverse ? 'text-white' : ''}`} style={inverse ? undefined : { color: 'var(--foreground)' }}>
             EstateCore UG
           </span>
-          <span className="mt-1 block text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--muted)' }}>
+          <span className={`mt-1 block text-[10px] font-semibold uppercase tracking-[0.12em] ${inverse ? 'text-emerald-100/65' : ''}`} style={inverse ? undefined : { color: 'var(--muted)' }}>
             Property Management
           </span>
         </span>
@@ -238,15 +238,14 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
 
   return (
     <div className="flex h-screen h-dvh w-full overflow-hidden bg-[#f8fafb]">
-      <aside className="hidden h-full w-[236px] flex-shrink-0 border-r bg-white lg:flex lg:flex-col"
-        style={{ borderColor: 'var(--border)', boxShadow: '1px 0 0 #f1f5f9' }}>
-        <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
+      <aside className="hidden h-full w-[264px] flex-shrink-0 bg-[#063f35] text-white shadow-[8px_0_32px_rgba(2,44,37,0.10)] lg:flex lg:flex-col">
+        <div className="border-b border-white/10 px-5 py-5">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <BrandLockup />
+            <BrandLockup inverse />
           </Link>
         </div>
 
-        <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 space-y-1.5 overflow-y-auto px-4 py-6">
           {navItems.map((item) => {
             const active = isActivePath(pathname, item.href)
             const Icon = item.icon
@@ -255,19 +254,13 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
                 key={item.href}
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150 ${
+                className={`flex min-h-12 items-center gap-3 rounded-xl px-4 text-sm font-semibold transition-all duration-150 ${
                   active
-                    ? 'text-white shadow-sm'
-                    : 'hover:bg-slate-50'
+                    ? 'bg-[#0b8f67] text-white shadow-[0_8px_20px_rgba(0,0,0,0.14)]'
+                    : 'text-emerald-50/75 hover:bg-white/10 hover:text-white'
                 }`}
-                style={active ? {
-                  backgroundColor: 'var(--brand)',
-                  color: '#fff'
-                } : {
-                  color: 'var(--muted)'
-                }}
               >
-                <Icon aria-hidden="true" className="h-4 w-4" strokeWidth={1.9} />
+                <Icon aria-hidden="true" className="h-[19px] w-[19px] shrink-0" strokeWidth={1.8} />
                 {item.label}
               </Link>
             )
@@ -275,7 +268,7 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
         </nav>
 
         {!isAdmin && (
-          <div className="border-t border-slate-200 p-3">
+          <div className="border-t border-white/10 p-4">
             <SupportChatWidget />
           </div>
         )}
@@ -304,6 +297,7 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
             </Link>
 
             <div className="flex shrink-0 items-center gap-1.5">
+              {!isAdmin && <SupportChatWidget variant="icon" />}
               <NotificationBell />
               <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm">
                 <UserButton />

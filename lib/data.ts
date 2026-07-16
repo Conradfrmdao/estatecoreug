@@ -22,9 +22,13 @@ import {
   daysUntilDate,
   findOldestOutstandingRent,
   getPaymentCoverage,
+  inferTenantPaymentTerms,
+  outstandingRentForPeriods,
   paymentCoverageDateForPeriod,
   paymentCoveragePeriods,
   parseMonth,
+  scheduledRentDueDateForPeriod,
+  type TenantPaymentTerms,
   type TenantRentStatus
 } from '@/lib/rent-cycle'
 import { and, desc, eq } from 'drizzle-orm'
@@ -70,8 +74,12 @@ export type TenantBalance = TenantWithUnit & {
 export type TenantPaymentTarget = TenantWithUnit & {
   targetMonth: string
   targetDueDate: Date
+  targetCoverageStart: Date
   targetAmountPaid: number
   targetBalance: number
+  targetScheduledBalance: number
+  paymentTiming: TenantPaymentTerms['paymentTiming']
+  billingCycleMonths: number
 }
 
 export type PropertyUnitSummary = UnitWithProperty & {
@@ -513,19 +521,38 @@ export async function listTenantPaymentTargets(userId: number) {
   }
 
   return tenantRows.map((row) => {
+    const tenantPayments = paymentsByTenant.get(row.tenant.id) ?? []
     const target = findOldestOutstandingRent({
       moveInDate: row.tenant.moveInDate,
       rentAmount: row.unit.rentAmount,
-      payments: paymentsByTenant.get(row.tenant.id) ?? [],
+      payments: tenantPayments,
       preferredStartDate: row.tenant.rentDueDate
     })
+    const terms = inferTenantPaymentTerms({
+      moveInDate: row.tenant.moveInDate,
+      rentDueDate: row.tenant.rentDueDate,
+      rentAmount: row.unit.rentAmount,
+      payments: tenantPayments,
+      paymentTiming: row.tenant.paymentTiming,
+      billingCycleMonths: row.tenant.billingCycleMonths
+    })
+    const scheduledMonths = terms.paymentTiming === 'arrears' ? terms.billingCycleMonths : 1
 
     return {
       ...row,
       targetMonth: target.month,
-      targetDueDate: target.dueDate,
+      targetDueDate: terms.dueDate,
+      targetCoverageStart: target.dueDate,
       targetAmountPaid: target.amountPaid,
-      targetBalance: target.balance
+      targetBalance: target.balance,
+      targetScheduledBalance: outstandingRentForPeriods({
+        startMonth: target.month,
+        months: scheduledMonths,
+        rentAmount: row.unit.rentAmount,
+        payments: tenantPayments
+      }),
+      paymentTiming: terms.paymentTiming,
+      billingCycleMonths: scheduledMonths
     } satisfies TenantPaymentTarget
   })
 }
@@ -543,12 +570,21 @@ export async function buildRentPaymentPlanForTenant(params: {
     return null
   }
 
-  const paymentRows = (await listPaymentsForUser(params.userId))
-    .filter(({ payment }) =>
-      payment.tenantId === params.tenantId &&
-      (!params.ignorePaymentId || payment.id !== params.ignorePaymentId)
-    )
+  const allPaymentRows = (await listPaymentsForUser(params.userId))
+    .filter(({ payment }) => payment.tenantId === params.tenantId)
     .map(({ payment }) => payment)
+  const terms = inferTenantPaymentTerms({
+    moveInDate: tenantRow.tenant.moveInDate,
+    rentDueDate: tenantRow.tenant.rentDueDate,
+    rentAmount: tenantRow.unit.rentAmount,
+    payments: allPaymentRows,
+    paymentTiming: tenantRow.tenant.paymentTiming,
+    billingCycleMonths: tenantRow.tenant.billingCycleMonths
+  })
+  const paymentRows = allPaymentRows
+    .filter((payment) =>
+      !params.ignorePaymentId || payment.id !== params.ignorePaymentId
+    )
 
   const plan = buildPaymentAllocationPlan({
     amountPaid: params.amountPaid,
@@ -560,13 +596,44 @@ export async function buildRentPaymentPlanForTenant(params: {
 
   return {
     ...plan,
+    nextRentDueDate: terms.paymentTiming === 'arrears'
+      ? scheduledRentDueDateForPeriod(
+          tenantRow.tenant.moveInDate,
+          parseMonth(plan.nextRentDueDate.toISOString().slice(0, 7)),
+          terms
+        )
+      : plan.nextRentDueDate,
+    paymentTerms: terms,
     tenantRow,
     unitId: tenantRow.unit.id,
     paymentsBeforePayment: paymentRows
   }
 }
 
-export async function recalculateTenantRentDueDate(userId: number, tenantId: number) {
+export async function getTenantPaymentTermsForUser(userId: number, tenantId: number) {
+  const tenantRow = await getTenantForUser(userId, tenantId)
+
+  if (!tenantRow) return null
+
+  const paymentRows = (await listPaymentsForUser(userId))
+    .filter(({ payment }) => payment.tenantId === tenantId)
+    .map(({ payment }) => payment)
+
+  return inferTenantPaymentTerms({
+    moveInDate: tenantRow.tenant.moveInDate,
+    rentDueDate: tenantRow.tenant.rentDueDate,
+    rentAmount: tenantRow.unit.rentAmount,
+    payments: paymentRows,
+    paymentTiming: tenantRow.tenant.paymentTiming,
+    billingCycleMonths: tenantRow.tenant.billingCycleMonths
+  })
+}
+
+export async function recalculateTenantRentDueDate(
+  userId: number,
+  tenantId: number,
+  preservedTerms?: Pick<TenantPaymentTerms, 'paymentTiming' | 'billingCycleMonths'>
+) {
   const tenantRow = await getTenantForUser(userId, tenantId)
 
   if (!tenantRow) {
@@ -576,11 +643,26 @@ export async function recalculateTenantRentDueDate(userId: number, tenantId: num
   const paymentRows = (await listPaymentsForUser(userId))
     .filter(({ payment }) => payment.tenantId === tenantId)
     .map(({ payment }) => payment)
-  const nextRentDueDate = calculateNextRentDueDate({
+  const paymentTerms = preservedTerms ?? inferTenantPaymentTerms({
+    moveInDate: tenantRow.tenant.moveInDate,
+    rentDueDate: tenantRow.tenant.rentDueDate,
+    rentAmount: tenantRow.unit.rentAmount,
+    payments: paymentRows,
+    paymentTiming: tenantRow.tenant.paymentTiming,
+    billingCycleMonths: tenantRow.tenant.billingCycleMonths
+  })
+  const nextCoverageStart = calculateNextRentDueDate({
     moveInDate: tenantRow.tenant.moveInDate,
     rentAmount: tenantRow.unit.rentAmount,
     payments: paymentRows
   })
+  const nextRentDueDate = paymentTerms.paymentTiming === 'arrears'
+    ? scheduledRentDueDateForPeriod(
+        tenantRow.tenant.moveInDate,
+        parseMonth(nextCoverageStart.toISOString().slice(0, 7)),
+        paymentTerms
+      )
+    : nextCoverageStart
 
   await db
     .update(tenants)
@@ -625,7 +707,9 @@ export async function getDashboardData(userId: number, month = currentPaymentMon
       vacantUnits: unitRows.filter(({ unit }) => unit.status === 'vacant').length,
       activeTenants: activeTenants.length,
       paidTenants: tenantBalances.filter(({ paymentStatus }) => paymentStatus === 'paid').length,
-      unpaidTenants: tenantBalances.filter(({ paymentStatus }) => paymentStatus !== 'paid').length,
+      unpaidTenants: tenantBalances.filter(({ paymentStatus }) =>
+        !['paid', 'not_due', 'upcoming'].includes(paymentStatus)
+      ).length,
       totalExpected,
       totalCollected,
       collectedThisMonth,

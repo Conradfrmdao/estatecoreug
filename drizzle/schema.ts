@@ -48,6 +48,8 @@ export const tenants = pgTable('tenants', {
   email: varchar('email', { length: 255 }),
   moveInDate: timestamp('move_in_date', { withTimezone: true }).notNull(),
   rentDueDate: timestamp('rent_due_date', { withTimezone: true }).notNull(),
+  paymentTiming: varchar('payment_timing', { length: 50 }).default('advance').notNull(),
+  billingCycleMonths: integer('billing_cycle_months').default(1).notNull(),
   active: boolean('active').default(true).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
 }, (table) => [
@@ -92,6 +94,8 @@ export const supportConversations = pgTable('support_conversations', {
   subject: varchar('subject', { length: 255 }).default('Support request').notNull(),
   status: varchar('status', { length: 50 }).default('open').notNull(),
   lastMessageAt: timestamp('last_message_at', { withTimezone: true }).defaultNow().notNull(),
+  landlordReadAt: timestamp('landlord_read_at', { withTimezone: true }),
+  adminReadAt: timestamp('admin_read_at', { withTimezone: true }),
   endedAt: timestamp('ended_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
 })

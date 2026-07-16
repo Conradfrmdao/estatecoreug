@@ -1,10 +1,21 @@
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getDashboardData } from '@/lib/data'
 import { currency, currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
+import ReportScopeDownload from '@/components/ReportScopeDownload'
 import { Download } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
+
+function rentStatusBadge(status: string) {
+  if (status === 'paid') return { label: 'PAID', className: 'badge-green' }
+  if (status === 'partial') return { label: 'PARTIAL', className: 'bg-amber-100 text-amber-700' }
+  if (status === 'not_due') return { label: 'NOT DUE', className: 'bg-slate-100 text-slate-600' }
+  if (status === 'upcoming') return { label: 'DUE SOON', className: 'bg-blue-50 text-blue-700' }
+  if (status === 'due_today') return { label: 'DUE TODAY', className: 'bg-orange-100 text-orange-700' }
+  if (status === 'overdue') return { label: 'OVERDUE', className: 'bg-rose-100 text-rose-700' }
+  return { label: 'UNPAID', className: 'bg-red-100 text-red-700' }
+}
 
 export default async function ReportsPage({
   searchParams
@@ -102,6 +113,11 @@ export default async function ReportsPage({
           </button>
         </form>
       </section>
+
+      <ReportScopeDownload
+        month={month}
+        properties={data.properties.map((property) => ({ id: property.id, name: property.name }))}
+      />
 
       {/* Financial Summary Cards */}
       <section className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
@@ -208,13 +224,9 @@ export default async function ReportsPage({
                         {balance > 0 ? currency(balance) : '—'}
                       </td>
                       <td data-label="Status">
-                        {paymentStatus === 'paid' ? (
-                          <span className="badge badge-green">PAID</span>
-                        ) : paymentStatus === 'partial' ? (
-                          <span className="badge" style={{ backgroundColor: '#fef3c7', color: '#d97706' }}>PARTIAL</span>
-                        ) : (
-                          <span className="badge" style={{ backgroundColor: '#fee2e2', color: '#dc2626' }}>UNPAID</span>
-                        )}
+                        <span className={`badge ${rentStatusBadge(paymentStatus).className}`}>
+                          {rentStatusBadge(paymentStatus).label}
+                        </span>
                       </td>
                     </tr>
                   ))}

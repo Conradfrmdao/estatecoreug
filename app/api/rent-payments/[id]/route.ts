@@ -1,6 +1,11 @@
 import { rentPayments, tenants } from '@/drizzle/schema'
 import { requireCurrentAppUser } from '@/lib/auth'
-import { buildRentPaymentPlanForTenant, getPaymentForUser, recalculateTenantRentDueDate } from '@/lib/data'
+import {
+  buildRentPaymentPlanForTenant,
+  getPaymentForUser,
+  getTenantPaymentTermsForUser,
+  recalculateTenantRentDueDate
+} from '@/lib/data'
 import { db } from '@/lib/db'
 import { MoneyInputError, parseMoneyAmount } from '@/lib/money'
 import { PaymentAllocationError } from '@/lib/rent-cycle'
@@ -98,6 +103,11 @@ export async function PATCH(req: Request, { params }: PaymentRouteContext) {
     return NextResponse.json({ error: 'Tenant not found.' }, { status: 404 })
   }
 
+  const previousTenantId = existing.payment.tenantId
+  const previousTenantTerms = previousTenantId !== tenantId
+    ? await getTenantPaymentTermsForUser(user.id, previousTenantId)
+    : null
+
   const [updated] = await db
     .update(rentPayments)
     .set({
@@ -122,6 +132,10 @@ export async function PATCH(req: Request, { params }: PaymentRouteContext) {
     .set({ rentDueDate: plan.nextRentDueDate })
     .where(eq(tenants.id, tenantId))
 
+  if (previousTenantId !== tenantId) {
+    await recalculateTenantRentDueDate(user.id, previousTenantId, previousTenantTerms ?? undefined)
+  }
+
   return NextResponse.json(updated)
 }
 
@@ -141,7 +155,8 @@ export async function DELETE(_req: Request, { params }: PaymentRouteContext) {
   }
 
   const tenantId = existing.payment.tenantId
+  const paymentTerms = await getTenantPaymentTermsForUser(user.id, tenantId)
   await db.delete(rentPayments).where(eq(rentPayments.id, id))
-  await recalculateTenantRentDueDate(user.id, tenantId)
+  await recalculateTenantRentDueDate(user.id, tenantId, paymentTerms ?? undefined)
   return NextResponse.json({ ok: true })
 }

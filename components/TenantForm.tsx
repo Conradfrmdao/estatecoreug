@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import FormNotice from '@/components/FormNotice'
 import { cleanMoneyInput } from '@/lib/money'
-import { Check, Home, Search, X } from 'lucide-react'
+import { Check, Clock3, Home, Search, WalletCards, X } from 'lucide-react'
 
 type Unit = {
   id: number
@@ -66,12 +66,13 @@ export default function TenantForm({ initialData }: TenantFormProps) {
   const [rentDueDate, setRentDueDate] = useState(initialData?.rentDueDate ?? '')
   const [monthsCovered, setMonthsCovered] = useState(1)
   const [customMonths, setCustomMonths] = useState('2')
-  const [recordFirstPayment, setRecordFirstPayment] = useState(!initialData)
+  const [paymentTiming, setPaymentTiming] = useState<'advance' | 'arrears'>('advance')
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [active, setActive] = useState(initialData?.active ?? true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
+  const recordFirstPayment = !initialData && paymentTiming === 'advance'
 
   useEffect(() => {
     fetch(initialData ? '/api/units' : '/api/units?status=vacant')
@@ -179,6 +180,7 @@ export default function TenantForm({ initialData }: TenantFormProps) {
       rentDueDate,
       active,
       monthsCovered,
+      paymentTiming,
       recordFirstPayment,
       paymentAmount,
       paymentMethod
@@ -396,24 +398,49 @@ export default function TenantForm({ initialData }: TenantFormProps) {
       </div>
 
       {!initialData && (
-        <section className="rounded-xl border bg-white p-4" style={{ borderColor: '#e2e8f0' }}>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold" style={{ color: '#1a1a2e' }}>Payment duration</p>
-              <p className="text-xs text-slate-500">The next due date is calculated from the move-in date.</p>
+        <section className="border-y border-slate-200 py-5">
+          <fieldset>
+            <legend className="field-label">Rent payment timing</legend>
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+              <button
+                type="button"
+                aria-pressed={paymentTiming === 'advance'}
+                onClick={() => setPaymentTiming('advance')}
+                className={`flex min-h-12 items-center justify-center gap-2 rounded-lg px-3 text-sm font-bold transition ${
+                  paymentTiming === 'advance'
+                    ? 'bg-white text-emerald-800 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <WalletCards className="h-4 w-4" strokeWidth={1.9} />
+                Pay now
+              </button>
+              <button
+                type="button"
+                aria-pressed={paymentTiming === 'arrears'}
+                onClick={() => setPaymentTiming('arrears')}
+                className={`flex min-h-12 items-center justify-center gap-2 rounded-lg px-3 text-sm font-bold transition ${
+                  paymentTiming === 'arrears'
+                    ? 'bg-white text-emerald-800 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Clock3 className="h-4 w-4" strokeWidth={1.9} />
+                Pay at period end
+              </button>
             </div>
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-              <input
-                type="checkbox"
-                checked={recordFirstPayment}
-                onChange={(e) => setRecordFirstPayment(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
-              />
-              Record first payment
-            </label>
+          </fieldset>
+
+          <div className="mt-5">
+            <p className="text-sm font-semibold text-slate-950">Rent period</p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {paymentTiming === 'advance'
+                ? 'This payment covers the selected period from the move-in date.'
+                : 'Payment becomes due after the selected period is completed.'}
+            </p>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
             {durationOptions.map((months) => (
               <button
                 key={months}
@@ -446,7 +473,7 @@ export default function TenantForm({ initialData }: TenantFormProps) {
             </label>
           </div>
 
-          {recordFirstPayment && (
+          {paymentTiming === 'advance' ? (
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="field-label">First payment amount</label>
@@ -470,6 +497,15 @@ export default function TenantForm({ initialData }: TenantFormProps) {
                   <option value="other">Other</option>
                 </select>
               </div>
+            </div>
+          ) : (
+            <div className="mt-4 flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+              <Clock3 className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
+              <p>
+                No payment will be recorded today. {selectedUnit?.rentAmount
+                  ? `UGX ${(selectedUnit.rentAmount * monthsCovered).toLocaleString()} will be due on ${rentDueDate || 'the calculated due date'}.`
+                  : `Payment will be due on ${rentDueDate || 'the calculated due date'}.`}
+              </p>
             </div>
           )}
         </section>

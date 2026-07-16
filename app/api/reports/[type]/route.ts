@@ -60,7 +60,9 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
     } else if (type === 'unpaid-tenants') {
       const dashboardData = await loadDashboardData()
       const unpaid = dashboardData.tenantBalances
-        .filter((tb) => tb.balance > 0)
+        .filter((tb) =>
+          tb.balance > 0 && !['not_due', 'upcoming'].includes(tb.paymentStatus)
+        )
         .map((tb) => ({
           tenantName: tb.tenant.fullName,
           propertyName: tb.property.name,
@@ -147,6 +149,15 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
       const propertyData = dashboardData.properties.map((property) => {
         const pUnits = dashboardData.units.filter(({ unit }) => unit.propertyId === property.id)
         const occupiedUnits = pUnits.filter(({ unit }) => unit.status === 'occupied')
+        const tenantBalances = dashboardData.tenantBalances.filter(({ unit }) => unit.propertyId === property.id)
+        const collected = dashboardData.monthlyPayments
+          .filter(({ unit }) => unit.propertyId === property.id)
+          .reduce((total, payment) => total + payment.allocatedAmount, 0)
+        const expenses = dashboardData.expenses
+          .filter(({ expense }) =>
+            expense.propertyId === property.id && dateKey(expense.expenseDate).slice(0, 7) === month
+          )
+          .reduce((total, row) => total + row.expense.amount, 0)
         const occupancyRate = pUnits.length > 0
           ? Math.round((occupiedUnits.length / pUnits.length) * 100)
           : 0
@@ -157,13 +168,19 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
           location: property.location,
           unitsCount: pUnits.length,
           occupiedCount: occupiedUnits.length,
-          occupancyRate
+          occupancyRate,
+          expected: tenantBalances.reduce((total, row) => total + row.unit.rentAmount, 0),
+          collected,
+          outstanding: tenantBalances.reduce((total, row) => total + row.balance, 0),
+          expenses,
+          net: collected - expenses
         }
       })
 
       reportProps = {
         type: 'property-summary',
-        title: 'Property Portfolio Performance Summary',
+        title: `Property Portfolio Performance - ${monthLabel(month)}`,
+        month: monthLabel(month),
         data: propertyData
       }
     } else {
