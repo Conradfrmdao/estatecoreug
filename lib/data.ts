@@ -17,13 +17,13 @@ import { currentPaymentMonth, dateKey } from '@/lib/format'
 import {
   allocatedPaymentForPeriod,
   buildPaymentAllocationPlan,
+  calculateOutstandingRentThroughDate,
   calculateTenantPeriodBalance,
   calculateNextRentDueDate,
   daysUntilDate,
   findOldestOutstandingRent,
   getPaymentCoverage,
   inferTenantPaymentTerms,
-  isOutstandingRentStatus,
   outstandingRentForPeriods,
   paymentCoverageDateForPeriod,
   paymentCoveragePeriods,
@@ -84,11 +84,19 @@ export type TenantPaymentTarget = TenantWithUnit & {
   billingCycleMonths: number
 }
 
+export type TenantOutstandingBalance = TenantWithUnit & {
+  balance: number
+  periods: number
+  oldestDueDate: Date
+}
+
 export type PropertyUnitSummary = UnitWithProperty & {
   activeTenant: Tenant | null
   tenantBalance: TenantBalance | null
   monthlyAmountPaid: number
   monthlyBalance: number
+  outstandingBalance: number
+  outstandingPeriods: number
   monthlyExpenses: number
 }
 
@@ -184,6 +192,39 @@ function buildTenantBalances(
       ...row,
       ...balance
     } satisfies TenantBalance]
+  })
+}
+
+function buildOutstandingTenantBalances(
+  tenantRows: TenantWithUnit[],
+  paymentRows: PaymentWithTenant[],
+  referenceDate = new Date()
+) {
+  const paymentsByTenant = new Map<number, RentPayment[]>()
+
+  for (const { payment } of paymentRows) {
+    const rows = paymentsByTenant.get(payment.tenantId) ?? []
+    rows.push(payment)
+    paymentsByTenant.set(payment.tenantId, rows)
+  }
+
+  return tenantRows.flatMap((row) => {
+    const outstanding = calculateOutstandingRentThroughDate(
+      row,
+      paymentsByTenant.get(row.tenant.id) ?? [],
+      referenceDate
+    )
+
+    if (outstanding.balance <= 0 || !outstanding.oldestDueDate) {
+      return []
+    }
+
+    return [{
+      ...row,
+      balance: outstanding.balance,
+      periods: outstanding.periods,
+      oldestDueDate: outstanding.oldestDueDate
+    } satisfies TenantOutstandingBalance]
   })
 }
 
@@ -538,6 +579,7 @@ export async function listTenantPaymentTargets(userId: number) {
       paymentTiming: row.tenant.paymentTiming,
       billingCycleMonths: row.tenant.billingCycleMonths
     })
+    const outstanding = calculateOutstandingRentThroughDate(row, tenantPayments)
     const scheduledMonths = terms.paymentTiming === 'arrears' ? terms.billingCycleMonths : 1
     const targetPeriodBalance = calculateTenantPeriodBalance(
       row,
@@ -552,12 +594,14 @@ export async function listTenantPaymentTargets(userId: number) {
       targetCoverageStart: target.dueDate,
       targetAmountPaid: target.amountPaid,
       targetBalance: target.balance,
-      targetScheduledBalance: outstandingRentForPeriods({
-        startMonth: target.month,
-        months: scheduledMonths,
-        rentAmount: row.unit.rentAmount,
-        payments: tenantPayments
-      }),
+      targetScheduledBalance: outstanding.balance > 0
+        ? outstanding.balance
+        : outstandingRentForPeriods({
+            startMonth: target.month,
+            months: scheduledMonths,
+            rentAmount: row.unit.rentAmount,
+            payments: tenantPayments
+          }),
       targetPaymentStatus: targetPeriodBalance?.paymentStatus ?? 'not_due',
       paymentTiming: terms.paymentTiming,
       billingCycleMonths: scheduledMonths
@@ -696,6 +740,7 @@ export async function getDashboardData(userId: number, month = currentPaymentMon
   ])
 
   const tenantBalances = buildTenantBalances(tenantRows, paymentRows, month)
+  const outstandingTenants = buildOutstandingTenantBalances(tenantRows, paymentRows)
   const monthlyPayments = buildMonthlyPaymentAllocations(paymentRows, month)
   const monthlyExpenses = expenseRows.filter(({ expense }) => getExpenseMonth(expense) === month)
   const activeTenants = tenantRows.filter(({ tenant }) => tenant.active)
@@ -704,11 +749,7 @@ export async function getDashboardData(userId: number, month = currentPaymentMon
   const collectedThisMonth = sum(monthlyPayments.map(({ allocatedAmount }) => allocatedAmount))
   const totalExpenses = sum(expenseRows.map(({ expense }) => expense.amount))
   const expensesThisMonth = sum(monthlyExpenses.map(({ expense }) => expense.amount))
-  const totalOutstanding = sum(
-    tenantBalances
-      .filter(({ paymentStatus }) => isOutstandingRentStatus(paymentStatus))
-      .map(({ balance }) => balance)
-  )
+  const totalOutstanding = sum(outstandingTenants.map(({ balance }) => balance))
 
   return {
     month,
@@ -719,9 +760,7 @@ export async function getDashboardData(userId: number, month = currentPaymentMon
       vacantUnits: unitRows.filter(({ unit }) => unit.status === 'vacant').length,
       activeTenants: activeTenants.length,
       paidTenants: tenantBalances.filter(({ paymentStatus }) => paymentStatus === 'paid').length,
-      unpaidTenants: tenantBalances.filter(({ paymentStatus }) =>
-        !['paid', 'not_due', 'upcoming'].includes(paymentStatus)
-      ).length,
+      unpaidTenants: outstandingTenants.length,
       totalExpected,
       totalCollected,
       collectedThisMonth,
@@ -738,6 +777,7 @@ export async function getDashboardData(userId: number, month = currentPaymentMon
     monthlyPayments,
     expenses: expenseRows,
     tenantBalances,
+    outstandingTenants,
     alerts: buildAlerts(tenantBalances, paymentRows, expenseRows),
     recentPayments: paymentRows.slice(0, 5),
     recentExpenses: expenseRows.slice(0, 5)
@@ -760,6 +800,7 @@ export async function getPropertySummaryData(
   const propertyUnitIds = new Set(unitSummariesBase.map(({ unit }) => unit.id))
   const propertyTenants = data.tenants.filter(({ tenant }) => propertyUnitIds.has(tenant.unitId))
   const propertyTenantBalances = data.tenantBalances.filter(({ unit }) => unit.propertyId === propertyId)
+  const propertyOutstandingTenants = data.outstandingTenants.filter(({ unit }) => unit.propertyId === propertyId)
   const propertyMonthlyPayments = data.monthlyPayments.filter(({ unit }) => unit.propertyId === propertyId)
   const propertyPayments = data.payments.filter(({ unit }) => unit.propertyId === propertyId)
   const propertyExpenses = data.expenses.filter(({ expense }) => expense.propertyId === propertyId)
@@ -771,6 +812,9 @@ export async function getPropertySummaryData(
     )?.tenant ?? null
     const tenantBalance = activeTenant
       ? propertyTenantBalances.find(({ tenant }) => tenant.id === activeTenant.id) ?? null
+      : null
+    const tenantOutstanding = activeTenant
+      ? propertyOutstandingTenants.find(({ tenant }) => tenant.id === activeTenant.id) ?? null
       : null
     const monthlyAmountPaid = sum(
       propertyMonthlyPayments
@@ -789,6 +833,8 @@ export async function getPropertySummaryData(
       tenantBalance,
       monthlyAmountPaid,
       monthlyBalance: tenantBalance?.balance ?? 0,
+      outstandingBalance: tenantOutstanding?.balance ?? 0,
+      outstandingPeriods: tenantOutstanding?.periods ?? 0,
       monthlyExpenses
     } satisfies PropertyUnitSummary
   })
@@ -810,11 +856,7 @@ export async function getPropertySummaryData(
       monthlyExpected: sum(propertyTenantBalances.map(({ unit }) => unit.rentAmount)),
       collectedThisMonth,
       totalCollected: sum(propertyPayments.map(({ payment }) => payment.amountPaid)),
-      outstandingRent: sum(
-        propertyTenantBalances
-          .filter(({ paymentStatus }) => isOutstandingRentStatus(paymentStatus))
-          .map(({ balance }) => balance)
-      ),
+      outstandingRent: sum(propertyOutstandingTenants.map(({ balance }) => balance)),
       expensesThisMonth,
       totalExpenses: sum(propertyExpenses.map(({ expense }) => expense.amount)),
       netThisMonth: collectedThisMonth - expensesThisMonth

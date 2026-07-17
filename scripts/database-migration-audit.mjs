@@ -15,13 +15,15 @@ const tables = [
 ]
 
 const mode = process.argv[2]
+const migrationFile = process.argv[3] ?? '0007_tenant_payment_terms.sql'
 const databaseUrl = process.env.DATABASE_URL
 
 if (!databaseUrl) throw new Error('DATABASE_URL is required.')
 if (!['backup', 'migrate'].includes(mode)) throw new Error('Use backup or migrate mode.')
+if (!/^\d{4}_[a-z0-9_]+\.sql$/.test(migrationFile)) throw new Error('Invalid migration filename.')
 
 const backupDirectory = path.join(process.cwd(), 'backups')
-const migrationPath = path.join(process.cwd(), 'drizzle', 'migrations', '0007_tenant_payment_terms.sql')
+const migrationPath = path.join(process.cwd(), 'drizzle', 'migrations', migrationFile)
 
 function quoteIdentifier(value) {
   return `"${value.replaceAll('"', '""')}"`
@@ -29,6 +31,12 @@ function quoteIdentifier(value) {
 
 function fingerprint(rows) {
   return createHash('sha256').update(JSON.stringify(rows)).digest('hex')
+}
+
+function comparisonFingerprint(table, rows) {
+  if (table !== 'users') return fingerprint(rows)
+
+  return fingerprint(rows.map(({ last_seen_at: _lastSeenAt, ...row }) => row))
 }
 
 async function tableColumns(client, table) {
@@ -108,7 +116,10 @@ try {
     for (const table of tables) {
       const baseline = backup.tables[table]
       const current = immediatelyBefore[table]
-      if (baseline.count !== current.count || baseline.fingerprint !== current.fingerprint) {
+      if (
+        baseline.count !== current.count ||
+        comparisonFingerprint(table, baseline.rows) !== comparisonFingerprint(table, current.rows)
+      ) {
         throw new Error(`Database changed after backup in ${table}; create a fresh backup before migrating.`)
       }
     }
@@ -153,6 +164,7 @@ try {
 
     const report = {
       backupPath,
+      migrationFile,
       migratedAt: new Date().toISOString(),
       comparisons,
       addedColumns: columns.rows,

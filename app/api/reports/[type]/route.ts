@@ -1,6 +1,7 @@
 import { requireCurrentAppUser } from '@/lib/auth'
-import { getDashboardData, getPropertySummaryData } from '@/lib/data'
-import { currentPaymentMonth, dateKey, monthLabel } from '@/lib/format'
+import { getDashboardData, getPropertySummaryData, listPaymentsForUser, listPropertiesForUser } from '@/lib/data'
+import { currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
+import { normalizePaymentFilters, paymentMatchesSearch, paymentReceivedInPeriod } from '@/lib/payment-filters'
 import { ReportDocument } from '@/lib/pdf/reports'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { NextResponse } from 'next/server'
@@ -57,12 +58,68 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
           }
         }
       }
+    } else if (type === 'payment-history') {
+      const requestedPropertyId = Number(searchParams.get('propertyId'))
+      const [properties, paymentRows] = await Promise.all([
+        listPropertiesForUser(user.id),
+        listPaymentsForUser(user.id)
+      ])
+      const property = Number.isInteger(requestedPropertyId) && requestedPropertyId > 0
+        ? properties.find((row) => row.id === requestedPropertyId)
+        : null
+
+      if (searchParams.has('propertyId') && !property) {
+        return NextResponse.json({ error: 'Property not found.' }, { status: 404 })
+      }
+
+      const filters = normalizePaymentFilters({
+        period: searchParams.get('period'),
+        date: searchParams.get('date'),
+        month: searchParams.get('month'),
+        year: searchParams.get('year')
+      })
+      const query = (searchParams.get('q') ?? '').trim().toLowerCase()
+      const payments = paymentRows
+        .filter((row) => !property || row.property.id === property.id)
+        .filter(({ payment }) => paymentReceivedInPeriod(payment.paymentDate, filters.period, {
+          day: filters.day,
+          month: filters.month,
+          year: filters.year
+        }))
+        .filter((row) => paymentMatchesSearch(row, query))
+        .map(({ payment, tenant, unit, property: rowProperty }) => ({
+          id: payment.id,
+          tenantName: tenant.fullName,
+          propertyName: rowProperty.name,
+          unitNumber: unit.unitNumber,
+          amountPaid: payment.amountPaid,
+          paymentDate: payment.paymentDate,
+          paymentMethod: payment.paymentMethod
+        }))
+      const periodLabel = filters.period === 'day'
+        ? formatDate(`${filters.day}T00:00:00.000Z`)
+        : filters.period === 'month'
+          ? monthLabel(filters.month)
+          : filters.period === 'year'
+            ? filters.year
+            : 'All recorded dates'
+      const filterDescription = query ? `${periodLabel}; search: ${query}` : periodLabel
+
+      reportProps = {
+        type: 'payment-history',
+        title: `${property?.name ?? 'All Properties'} Payment History`,
+        periodLabel: filterDescription,
+        data: {
+          payments,
+          summary: {
+            paymentCount: payments.length,
+            totalCollected: payments.reduce((total, payment) => total + payment.amountPaid, 0)
+          }
+        }
+      }
     } else if (type === 'unpaid-tenants') {
       const dashboardData = await loadDashboardData()
-      const unpaid = dashboardData.tenantBalances
-        .filter((tb) =>
-          tb.balance > 0 && !['not_due', 'upcoming'].includes(tb.paymentStatus)
-        )
+      const unpaid = dashboardData.outstandingTenants
         .map((tb) => ({
           tenantName: tb.tenant.fullName,
           propertyName: tb.property.name,
@@ -192,6 +249,8 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
     const filename = safeFilenamePart(
       type === 'property-detail' && reportProps?.propertyName
         ? `estatecore-${reportProps.propertyName}-${month}-property-report`
+        : type === 'payment-history'
+          ? `estatecore-filtered-payments-${dateKey()}`
         : `estatecore-${type}-${month}`
     )
 

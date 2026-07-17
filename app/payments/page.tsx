@@ -3,8 +3,8 @@ import PaymentFilters from '@/components/PaymentFilters'
 import PropertyRecordsModal from '@/components/PropertyRecordsModal'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { listPaymentsForUser, listPropertiesForUser } from '@/lib/data'
-import { currency, currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
-import { paymentReceivedInPeriod, type PaymentPeriod } from '@/lib/payment-filters'
+import { currency, dateKey, formatDate, monthLabel } from '@/lib/format'
+import { normalizePaymentFilters, paymentMatchesSearch, paymentReceivedInPeriod } from '@/lib/payment-filters'
 import { paymentCoveragePeriods } from '@/lib/rent-cycle'
 import { Building2, Download, Plus, WalletCards } from 'lucide-react'
 import Link from 'next/link'
@@ -37,14 +37,17 @@ export default async function PaymentsPage({
   const propertyId = properties.some((property) => property.id === requestedPropertyId)
     ? requestedPropertyId
     : null
-  const requestedPeriod = params?.period
-  const period: PaymentPeriod = ['all', 'day', 'month', 'year'].includes(requestedPeriod ?? '')
-    ? requestedPeriod as PaymentPeriod
-    : params?.date ? 'day' : params?.month ? 'month' : params?.year ? 'year' : 'all'
-  const dayFilter = /^\d{4}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/.test(params?.date ?? '') ? params!.date! : today
-  const monthFilter = /^\d{4}-(0[1-9]|1[0-2])$/.test(params?.month ?? '') ? params!.month! : today.slice(0, 7)
-  const yearFilter = /^\d{4}$/.test(params?.year ?? '') ? params!.year! : today.slice(0, 4)
-  const reportMonth = period === 'month' ? monthFilter : currentPaymentMonth()
+  const {
+    period,
+    day: dayFilter,
+    month: monthFilter,
+    year: yearFilter
+  } = normalizePaymentFilters({
+    period: params?.period,
+    date: params?.date,
+    month: params?.month,
+    year: params?.year
+  }, today)
   const availableYears = Array.from(new Set([
     today.slice(0, 4),
     ...paymentRows.map(({ payment }) => dateKey(payment.paymentDate).slice(0, 4))
@@ -60,24 +63,7 @@ export default async function PaymentsPage({
     })
   })
 
-  const filteredRows = periodRows.filter(({ payment, tenant, unit, property }) => {
-    if (!q) return true
-
-    return [
-      tenant.fullName,
-      tenant.email ?? '',
-      unit.unitNumber,
-      property.name,
-      property.location,
-      payment.paymentMonth,
-      payment.paymentMethod,
-      formatDate(payment.paymentDate),
-      String(payment.amountPaid),
-      currency(payment.amountPaid),
-      ...paymentCoveragePeriods(payment).map((period) => monthLabel(period.month)),
-      payment.notes ?? ''
-    ].some((value) => value.toLowerCase().includes(q))
-  })
+  const filteredRows = periodRows.filter((row) => paymentMatchesSearch(row, q))
 
   const propertyCards = properties
     .filter((property) => !propertyId || property.id === propertyId)
@@ -154,7 +140,17 @@ export default async function PaymentsPage({
       <section className="space-y-3">
         <h2 className="text-sm font-black text-slate-950">Properties</h2>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {propertyCards.map(({ property, allPayments, payments: propertyPayments, totalPaid, matchingPaid }) => (
+          {propertyCards.map(({ property, allPayments, payments: propertyPayments, totalPaid, matchingPaid }) => {
+            const downloadParams = new URLSearchParams({
+              propertyId: String(property.id),
+              period,
+              date: dayFilter,
+              month: monthFilter,
+              year: yearFilter
+            })
+            if (q) downloadParams.set('q', q)
+
+            return (
             <article key={property.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
@@ -179,7 +175,7 @@ export default async function PaymentsPage({
                 buttonLabel={propertyPayments.length === allPayments.length ? 'View payments' : `View ${propertyPayments.length} matching payments`}
                 title={`${property.name} Payments`}
                 description={`${property.location} - ${propertyPayments.length} payment${propertyPayments.length === 1 ? '' : 's'} shown`}
-                downloadHref={`/api/reports/property-detail?month=${reportMonth}&propertyId=${property.id}`}
+                downloadHref={`/api/reports/payment-history?${downloadParams.toString()}`}
               >
                 <div className="overflow-x-auto p-3 sm:p-5">
                   <table className="data-table">
@@ -242,7 +238,8 @@ export default async function PaymentsPage({
                 </div>
               </PropertyRecordsModal>
             </article>
-          ))}
+            )
+          })}
         </div>
         {propertyCards.length === 0 && (
           <div className="rounded-xl border border-slate-200 bg-white px-4 py-10 text-center shadow-sm">

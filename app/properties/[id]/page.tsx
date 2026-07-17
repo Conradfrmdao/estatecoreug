@@ -23,9 +23,13 @@ type PropertySummaryPageProps = {
   searchParams?: Promise<{ month?: string }>
 }
 
-function statusBadge(status: TenantRentStatus | null, occupied: boolean) {
+function statusBadge(status: TenantRentStatus | null, occupied: boolean, hasOutstandingRent = false) {
   if (!occupied) {
     return <span className="badge badge-slate">Vacant</span>
+  }
+
+  if (hasOutstandingRent) {
+    return <span className="badge badge-amber">Outstanding</span>
   }
 
   if (status === 'paid') {
@@ -203,7 +207,7 @@ export default async function PropertySummaryPage({
         <SummaryCard
           label="Outstanding"
           value={currency(data.summary.outstandingRent)}
-          sub="selected month"
+          sub="all rent due to date"
           icon={WalletCards}
           tone="amber"
         />
@@ -221,7 +225,7 @@ export default async function PropertySummaryPage({
         <div className="border-b border-slate-100 px-4 py-3">
           <h2 className="text-sm font-black text-slate-950">Units, tenants, rent, and balances</h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Only records for {data.property.name} in {monthLabel(month)}.
+            Paid amounts are for {monthLabel(month)}; outstanding balances include all rent due to date.
           </p>
         </div>
 
@@ -246,6 +250,7 @@ export default async function PropertySummaryPage({
                 tenantBalance,
                 monthlyAmountPaid,
                 monthlyBalance,
+                outstandingBalance,
                 monthlyExpenses
               }) => (
                 <tr key={unit.id}>
@@ -276,12 +281,16 @@ export default async function PropertySummaryPage({
                     data-label="Outstanding"
                     className="font-semibold"
                     style={{
-                      color: tenantBalance?.paymentStatus === 'upcoming'
+                      color: outstandingBalance > 0
+                        ? '#b45309'
+                        : tenantBalance?.paymentStatus === 'upcoming'
                         ? '#1d4ed8'
                         : tenantBalance?.paymentStatus === 'not_due' ? '#64748b' : monthlyBalance > 0 ? '#b45309' : '#64748b'
                     }}
                   >
-                    {tenantBalance?.paymentStatus === 'not_due'
+                    {outstandingBalance > 0
+                      ? currency(outstandingBalance)
+                      : tenantBalance?.paymentStatus === 'not_due'
                       ? 'Not due'
                       : tenantBalance?.paymentStatus === 'upcoming'
                         ? `${currency(monthlyBalance)} due soon`
@@ -293,7 +302,11 @@ export default async function PropertySummaryPage({
                   </td>
 
                   <td data-label="Status">
-                    {statusBadge(tenantBalance?.paymentStatus ?? null, Boolean(activeTenant))}
+                    {statusBadge(
+                      tenantBalance?.paymentStatus ?? null,
+                      Boolean(activeTenant),
+                      outstandingBalance > 0
+                    )}
                   </td>
                 </tr>
               ))}

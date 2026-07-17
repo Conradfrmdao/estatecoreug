@@ -529,10 +529,14 @@ export function calculateTenantPeriodBalance(
   })
   const storedDueDate = new Date(row.tenant.rentDueDate)
   const scheduledDueDate = scheduledRentDueDateForPeriod(moveInDate, period, terms)
+  const arrearsCoverageStart = parseMonth(monthFromDate(terms.coverageStart)).start
+  const arrearsCoverageEnd = addMonths(arrearsCoverageStart, terms.billingCycleMonths)
   const isCurrentArrearsCycle = terms.paymentTiming === 'arrears' &&
-    period.start >= parseMonth(monthFromDate(terms.coverageStart)).start &&
-    period.start < terms.dueDate
-  const dueDate = isCurrentArrearsCycle || monthFromDate(storedDueDate) === period.month
+    period.start >= arrearsCoverageStart &&
+    period.start < arrearsCoverageEnd
+  const usesStoredAdvanceDueDate = terms.paymentTiming === 'advance' &&
+    monthFromDate(storedDueDate) === period.month
+  const dueDate = isCurrentArrearsCycle || usesStoredAdvanceDueDate
     ? storedDueDate
     : scheduledDueDate
   const daysUntilDue = daysUntilDate(dueDate, referenceDate)
@@ -557,4 +561,45 @@ export function calculateTenantPeriodBalance(
     daysUntilDue,
     paymentStatus
   }
+}
+
+export function calculateOutstandingRentThroughDate(
+  row: TenantCycleLike,
+  payments: PaymentLike[],
+  referenceDate = new Date(),
+  maxMonths = 240
+) {
+  const moveInDate = new Date(row.tenant.moveInDate)
+  const finalMonth = monthFromDate(startOfTimeZoneDay(referenceDate))
+  let cursor = monthFromDate(moveInDate)
+  let balance = 0
+  let periods = 0
+  let oldestDueDate: Date | null = null
+
+  if (!row.tenant.active || moveInDate > referenceDate) {
+    return { balance, periods, oldestDueDate }
+  }
+
+  for (
+    let index = 0;
+    compareMonths(cursor, finalMonth) <= 0 && index < maxMonths;
+    index += 1
+  ) {
+    const periodBalance = calculateTenantPeriodBalance(
+      row,
+      payments,
+      parseMonth(cursor),
+      referenceDate
+    )
+
+    if (periodBalance && isOutstandingRentStatus(periodBalance.paymentStatus)) {
+      balance += periodBalance.balance
+      periods += 1
+      oldestDueDate ??= periodBalance.dueDate
+    }
+
+    cursor = nextMonth(cursor)
+  }
+
+  return { balance, periods, oldestDueDate }
 }

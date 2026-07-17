@@ -147,6 +147,27 @@ interface MonthlyRentReportProps {
   }
 }
 
+interface PaymentHistoryReportProps {
+  type: 'payment-history'
+  title: string
+  periodLabel: string
+  data: {
+    payments: Array<{
+      id: number
+      tenantName: string
+      propertyName: string
+      unitNumber: string
+      amountPaid: number
+      paymentDate: string | Date
+      paymentMethod: string
+    }>
+    summary: {
+      paymentCount: number
+      totalCollected: number
+    }
+  }
+}
+
 interface UnpaidTenantsReportProps {
   type: 'unpaid-tenants'
   title: string
@@ -218,6 +239,7 @@ interface PropertyDetailReportProps {
 
 type ReportProps =
   | MonthlyRentReportProps
+  | PaymentHistoryReportProps
   | UnpaidTenantsReportProps
   | IncomeExpenseReportProps
   | PropertySummaryReportProps
@@ -244,6 +266,7 @@ export function ReportDocument(props: ReportProps) {
         <View style={styles.reportMeta}>
           <Text style={styles.metaText}>Generated: {dateStr}</Text>
           {props.type === 'monthly-rent' && <Text style={styles.metaText}>Month: {props.month}</Text>}
+          {props.type === 'payment-history' && <Text style={styles.metaText}>Filter: {props.periodLabel}</Text>}
           {props.type === 'unpaid-tenants' && <Text style={styles.metaText}>As of Month: {props.month}</Text>}
           {props.type === 'income-expense' && <Text style={styles.metaText}>Period: {props.monthRange}</Text>}
           {props.type === 'property-summary' && <Text style={styles.metaText}>Month: {props.month}</Text>}
@@ -290,6 +313,47 @@ export function ReportDocument(props: ReportProps) {
                     <Text style={{ width: '15%', textAlign: 'center' }}>{p.paymentMethod.toUpperCase()}</Text>
                     <Text style={{ width: '15%', textAlign: 'center' }}>{new Date(p.paymentDate).toLocaleDateString('en-GB')}</Text>
                     <Text style={{ width: '15%', textAlign: 'right', fontWeight: 'bold' }}>{formatUGX(p.amountPaid)}</Text>
+                  </View>
+                ))
+              )}
+            </View>
+          </View>
+        )}
+
+        {props.type === 'payment-history' && (
+          <View>
+            <View style={styles.summaryGrid}>
+              <View style={styles.summaryCard}>
+                <Text style={{ color: '#64748b', fontSize: 8 }}>PAYMENTS FOUND</Text>
+                <Text style={styles.summaryVal}>{props.data.summary.paymentCount}</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={{ color: '#64748b', fontSize: 8 }}>FILTERED TOTAL</Text>
+                <Text style={styles.summaryVal}>{formatUGX(props.data.summary.totalCollected)}</Text>
+              </View>
+            </View>
+
+            <Text style={styles.sectionTitle}>Filtered Payment History</Text>
+            <View style={styles.table}>
+              <View style={[styles.tableRow, styles.tableHeader]}>
+                <Text style={[styles.th, { width: '25%' }]}>Tenant</Text>
+                <Text style={[styles.th, { width: '30%' }]}>Property / Unit</Text>
+                <Text style={[styles.th, { width: '15%', textAlign: 'center' }]}>Method</Text>
+                <Text style={[styles.th, { width: '15%', textAlign: 'center' }]}>Date</Text>
+                <Text style={[styles.th, { width: '15%', textAlign: 'right' }]}>Amount</Text>
+              </View>
+              {props.data.payments.length === 0 ? (
+                <View style={styles.tableRow}>
+                  <Text style={{ width: '100%', textAlign: 'center', color: '#94a3b8' }}>No payments match these filters.</Text>
+                </View>
+              ) : (
+                props.data.payments.map((payment, index) => (
+                  <View key={payment.id} style={index % 2 === 0 ? styles.tableRow : styles.tableRowAlternate}>
+                    <Text style={{ width: '25%' }}>{payment.tenantName}</Text>
+                    <Text style={{ width: '30%' }}>{payment.propertyName} - Unit {payment.unitNumber}</Text>
+                    <Text style={{ width: '15%', textAlign: 'center' }}>{payment.paymentMethod.toUpperCase()}</Text>
+                    <Text style={{ width: '15%', textAlign: 'center' }}>{new Date(payment.paymentDate).toLocaleDateString('en-GB')}</Text>
+                    <Text style={{ width: '15%', textAlign: 'right', fontWeight: 'bold' }}>{formatUGX(payment.amountPaid)}</Text>
                   </View>
                 ))
               )}
@@ -487,8 +551,8 @@ export function ReportDocument(props: ReportProps) {
                     <Text style={{ width: '24%' }}>{row.activeTenant?.fullName ?? 'Vacant'}</Text>
                     <Text style={{ width: '16%', textAlign: 'right' }}>{formatUGX(row.unit.rentAmount)}</Text>
                     <Text style={{ width: '16%', textAlign: 'right', color: '#166534' }}>{formatUGX(row.monthlyAmountPaid)}</Text>
-                    <Text style={{ width: '16%', textAlign: 'right', color: row.monthlyBalance > 0 ? '#b45309' : '#64748b' }}>
-                      {formatUGX(row.monthlyBalance)}
+                    <Text style={{ width: '16%', textAlign: 'right', color: row.outstandingBalance > 0 ? '#b45309' : '#64748b' }}>
+                      {formatUGX(row.outstandingBalance)}
                     </Text>
                     <Text style={{ width: '15%', textAlign: 'right', color: '#991b1b' }}>{formatUGX(row.monthlyExpenses)}</Text>
                   </View>

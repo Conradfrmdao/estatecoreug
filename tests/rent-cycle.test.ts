@@ -5,6 +5,7 @@ import {
   buildPaymentAllocationPlan,
   calculateDueDate,
   calculateNextRentDueDate,
+  calculateOutstandingRentThroughDate,
   calculateTenantPeriodBalance,
   dateKeyInTimeZone,
   daysUntilDate,
@@ -327,6 +328,49 @@ test('keeps end-of-period rent not due until the agreed date', () => {
   assert.equal(beforeDue?.dueDate.toISOString().slice(0, 10), '2026-08-01')
   assert.equal(dueToday?.paymentStatus, 'due_today')
   assert.equal(isOutstandingRentStatus(dueToday?.paymentStatus ?? 'not_due'), true)
+})
+
+test('accumulates every unpaid advance period whose due date has passed', () => {
+  const tenant = {
+    ...baseTenant,
+    moveInDate: new Date('2026-01-30T00:00:00.000Z'),
+    rentDueDate: new Date('2026-01-30T00:00:00.000Z'),
+    paymentTiming: 'advance'
+  }
+  const outstanding = calculateOutstandingRentThroughDate(
+    { tenant, unit: { ...baseUnit, rentAmount: 200000 } },
+    [],
+    new Date('2026-07-17T12:00:00.000Z')
+  )
+
+  assert.equal(outstanding.periods, 6)
+  assert.equal(outstanding.balance, 1200000)
+  assert.equal(outstanding.oldestDueDate?.toISOString().slice(0, 10), '2026-01-30')
+})
+
+test('does not count a genuine arrears cycle before its end date', () => {
+  const tenant = {
+    ...baseTenant,
+    moveInDate: new Date('2026-05-30T00:00:00.000Z'),
+    rentDueDate: new Date('2026-07-30T00:00:00.000Z'),
+    paymentTiming: 'arrears',
+    billingCycleMonths: 2
+  }
+  const beforeDue = calculateOutstandingRentThroughDate(
+    { tenant, unit: { ...baseUnit, rentAmount: 300000 } },
+    [],
+    new Date('2026-07-17T12:00:00.000Z')
+  )
+  const afterDue = calculateOutstandingRentThroughDate(
+    { tenant, unit: { ...baseUnit, rentAmount: 300000 } },
+    [],
+    new Date('2026-07-30T12:00:00.000Z')
+  )
+
+  assert.equal(beforeDue.balance, 0)
+  assert.equal(beforeDue.periods, 0)
+  assert.equal(afterDue.balance, 600000)
+  assert.equal(afterDue.periods, 2)
 })
 
 test('only exposes currently payable rent statuses to the payment picker', () => {
