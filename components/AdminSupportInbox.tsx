@@ -1,7 +1,8 @@
 'use client'
 
 import { ArrowLeft, Headphones, MessageCircle, Plus, Search, Send, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 
 type AdminSupportUser = {
   id: number
@@ -62,6 +63,8 @@ export default function AdminSupportInbox({ users }: { users: AdminSupportUser[]
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [mobileViewportHeight, setMobileViewportHeight] = useState(0)
+  const [mobileViewportTop, setMobileViewportTop] = useState(0)
   const messageEndRef = useRef<HTMLDivElement>(null)
 
   const visibleConversations = useMemo(() => {
@@ -129,6 +132,37 @@ export default function AdminSupportInbox({ users }: { users: AdminSupportUser[]
     refreshInbox(true)
     const interval = window.setInterval(() => refreshInbox(), 15000)
     return () => window.clearInterval(interval)
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+
+    const previousOverflow = document.body.style.overflow
+    const visualViewport = window.visualViewport
+
+    function syncViewport() {
+      setMobileViewportHeight(Math.round(visualViewport?.height ?? window.innerHeight))
+      setMobileViewportTop(Math.round(visualViewport?.offsetTop ?? 0))
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpen(false)
+    }
+
+    document.body.style.overflow = 'hidden'
+    syncViewport()
+    visualViewport?.addEventListener('resize', syncViewport)
+    visualViewport?.addEventListener('scroll', syncViewport)
+    window.addEventListener('resize', syncViewport)
+    window.addEventListener('keydown', closeOnEscape)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      visualViewport?.removeEventListener('resize', syncViewport)
+      visualViewport?.removeEventListener('scroll', syncViewport)
+      window.removeEventListener('resize', syncViewport)
+      window.removeEventListener('keydown', closeOnEscape)
+    }
   }, [open])
 
   useEffect(() => {
@@ -210,6 +244,10 @@ export default function AdminSupportInbox({ users }: { users: AdminSupportUser[]
   }
 
   const badge = unreadCount > 99 ? '99+' : String(unreadCount)
+  const mobileViewportStyle = {
+    '--admin-inbox-height': mobileViewportHeight ? `${mobileViewportHeight}px` : '100dvh',
+    '--admin-inbox-top': `${mobileViewportTop}px`
+  } as CSSProperties
 
   return (
     <div className="relative">
@@ -230,8 +268,14 @@ export default function AdminSupportInbox({ users }: { users: AdminSupportUser[]
         )}
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-[80] flex min-h-0 flex-col bg-white sm:inset-5 sm:overflow-hidden sm:rounded-2xl sm:border sm:border-slate-200 sm:shadow-2xl lg:inset-auto lg:right-6 lg:top-20 lg:h-[min(44rem,calc(100dvh-6rem))] lg:w-[58rem]">
+      {open && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-x-0 top-[var(--admin-inbox-top)] z-[100] flex h-[var(--admin-inbox-height)] max-h-[var(--admin-inbox-height)] min-h-0 flex-col overflow-hidden bg-white sm:inset-5 sm:h-auto sm:max-h-none sm:rounded-2xl sm:border sm:border-slate-200 sm:shadow-2xl lg:inset-auto lg:right-6 lg:top-20 lg:h-[min(44rem,calc(100dvh-6rem))] lg:w-[58rem]"
+          style={mobileViewportStyle}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Support inbox"
+        >
           <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-4 sm:px-5">
             <div className="flex min-w-0 items-center gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
@@ -252,8 +296,8 @@ export default function AdminSupportInbox({ users }: { users: AdminSupportUser[]
             </button>
           </header>
 
-          <div className="grid min-h-0 flex-1 sm:grid-cols-[19rem_minmax(0,1fr)]">
-            <aside className={`${mobileThreadOpen ? 'hidden' : 'flex'} min-h-0 flex-col border-r border-slate-200 bg-white sm:flex`}>
+          <div className="grid min-h-0 flex-1 overflow-hidden sm:grid-cols-[19rem_minmax(0,1fr)]">
+            <aside className={`${mobileThreadOpen ? 'hidden' : 'flex'} h-full min-h-0 flex-col overflow-hidden border-r border-slate-200 bg-white sm:flex`}>
               <div className="shrink-0 space-y-3 border-b border-slate-100 p-3">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-black text-slate-950">Messages</h3>
@@ -347,7 +391,7 @@ export default function AdminSupportInbox({ users }: { users: AdminSupportUser[]
               </div>
             </aside>
 
-            <section className={`${mobileThreadOpen ? 'flex' : 'hidden'} min-h-0 flex-col bg-slate-50 sm:flex`}>
+            <section className={`${mobileThreadOpen ? 'flex' : 'hidden'} h-full min-h-0 flex-col overflow-hidden bg-slate-50 sm:flex`}>
               {activeConversation ? (
                 <>
                   <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-3 sm:px-4">
@@ -441,7 +485,8 @@ export default function AdminSupportInbox({ users }: { users: AdminSupportUser[]
               )}
             </section>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
