@@ -348,6 +348,25 @@ test('accumulates every unpaid advance period whose due date has passed', () => 
   assert.equal(outstanding.oldestDueDate?.toISOString().slice(0, 10), '2026-01-30')
 })
 
+test('keeps a future schedule date while move-in rent remains outstanding', () => {
+  const tenant = {
+    ...baseTenant,
+    moveInDate: new Date('2026-06-30T00:00:00.000Z'),
+    rentDueDate: new Date('2026-07-30T00:00:00.000Z'),
+    paymentTiming: 'advance'
+  }
+  const outstanding = calculateOutstandingRentThroughDate(
+    { tenant, unit: { ...baseUnit, rentAmount: 850000 } },
+    [],
+    new Date('2026-07-17T12:00:00.000Z')
+  )
+
+  assert.equal(outstanding.periods, 1)
+  assert.equal(outstanding.balance, 850000)
+  assert.equal(outstanding.oldestDueDate?.toISOString().slice(0, 10), '2026-06-30')
+  assert.equal(tenant.rentDueDate.toISOString().slice(0, 10), '2026-07-30')
+})
+
 test('does not count a genuine arrears cycle before its end date', () => {
   const tenant = {
     ...baseTenant,

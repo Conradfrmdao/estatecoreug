@@ -81,9 +81,7 @@ export function planTenantCreation(body: Record<string, unknown>, now = new Date
     email,
     moveInDate,
     monthsCovered,
-    rentDueDate: paymentTiming === 'advance' && !recordFirstPayment
-      ? moveInDate
-      : calculateDueDate(moveInDate, monthsCovered),
+    rentDueDate: calculateDueDate(moveInDate, monthsCovered),
     active,
     paymentTiming,
     recordFirstPayment,

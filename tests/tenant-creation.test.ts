@@ -89,7 +89,7 @@ test('handles malformed optional values safely', () => {
   assert.equal(plan.active, false)
   assert.equal(plan.recordFirstPayment, false)
   assert.equal(plan.paymentTiming, 'advance')
-  assert.equal(plan.rentDueDate.toISOString().slice(0, 10), '2026-07-01')
+  assert.equal(plan.rentDueDate.toISOString().slice(0, 10), '2026-08-01')
 })
 
 test('marks move-in rent outstanding when first payment is not recorded', () => {
@@ -106,7 +106,7 @@ test('marks move-in rent outstanding when first payment is not recorded', () => 
   assert.equal(plan.paymentTiming, 'advance')
   assert.equal(plan.recordFirstPayment, false)
   assert.equal(plan.paymentAmount, 0)
-  assert.equal(plan.rentDueDate.toISOString().slice(0, 10), '2026-07-17')
+  assert.equal(plan.rentDueDate.toISOString().slice(0, 10), '2026-08-17')
 })
 
 test('plans explicit end-of-period rent without creating a payment', () => {

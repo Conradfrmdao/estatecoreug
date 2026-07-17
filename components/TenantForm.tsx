@@ -152,9 +152,7 @@ export default function TenantForm({ initialData }: TenantFormProps) {
       return
     }
 
-    const nextDueDate = paymentTiming === 'advance' && !recordFirstPayment
-      ? moveInDate
-      : addMonths(moveInDate, monthsCovered)
+    const nextDueDate = addMonths(moveInDate, monthsCovered)
     setRentDueDate(nextDueDate)
 
     if (selectedUnit && recordFirstPayment) {
@@ -520,8 +518,8 @@ export default function TenantForm({ initialData }: TenantFormProps) {
               <WalletCards className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
               <p>
                 No payment will be recorded. {selectedUnit?.rentAmount
-                  ? `UGX ${selectedUnit.rentAmount.toLocaleString()} will be outstanding from ${moveInDate || 'the move-in date'}.`
-                  : 'Rent will be outstanding from the move-in date.'}
+                  ? `UGX ${selectedUnit.rentAmount.toLocaleString()} will be outstanding from ${moveInDate || 'the move-in date'}. The next scheduled date is ${rentDueDate || 'calculated from the move-in date'}.`
+                  : `Rent will be outstanding from the move-in date. The next scheduled date is ${rentDueDate || 'calculated from the move-in date'}.`}
               </p>
             </div>
           ) : (

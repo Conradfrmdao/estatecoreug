@@ -152,7 +152,7 @@ export default function TenantSearchResults({ tenants }: { tenants: TenantSearch
               </div>
               <div>
                 <dt className="text-xs font-black uppercase text-slate-400">Next payment date</dt>
-                <dd className="mt-1 text-sm font-bold text-slate-800">{formatDate(selected.targetDueDate || selected.rentDueDate)}</dd>
+                <dd className="mt-1 text-sm font-bold text-slate-800">{formatDate(selected.rentDueDate)}</dd>
               </div>
             </div>
 
@@ -237,7 +237,7 @@ export default function TenantSearchResults({ tenants }: { tenants: TenantSearch
                     </td>
                     <td data-label="Monthly Rent" className="font-bold text-slate-900">{currency(tenant.rentAmount)}</td>
                     <td data-label="Next Payment">
-                      <span className="block text-sm font-semibold text-slate-800">{formatDate(tenant.targetDueDate || tenant.rentDueDate)}</span>
+                      <span className="block text-sm font-semibold text-slate-800">{formatDate(tenant.rentDueDate)}</span>
                       <span className="block text-xs text-slate-500">{currency(tenant.targetScheduledBalance || tenant.targetBalance)}</span>
                     </td>
                     <td data-label="Status"><span className={`rounded-full px-2 py-1 text-xs font-black ${status.className}`}>{status.label}</span></td>
