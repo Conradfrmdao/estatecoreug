@@ -803,6 +803,9 @@ export async function getPropertySummaryData(
   const propertyOutstandingTenants = data.outstandingTenants.filter(({ unit }) => unit.propertyId === propertyId)
   const propertyMonthlyPayments = data.monthlyPayments.filter(({ unit }) => unit.propertyId === propertyId)
   const propertyPayments = data.payments.filter(({ unit }) => unit.propertyId === propertyId)
+  const propertyMonthlyReceipts = propertyPayments.filter(({ payment }) =>
+    dateKey(payment.paymentDate).slice(0, 7) === month
+  )
   const propertyExpenses = data.expenses.filter(({ expense }) => expense.propertyId === propertyId)
   const propertyMonthlyExpenses = propertyExpenses.filter(({ expense }) => getExpenseMonth(expense) === month)
 
@@ -817,9 +820,9 @@ export async function getPropertySummaryData(
       ? propertyOutstandingTenants.find(({ tenant }) => tenant.id === activeTenant.id) ?? null
       : null
     const monthlyAmountPaid = sum(
-      propertyMonthlyPayments
+      propertyMonthlyReceipts
         .filter(({ unit }) => unit.id === row.unit.id)
-        .map(({ allocatedAmount }) => allocatedAmount)
+        .map(({ payment }) => payment.amountPaid)
     )
     const monthlyExpenses = sum(
       propertyMonthlyExpenses
@@ -840,7 +843,7 @@ export async function getPropertySummaryData(
   })
 
   const occupiedUnits = unitSummaries.filter(({ unit }) => unit.status === 'occupied').length
-  const collectedThisMonth = sum(propertyMonthlyPayments.map(({ allocatedAmount }) => allocatedAmount))
+  const collectedThisMonth = sum(propertyMonthlyReceipts.map(({ payment }) => payment.amountPaid))
   const expensesThisMonth = sum(propertyMonthlyExpenses.map(({ expense }) => expense.amount))
 
   return {

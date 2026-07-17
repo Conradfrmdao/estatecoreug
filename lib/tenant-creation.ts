@@ -62,8 +62,8 @@ export function planTenantCreation(body: Record<string, unknown>, now = new Date
   const requestedFirstPayment = parseBoolean(body.recordFirstPayment, false)
   const paymentTiming: PaymentTiming = body.paymentTiming === 'advance' || body.paymentTiming === 'arrears'
     ? body.paymentTiming
-    : requestedFirstPayment ? 'advance' : 'arrears'
-  const recordFirstPayment = paymentTiming === 'advance'
+    : 'advance'
+  const recordFirstPayment = paymentTiming === 'advance' && requestedFirstPayment
   const paymentAmount = recordFirstPayment
     ? parseMoneyAmount(body.paymentAmount, 'First payment amount')
     : 0
@@ -81,7 +81,9 @@ export function planTenantCreation(body: Record<string, unknown>, now = new Date
     email,
     moveInDate,
     monthsCovered,
-    rentDueDate: calculateDueDate(moveInDate, monthsCovered),
+    rentDueDate: paymentTiming === 'advance' && !recordFirstPayment
+      ? moveInDate
+      : calculateDueDate(moveInDate, monthsCovered),
     active,
     paymentTiming,
     recordFirstPayment,

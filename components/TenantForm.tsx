@@ -67,12 +67,12 @@ export default function TenantForm({ initialData }: TenantFormProps) {
   const [monthsCovered, setMonthsCovered] = useState(1)
   const [customMonths, setCustomMonths] = useState('2')
   const [paymentTiming, setPaymentTiming] = useState<'advance' | 'arrears'>('advance')
+  const [recordFirstPayment, setRecordFirstPayment] = useState(!initialData)
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [active, setActive] = useState(initialData?.active ?? true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
-  const recordFirstPayment = !initialData && paymentTiming === 'advance'
 
   useEffect(() => {
     fetch(initialData ? '/api/units' : '/api/units?status=vacant')
@@ -152,13 +152,15 @@ export default function TenantForm({ initialData }: TenantFormProps) {
       return
     }
 
-    const nextDueDate = addMonths(moveInDate, monthsCovered)
+    const nextDueDate = paymentTiming === 'advance' && !recordFirstPayment
+      ? moveInDate
+      : addMonths(moveInDate, monthsCovered)
     setRentDueDate(nextDueDate)
 
     if (selectedUnit && recordFirstPayment) {
       setPaymentAmount(String(selectedUnit.rentAmount ? selectedUnit.rentAmount * monthsCovered : ''))
     }
-  }, [initialData, monthsCovered, moveInDate, recordFirstPayment, selectedUnit])
+  }, [initialData, monthsCovered, moveInDate, paymentTiming, recordFirstPayment, selectedUnit])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -413,12 +415,15 @@ export default function TenantForm({ initialData }: TenantFormProps) {
                 }`}
               >
                 <WalletCards className="h-4 w-4" strokeWidth={1.9} />
-                Pay now
+                Due on move-in
               </button>
               <button
                 type="button"
                 aria-pressed={paymentTiming === 'arrears'}
-                onClick={() => setPaymentTiming('arrears')}
+                onClick={() => {
+                  setPaymentTiming('arrears')
+                  setRecordFirstPayment(false)
+                }}
                 className={`flex min-h-12 items-center justify-center gap-2 rounded-lg px-3 text-sm font-bold transition ${
                   paymentTiming === 'arrears'
                     ? 'bg-white text-emerald-800 shadow-sm'
@@ -473,7 +478,19 @@ export default function TenantForm({ initialData }: TenantFormProps) {
             </label>
           </div>
 
-          {paymentTiming === 'advance' ? (
+          {paymentTiming === 'advance' && (
+            <label className="mt-4 flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-semibold text-slate-800">
+              <input
+                type="checkbox"
+                checked={recordFirstPayment}
+                onChange={(event) => setRecordFirstPayment(event.target.checked)}
+                className="h-[18px] w-[18px] rounded border-slate-300 text-green-600 focus:ring-green-500"
+              />
+              Record first payment now
+            </label>
+          )}
+
+          {paymentTiming === 'advance' && recordFirstPayment ? (
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="field-label">First payment amount</label>
@@ -497,6 +514,15 @@ export default function TenantForm({ initialData }: TenantFormProps) {
                   <option value="other">Other</option>
                 </select>
               </div>
+            </div>
+          ) : paymentTiming === 'advance' ? (
+            <div className="mt-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <WalletCards className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
+              <p>
+                No payment will be recorded. {selectedUnit?.rentAmount
+                  ? `UGX ${selectedUnit.rentAmount.toLocaleString()} will be outstanding from ${moveInDate || 'the move-in date'}.`
+                  : 'Rent will be outstanding from the move-in date.'}
+              </p>
             </div>
           ) : (
             <div className="mt-4 flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">

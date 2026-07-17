@@ -225,7 +225,7 @@ export default async function PropertySummaryPage({
         <div className="border-b border-slate-100 px-4 py-3">
           <h2 className="text-sm font-black text-slate-950">Units, tenants, rent, and balances</h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Paid amounts are for {monthLabel(month)}; outstanding balances include all rent due to date.
+            Paid amounts are receipts recorded in {monthLabel(month)}; outstanding balances include all rent due to date.
           </p>
         </div>
 

@@ -88,8 +88,25 @@ test('handles malformed optional values safely', () => {
   assert.equal(plan.monthsCovered, 1)
   assert.equal(plan.active, false)
   assert.equal(plan.recordFirstPayment, false)
-  assert.equal(plan.paymentTiming, 'arrears')
-  assert.equal(plan.rentDueDate.toISOString().slice(0, 10), '2026-08-01')
+  assert.equal(plan.paymentTiming, 'advance')
+  assert.equal(plan.rentDueDate.toISOString().slice(0, 10), '2026-07-01')
+})
+
+test('marks move-in rent outstanding when first payment is not recorded', () => {
+  const plan = planTenantCreation({
+    unitId: 3,
+    fullName: 'Outstanding Tenant',
+    phone: '+256700000003',
+    moveInDate: '2026-07-17',
+    monthsCovered: 1,
+    paymentTiming: 'advance',
+    recordFirstPayment: false
+  })
+
+  assert.equal(plan.paymentTiming, 'advance')
+  assert.equal(plan.recordFirstPayment, false)
+  assert.equal(plan.paymentAmount, 0)
+  assert.equal(plan.rentDueDate.toISOString().slice(0, 10), '2026-07-17')
 })
 
 test('plans explicit end-of-period rent without creating a payment', () => {
