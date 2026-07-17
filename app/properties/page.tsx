@@ -9,10 +9,11 @@ export const dynamic = 'force-dynamic'
 export default async function PropertiesPage({
   searchParams
 }: {
-  searchParams?: { q?: string }
+  searchParams?: Promise<{ q?: string }>
 }) {
   const user = await requireCurrentAppUser()
-  const q = (searchParams?.q ?? '').toLowerCase()
+  const params = await searchParams
+  const q = (params?.q ?? '').trim().toLowerCase()
   const [properties, unitRows] = await Promise.all([
     listPropertiesForUser(user.id),
     listUnitsForUser(user.id)
@@ -47,7 +48,7 @@ export default async function PropertiesPage({
         style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         <input
           name="q"
-          defaultValue={searchParams?.q ?? ''}
+          defaultValue={params?.q ?? ''}
           placeholder="Search by name or location…"
           className="field-input min-w-0 flex-1"
         />
@@ -57,6 +58,14 @@ export default async function PropertiesPage({
         >
           Search
         </button>
+        {q && (
+          <Link
+            href="/properties"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+          >
+            Clear
+          </Link>
+        )}
       </form>
 
       {/* Table */}

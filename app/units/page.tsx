@@ -1,7 +1,8 @@
+import DeleteButton from '@/components/DeleteButton'
 import PropertyUnitsModal from '@/components/PropertyUnitsModal'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { listPropertiesForUser, listUnitsForUser } from '@/lib/data'
-import { currentPaymentMonth } from '@/lib/format'
+import { currency, currentPaymentMonth } from '@/lib/format'
 import { Building2, Plus } from 'lucide-react'
 import Link from 'next/link'
 
@@ -126,6 +127,72 @@ export default async function UnitsPage({
         )}
       </form>
 
+      {(q || statusFilter) && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-black text-slate-950">Unit results</h2>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {filteredRows.length} matching unit{filteredRows.length === 1 ? '' : 's'}
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Unit</th>
+                    <th>Property</th>
+                    <th>Monthly Rent</th>
+                    <th>Status</th>
+                    <th className="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRows.map(({ unit, property }) => (
+                    <tr key={unit.id}>
+                      <td data-label="Unit">
+                        <span className="font-black text-slate-950">Unit {unit.unitNumber}</span>
+                      </td>
+                      <td data-label="Property">
+                        <Link href={`/properties/${property.id}`} className="font-bold text-emerald-700 transition hover:text-emerald-800">
+                          {property.name}
+                        </Link>
+                        <span className="mt-0.5 block text-xs text-slate-500">{property.location}</span>
+                      </td>
+                      <td data-label="Monthly Rent" className="font-bold text-slate-900">
+                        {currency(unit.rentAmount)}
+                      </td>
+                      <td data-label="Status">
+                        <span className={unit.status === 'occupied' ? 'badge badge-green' : 'badge badge-amber'}>
+                          {unit.status === 'occupied' ? 'Occupied' : 'Vacant'}
+                        </span>
+                      </td>
+                      <td data-label="Actions">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link href={`/units/${unit.id}/edit`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50">
+                            Edit
+                          </Link>
+                          <DeleteButton endpoint={`/api/units/${unit.id}`} confirmMessage="Delete this unit and all linked tenants, payments, and expenses?" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {filteredRows.length === 0 && (
+              <p className="px-4 py-12 text-center text-sm font-semibold text-slate-500">
+                No units match this search and status filter.
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {!q && !statusFilter && (
       <section className="space-y-3">
         <h2 className="text-sm font-black text-slate-950">Properties</h2>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -174,6 +241,7 @@ export default async function UnitsPage({
           </div>
         )}
       </section>
+      )}
     </div>
   )
 }

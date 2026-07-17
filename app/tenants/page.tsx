@@ -1,6 +1,7 @@
 import PropertyTenantsModal from '@/components/PropertyTenantsModal'
+import TenantSearchResults from '@/components/TenantSearchResults'
 import { requireCurrentAppUser } from '@/lib/auth'
-import { listPropertiesForUser, listTenantsForUser } from '@/lib/data'
+import { listPropertiesForUser, listTenantPaymentTargets } from '@/lib/data'
 import { currentPaymentMonth, formatDate } from '@/lib/format'
 import { Building2, Plus } from 'lucide-react'
 import Link from 'next/link'
@@ -22,7 +23,7 @@ export default async function TenantsPage({
   const month = currentPaymentMonth()
   const [properties, tenantRows] = await Promise.all([
     listPropertiesForUser(user.id),
-    listTenantsForUser(user.id)
+    listTenantPaymentTargets(user.id)
   ])
 
   const filteredRows = tenantRows.filter(({ tenant, unit, property }) => {
@@ -97,6 +98,46 @@ export default async function TenantsPage({
         )}
       </form>
 
+      {q && (
+        <TenantSearchResults
+          tenants={filteredRows.map(({
+            tenant,
+            unit,
+            property,
+            targetMonth,
+            targetDueDate,
+            targetAmountPaid,
+            targetBalance,
+            targetScheduledBalance,
+            targetPaymentStatus
+          }) => ({
+            id: tenant.id,
+            fullName: tenant.fullName,
+            phone: tenant.phone,
+            email: tenant.email,
+            active: tenant.active,
+            moveInDate: tenant.moveInDate.toISOString(),
+            rentDueDate: tenant.rentDueDate.toISOString(),
+            paymentTiming: tenant.paymentTiming,
+            billingCycleMonths: tenant.billingCycleMonths,
+            unitId: unit.id,
+            unitNumber: unit.unitNumber,
+            unitStatus: unit.status,
+            rentAmount: unit.rentAmount,
+            propertyId: property.id,
+            propertyName: property.name,
+            propertyLocation: property.location,
+            targetMonth,
+            targetDueDate: targetDueDate.toISOString(),
+            targetAmountPaid,
+            targetBalance,
+            targetScheduledBalance,
+            targetPaymentStatus
+          }))}
+        />
+      )}
+
+      {!q && (
       <section className="space-y-3">
         <h2 className="text-sm font-black text-slate-950">Properties</h2>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -149,6 +190,7 @@ export default async function TenantsPage({
           </div>
         )}
       </section>
+      )}
     </div>
   )
 }
