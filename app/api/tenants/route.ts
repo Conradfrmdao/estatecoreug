@@ -2,6 +2,7 @@ import { rentPayments, tenants, units } from '@/drizzle/schema'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getUnitForUser, listTenantPaymentTargets, listTenantsForUser } from '@/lib/data'
 import { db } from '@/lib/db'
+import { isOutstandingRentStatus } from '@/lib/rent-cycle'
 import { buildFirstPaymentPlan, planTenantCreation } from '@/lib/tenant-creation'
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
@@ -28,10 +29,11 @@ export async function GET(req: Request) {
   const url = new URL(req.url)
   const q = (url.searchParams.get('q') ?? '').toLowerCase()
   const active = url.searchParams.get('active')
+  const paymentDue = url.searchParams.get('paymentDue')
   const unitId = url.searchParams.get('unitId') ?? ''
   const rows = await listTenantPaymentTargets(user.id)
 
-  const filtered = rows.filter(({ tenant, unit, property }) => {
+  const filtered = rows.filter(({ tenant, unit, property, targetPaymentStatus }) => {
     if (q && ![tenant.fullName, tenant.phone, tenant.email ?? '', unit.unitNumber, property.name].some((value) => value.toLowerCase().includes(q))) {
       return false
     }
@@ -41,6 +43,10 @@ export async function GET(req: Request) {
     }
 
     if (active === 'false' && tenant.active) {
+      return false
+    }
+
+    if (paymentDue === 'true' && !isOutstandingRentStatus(targetPaymentStatus)) {
       return false
     }
 
@@ -64,6 +70,7 @@ export async function GET(req: Request) {
       targetAmountPaid: row.targetAmountPaid,
       targetBalance: row.targetBalance,
       targetScheduledBalance: row.targetScheduledBalance,
+      targetPaymentStatus: row.targetPaymentStatus,
       paymentTiming: row.paymentTiming,
       billingCycleMonths: row.billingCycleMonths
     }))

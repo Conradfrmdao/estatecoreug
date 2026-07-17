@@ -23,6 +23,7 @@ import {
   findOldestOutstandingRent,
   getPaymentCoverage,
   inferTenantPaymentTerms,
+  isOutstandingRentStatus,
   outstandingRentForPeriods,
   paymentCoverageDateForPeriod,
   paymentCoveragePeriods,
@@ -78,6 +79,7 @@ export type TenantPaymentTarget = TenantWithUnit & {
   targetAmountPaid: number
   targetBalance: number
   targetScheduledBalance: number
+  targetPaymentStatus: TenantRentStatus
   paymentTiming: TenantPaymentTerms['paymentTiming']
   billingCycleMonths: number
 }
@@ -537,11 +539,16 @@ export async function listTenantPaymentTargets(userId: number) {
       billingCycleMonths: row.tenant.billingCycleMonths
     })
     const scheduledMonths = terms.paymentTiming === 'arrears' ? terms.billingCycleMonths : 1
+    const targetPeriodBalance = calculateTenantPeriodBalance(
+      row,
+      tenantPayments,
+      parseMonth(target.month)
+    )
 
     return {
       ...row,
       targetMonth: target.month,
-      targetDueDate: terms.dueDate,
+      targetDueDate: targetPeriodBalance?.dueDate ?? terms.dueDate,
       targetCoverageStart: target.dueDate,
       targetAmountPaid: target.amountPaid,
       targetBalance: target.balance,
@@ -551,6 +558,7 @@ export async function listTenantPaymentTargets(userId: number) {
         rentAmount: row.unit.rentAmount,
         payments: tenantPayments
       }),
+      targetPaymentStatus: targetPeriodBalance?.paymentStatus ?? 'not_due',
       paymentTiming: terms.paymentTiming,
       billingCycleMonths: scheduledMonths
     } satisfies TenantPaymentTarget
@@ -696,7 +704,11 @@ export async function getDashboardData(userId: number, month = currentPaymentMon
   const collectedThisMonth = sum(monthlyPayments.map(({ allocatedAmount }) => allocatedAmount))
   const totalExpenses = sum(expenseRows.map(({ expense }) => expense.amount))
   const expensesThisMonth = sum(monthlyExpenses.map(({ expense }) => expense.amount))
-  const totalOutstanding = sum(tenantBalances.map(({ balance }) => balance))
+  const totalOutstanding = sum(
+    tenantBalances
+      .filter(({ paymentStatus }) => isOutstandingRentStatus(paymentStatus))
+      .map(({ balance }) => balance)
+  )
 
   return {
     month,
@@ -798,7 +810,11 @@ export async function getPropertySummaryData(
       monthlyExpected: sum(propertyTenantBalances.map(({ unit }) => unit.rentAmount)),
       collectedThisMonth,
       totalCollected: sum(propertyPayments.map(({ payment }) => payment.amountPaid)),
-      outstandingRent: sum(propertyTenantBalances.map(({ balance }) => balance)),
+      outstandingRent: sum(
+        propertyTenantBalances
+          .filter(({ paymentStatus }) => isOutstandingRentStatus(paymentStatus))
+          .map(({ balance }) => balance)
+      ),
       expensesThisMonth,
       totalExpenses: sum(propertyExpenses.map(({ expense }) => expense.amount)),
       netThisMonth: collectedThisMonth - expensesThisMonth

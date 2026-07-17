@@ -8,6 +8,7 @@ import {
   calculateTenantPeriodBalance,
   dateKeyInTimeZone,
   daysUntilDate,
+  isOutstandingRentStatus,
   paymentCoverageDateForPeriod,
   paymentCoveragePeriods,
   PaymentAllocationError,
@@ -322,8 +323,57 @@ test('keeps end-of-period rent not due until the agreed date', () => {
   )
 
   assert.equal(beforeDue?.paymentStatus, 'not_due')
+  assert.equal(isOutstandingRentStatus(beforeDue?.paymentStatus ?? 'unpaid'), false)
   assert.equal(beforeDue?.dueDate.toISOString().slice(0, 10), '2026-08-01')
   assert.equal(dueToday?.paymentStatus, 'due_today')
+  assert.equal(isOutstandingRentStatus(dueToday?.paymentStatus ?? 'not_due'), true)
+})
+
+test('only exposes currently payable rent statuses to the payment picker', () => {
+  assert.equal(isOutstandingRentStatus('paid'), false)
+  assert.equal(isOutstandingRentStatus('not_due'), false)
+  assert.equal(isOutstandingRentStatus('upcoming'), false)
+  assert.equal(isOutstandingRentStatus('partial'), true)
+  assert.equal(isOutstandingRentStatus('unpaid'), true)
+  assert.equal(isOutstandingRentStatus('due_today'), true)
+  assert.equal(isOutstandingRentStatus('overdue'), true)
+})
+
+test('does not classify the next scheduled rent as outstanding after a full payment', () => {
+  const moveInDate = new Date('2026-06-30T00:00:00.000Z')
+  const payment = buildPaymentAllocationPlan({
+    amountPaid: 4200000,
+    moveInDate,
+    rentAmount: 4200000,
+    payments: [],
+    preferredStartDate: moveInDate
+  })
+  const balance = calculateTenantPeriodBalance(
+    {
+      tenant: {
+        ...baseTenant,
+        moveInDate,
+        rentDueDate: payment.nextRentDueDate
+      },
+      unit: { ...baseUnit, rentAmount: 4200000 }
+    },
+    [{
+      amountPaid: 4200000,
+      paymentMonth: payment.paymentMonth,
+      coverageStart: payment.coverageStart,
+      coverageEnd: payment.coverageEnd,
+      monthsCovered: payment.monthsCovered,
+      allocations: payment.allocations
+    }],
+    parseMonth('2026-07'),
+    new Date('2026-07-17T12:00:00.000Z')
+  )
+
+  assert.equal(payment.balanceAfterPayment, 0)
+  assert.equal(payment.nextRentDueDate.toISOString().slice(0, 10), '2026-07-30')
+  assert.equal(balance?.balance, 4200000)
+  assert.equal(balance?.paymentStatus, 'not_due')
+  assert.equal(isOutstandingRentStatus(balance?.paymentStatus ?? 'unpaid'), false)
 })
 
 test('preserves a three-month arrears due date after partial and complete payments', () => {

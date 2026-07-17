@@ -24,6 +24,7 @@ type TenantOption = {
   targetAmountPaid?: number
   targetBalance?: number
   targetScheduledBalance?: number
+  targetPaymentStatus?: 'paid' | 'partial' | 'not_due' | 'unpaid' | 'upcoming' | 'due_today' | 'overdue'
   paymentTiming?: 'advance' | 'arrears'
   billingCycleMonths?: number
 }
@@ -90,6 +91,25 @@ function scheduledMonthsForTenant(tenant: TenantOption) {
     : 1
 }
 
+function paymentTargetPresentation(tenant: TenantOption) {
+  const status = tenant.targetPaymentStatus ?? 'not_due'
+
+  if (status === 'overdue') {
+    return { label: 'Overdue', amountClass: 'text-rose-700', labelClass: 'text-rose-600' }
+  }
+  if (status === 'partial' || status === 'unpaid' || status === 'due_today') {
+    return { label: 'Outstanding', amountClass: 'text-amber-700', labelClass: 'text-amber-600' }
+  }
+  if (status === 'upcoming') {
+    return { label: 'Due soon', amountClass: 'text-blue-700', labelClass: 'text-blue-600' }
+  }
+  if (status === 'paid') {
+    return { label: 'Paid', amountClass: 'text-emerald-700', labelClass: 'text-emerald-600' }
+  }
+
+  return { label: 'Next rent', amountClass: 'text-slate-700', labelClass: 'text-slate-500' }
+}
+
 function PaymentFormFields({ initialData }: PaymentFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -119,7 +139,10 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch(initialData ? '/api/tenants' : '/api/tenants?active=true')
+    fetch(
+      initialData ? '/api/tenants' : '/api/tenants?active=true&paymentDue=true',
+      { cache: 'no-store' }
+    )
       .then((r) => r.json())
       .then((data) => {
         const rows = data || []
@@ -155,6 +178,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
   }, [queryTenantId, initialData])
 
   const selectedTenant = tenants.find((tenant) => tenant.id === Number(tenantId))
+  const selectedTarget = selectedTenant ? paymentTargetPresentation(selectedTenant) : null
   const properties = Array.from(
     tenants.reduce((map, tenant) => {
       const existing = map.get(tenant.propertyId)
@@ -381,7 +405,9 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
                     ))}
                     {filteredProperties.length === 0 && (
                       <p className="rounded-xl bg-slate-50 px-3 py-6 text-center text-sm font-semibold text-slate-500">
-                        No properties match that search.
+                        {tenants.length === 0
+                          ? 'No tenant payments are currently due.'
+                          : 'No properties match that search.'}
                       </p>
                     )}
                   </div>
@@ -412,31 +438,39 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
                   </div>
 
                   <div className="grid gap-2">
-                    {tenantOptions.map((tenant) => (
-                      <button
-                        key={tenant.id}
-                        type="button"
-                        onClick={() => chooseTenant(tenant)}
-                        className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
-                      >
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-black text-slate-950">Unit {tenant.unitNumber}</span>
-                          <span className="block text-xs text-slate-500">
-                            {tenant.fullName} - {currency(tenant.rentAmount)}/mo
+                    {tenantOptions.map((tenant) => {
+                      const target = paymentTargetPresentation(tenant)
+                      return (
+                        <button
+                          key={tenant.id}
+                          type="button"
+                          onClick={() => chooseTenant(tenant)}
+                          className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-black text-slate-950">Unit {tenant.unitNumber}</span>
+                            <span className="block text-xs text-slate-500">
+                              {tenant.fullName} - {currency(tenant.rentAmount)}/mo
+                            </span>
+                            <span className="block truncate text-xs text-slate-400">
+                              {tenant.phone || tenant.email || 'No contact saved'}
+                            </span>
                           </span>
-                          <span className="block truncate text-xs text-slate-400">
-                            {tenant.phone || tenant.email || 'No contact saved'}
+                          <span className="shrink-0 text-right">
+                            <span className={`block text-xs font-black uppercase tracking-[0.08em] ${target.labelClass}`}>
+                              {target.label}
+                            </span>
+                            <span className={`block text-sm font-black ${target.amountClass}`}>
+                              {currency(Number(tenant.targetBalance ?? tenant.rentAmount))}
+                            </span>
+                            <span className="block text-[10px] font-semibold text-slate-400">
+                              {formatDate(tenant.targetDueDate ?? tenant.rentDueDate)}
+                            </span>
+                            {tenant.id === tenantId && <Check className="ml-auto mt-1 h-4 w-4 text-emerald-700" strokeWidth={2} />}
                           </span>
-                        </span>
-                        <span className="shrink-0 text-right">
-                          <span className="block text-xs font-black uppercase tracking-[0.08em] text-slate-400">Due</span>
-                          <span className="block text-sm font-black text-amber-700">
-                            {currency(Number(tenant.targetBalance ?? tenant.rentAmount))}
-                          </span>
-                          {tenant.id === tenantId && <Check className="ml-auto mt-1 h-4 w-4 text-emerald-700" strokeWidth={2} />}
-                        </span>
-                      </button>
-                    ))}
+                        </button>
+                      )
+                    })}
                     {tenantOptions.length === 0 && (
                       <p className="rounded-xl bg-slate-50 px-3 py-6 text-center text-sm font-semibold text-slate-500">
                         No tenants match that search.
@@ -457,8 +491,10 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
             <p className="mt-1 font-black text-slate-950">{currency(selectedTenant.rentAmount)}</p>
           </div>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Scheduled amount</p>
-            <p className="mt-1 font-black text-amber-700">
+            <p className={`text-xs font-black uppercase tracking-[0.12em] ${selectedTarget?.labelClass ?? 'text-slate-400'}`}>
+              {selectedTarget?.label ?? 'Scheduled amount'}
+            </p>
+            <p className={`mt-1 font-black ${selectedTarget?.amountClass ?? 'text-slate-950'}`}>
               {currency(Number(selectedTenant.targetScheduledBalance ?? selectedTenant.targetBalance ?? selectedTenant.rentAmount))}
             </p>
             <p className="mt-0.5 text-xs text-slate-500">

@@ -1,8 +1,7 @@
-import DeleteButton from '@/components/DeleteButton'
-import PropertyRecordsModal from '@/components/PropertyRecordsModal'
+import PropertyUnitsModal from '@/components/PropertyUnitsModal'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { listPropertiesForUser, listUnitsForUser } from '@/lib/data'
-import { currency, currentPaymentMonth } from '@/lib/format'
+import { currentPaymentMonth } from '@/lib/format'
 import { Building2, Plus } from 'lucide-react'
 import Link from 'next/link'
 
@@ -155,49 +154,17 @@ export default async function UnitsPage({
                   <p className="text-[10px] font-bold uppercase text-amber-700">Vacant</p>
                 </div>
               </div>
-              <PropertyRecordsModal
-                buttonLabel={units.length === allUnits.length ? 'View units' : `View ${units.length} matching units`}
-                title={`${property.name} Units`}
-                description={`${property.location} - ${units.length} unit${units.length === 1 ? '' : 's'} shown`}
+              <PropertyUnitsModal
+                propertyName={property.name}
+                propertyLocation={property.location}
+                units={units.map(({ unit }) => ({
+                  id: unit.id,
+                  unitNumber: unit.unitNumber,
+                  rentAmount: unit.rentAmount,
+                  status: unit.status
+                }))}
                 downloadHref={`/api/reports/property-detail?month=${month}&propertyId=${property.id}`}
-              >
-                <div className="overflow-x-auto p-3 sm:p-5">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Unit</th>
-                        <th>Monthly Rent</th>
-                        <th>Status</th>
-                        <th className="text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {units.map(({ unit }) => (
-                        <tr key={unit.id}>
-                          <td data-label="Unit"><span className="font-semibold text-slate-950">Unit {unit.unitNumber}</span></td>
-                          <td data-label="Monthly Rent" className="font-semibold text-slate-950">{currency(unit.rentAmount)}</td>
-                          <td data-label="Status">
-                            <span className={unit.status === 'occupied' ? 'badge badge-green' : 'badge badge-amber'}>
-                              {unit.status === 'occupied' ? 'Occupied' : 'Vacant'}
-                            </span>
-                          </td>
-                          <td data-label="Actions">
-                            <div className="flex items-center justify-end gap-2">
-                              <Link href={`/units/${unit.id}/edit`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50">
-                                Edit
-                              </Link>
-                              <DeleteButton endpoint={`/api/units/${unit.id}`} confirmMessage="Delete this unit and all linked tenants, payments, and expenses?" />
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {units.length === 0 && (
-                    <p className="py-12 text-center text-sm font-semibold text-slate-500">No units found for this property and filter.</p>
-                  )}
-                </div>
-              </PropertyRecordsModal>
+              />
             </article>
           ))}
         </div>

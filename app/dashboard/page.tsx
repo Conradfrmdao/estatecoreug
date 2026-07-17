@@ -19,7 +19,7 @@ import {
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getDashboardData } from '@/lib/data'
 import { currency, currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
-import { paymentCoveragePeriods } from '@/lib/rent-cycle'
+import { isOutstandingRentStatus, paymentCoveragePeriods } from '@/lib/rent-cycle'
 
 export const dynamic = 'force-dynamic'
 
@@ -165,6 +165,8 @@ function PortfolioMetric({
 }
 
 function statusBadge(status: string, daysUntilDue: number) {
+  if (status === 'paid') return 'Paid'
+  if (status === 'not_due') return 'Not due yet'
   if (status === 'due_today') return 'Due today'
   if (status === 'overdue') return `${Math.abs(daysUntilDue)} days late`
   if (status === 'upcoming') return `${daysUntilDue} days left`
@@ -182,11 +184,15 @@ export default async function DashboardPage({
   const month = params?.month || currentPaymentMonth()
   const data = await getDashboardData(user.id, month)
 
-  const activeCount = Math.max(data.summary.activeTenants, data.tenantBalances.length)
-  const paidCount = data.tenantBalances.filter((row) => row.paymentStatus === 'paid').length
+  const activeCount = data.tenantBalances.length
+  const currentCount = data.tenantBalances.filter((row) =>
+    ['paid', 'not_due', 'upcoming'].includes(row.paymentStatus)
+  ).length
   const partialCount = data.tenantBalances.filter((row) => row.paymentStatus === 'partial').length
-  const unpaidCount = Math.max(activeCount - paidCount - partialCount, 0)
-  const paidDeg = activeCount ? (paidCount / activeCount) * 360 : 0
+  const unpaidCount = data.tenantBalances.filter((row) =>
+    isOutstandingRentStatus(row.paymentStatus) && row.paymentStatus !== 'partial'
+  ).length
+  const paidDeg = activeCount ? (currentCount / activeCount) * 360 : 0
   const partialDeg = activeCount ? (partialCount / activeCount) * 360 : 0
   const selectedMonthDays = monthDays(month)
   const today = new Date()
@@ -346,15 +352,15 @@ export default async function DashboardPage({
             </div>
             <div className="flex-1 space-y-1.5 text-xs">
               <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-emerald-700" />Paid</span>
-                <span className="font-bold text-slate-950">{paidCount}</span>
+                <span className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-emerald-700" />Current</span>
+                <span className="font-bold text-slate-950">{currentCount}</span>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-amber-500" />Partial</span>
                 <span className="font-bold text-slate-950">{partialCount}</span>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-red-500" />Unpaid</span>
+                <span className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-red-500" />Outstanding</span>
                 <span className="font-bold text-slate-950">{unpaidCount}</span>
               </div>
             </div>

@@ -3,6 +3,10 @@ import type { RentPayment, RentPaymentAllocation, Tenant, Unit } from '@/drizzle
 export type TenantRentStatus = 'paid' | 'partial' | 'not_due' | 'unpaid' | 'upcoming' | 'due_today' | 'overdue'
 export type PaymentTiming = 'advance' | 'arrears'
 
+export function isOutstandingRentStatus(status: TenantRentStatus) {
+  return ['partial', 'unpaid', 'due_today', 'overdue'].includes(status)
+}
+
 export type TenantPaymentTerms = {
   paymentTiming: PaymentTiming
   billingCycleMonths: number

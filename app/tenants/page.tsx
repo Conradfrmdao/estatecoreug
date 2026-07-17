@@ -1,9 +1,7 @@
-import DeleteButton from '@/components/DeleteButton'
-import PropertyRecordsModal from '@/components/PropertyRecordsModal'
+import PropertyTenantsModal from '@/components/PropertyTenantsModal'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { listPropertiesForUser, listTenantsForUser } from '@/lib/data'
 import { currentPaymentMonth, formatDate } from '@/lib/format'
-import { daysUntilDate } from '@/lib/rent-cycle'
 import { Building2, Plus } from 'lucide-react'
 import Link from 'next/link'
 
@@ -11,24 +9,6 @@ export const dynamic = 'force-dynamic'
 
 type TenantsPageParams = {
   q?: string
-}
-
-function nextPaymentState(value: Date, active: boolean) {
-  if (!active) {
-    return { badge: 'Inactive', className: 'bg-slate-100 text-slate-500' }
-  }
-
-  const days = daysUntilDate(value)
-  if (days < 0) {
-    return { badge: `${Math.abs(days)} days late`, className: 'bg-rose-50 text-rose-700' }
-  }
-  if (days <= 4) {
-    return {
-      badge: days === 0 ? 'Due today' : `${days} days left`,
-      className: 'bg-orange-50 text-orange-700'
-    }
-  }
-  return { badge: `${days} days left`, className: 'bg-emerald-50 text-emerald-700' }
 }
 
 export default async function TenantsPage({
@@ -145,79 +125,21 @@ export default async function TenantsPage({
                   <p className="text-[10px] font-bold uppercase text-slate-500">Inactive</p>
                 </div>
               </div>
-              <PropertyRecordsModal
-                buttonLabel={propertyTenants.length === allTenants.length ? 'View tenants' : `View ${propertyTenants.length} matching tenants`}
-                title={`${property.name} Tenants`}
-                description={`${property.location} - ${propertyTenants.length} tenant${propertyTenants.length === 1 ? '' : 's'} shown`}
+              <PropertyTenantsModal
+                propertyName={property.name}
+                propertyLocation={property.location}
+                tenants={propertyTenants.map(({ tenant, unit }) => ({
+                  id: tenant.id,
+                  fullName: tenant.fullName,
+                  phone: tenant.phone,
+                  email: tenant.email,
+                  unitNumber: unit.unitNumber,
+                  moveInDate: tenant.moveInDate.toISOString(),
+                  rentDueDate: tenant.rentDueDate.toISOString(),
+                  active: tenant.active
+                }))}
                 downloadHref={`/api/reports/property-detail?month=${month}&propertyId=${property.id}`}
-              >
-                <div className="overflow-x-auto p-3 sm:p-5">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Tenant</th>
-                        <th>Unit</th>
-                        <th>Contact</th>
-                        <th>Move In Date</th>
-                        <th>Next Payment</th>
-                        <th>Status</th>
-                        <th className="text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {propertyTenants.map(({ tenant, unit }) => {
-                        const nextPayment = nextPaymentState(tenant.rentDueDate, tenant.active)
-                        return (
-                          <tr key={tenant.id}>
-                            <td data-label="Tenant">
-                              <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
-                                  style={{ backgroundColor: tenant.active ? '#00A550' : '#94a3b8' }}>
-                                  {tenant.fullName.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="min-w-0">
-                                  <span className="block font-semibold text-slate-950">{tenant.fullName}</span>
-                                  {tenant.email && <span className="block truncate text-xs text-slate-400">{tenant.email}</span>}
-                                </div>
-                              </div>
-                            </td>
-                            <td data-label="Unit"><span className="block font-semibold text-slate-950">Unit {unit.unitNumber}</span></td>
-                            <td data-label="Contact" className="text-sm text-slate-700">{tenant.phone}</td>
-                            <td data-label="Move In Date" className="text-sm text-slate-500">{formatDate(tenant.moveInDate)}</td>
-                            <td data-label="Next Payment">
-                              <span className="block text-sm font-semibold text-slate-800">{formatDate(tenant.rentDueDate)}</span>
-                              <span className={`mt-1 inline-flex rounded-full px-2 py-1 text-[11px] font-black ${nextPayment.className}`}>
-                                {nextPayment.badge}
-                              </span>
-                            </td>
-                            <td data-label="Status">
-                              <span className={tenant.active ? 'badge badge-green' : 'badge bg-slate-100 text-slate-500'}>
-                                {tenant.active ? 'Active' : 'Inactive'}
-                              </span>
-                            </td>
-                            <td data-label="Actions">
-                              <div className="flex items-center justify-end gap-2">
-                                {tenant.active && (
-                                  <Link href={`/payments/new?tenantId=${tenant.id}`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-slate-50">
-                                    Record Payment
-                                  </Link>
-                                )}
-                                <Link href={`/tenants/${tenant.id}/edit`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50">
-                                  Edit
-                                </Link>
-                                <DeleteButton endpoint={`/api/tenants/${tenant.id}`} />
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                  {propertyTenants.length === 0 && (
-                    <p className="py-12 text-center text-sm font-semibold text-slate-500">No tenants found for this property and search.</p>
-                  )}
-                </div>
-              </PropertyRecordsModal>
+              />
             </article>
           ))}
         </div>
