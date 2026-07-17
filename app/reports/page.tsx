@@ -20,11 +20,17 @@ function rentStatusBadge(status: string) {
 export default async function ReportsPage({
   searchParams
 }: {
-  searchParams?: { month?: string }
+  searchParams?: { month?: string; status?: string }
 }) {
   const user = await requireCurrentAppUser()
   const month = searchParams?.month ?? currentPaymentMonth()
   const data = await getDashboardData(user.id, month)
+  const outstandingOnly = searchParams?.status === 'outstanding'
+  const visibleTenantBalances = outstandingOnly
+    ? data.tenantBalances.filter(({ balance, paymentStatus }) =>
+        balance > 0 && !['not_due', 'upcoming'].includes(paymentStatus)
+      )
+    : data.tenantBalances
 
   // Calculations for Property Performance Summary
   const propertyStats = data.properties.map((property) => {
@@ -97,6 +103,7 @@ export default async function ReportsPage({
 
         {/* Month Selector Form */}
         <form method="get" className="grid w-full gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto] sm:items-center">
+          {outstandingOnly && <input type="hidden" name="status" value="outstanding" />}
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Report Month:</label>
           <input
             type="month"
@@ -157,10 +164,10 @@ export default async function ReportsPage({
       {/* Tabular Reports */}
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Tenant Rent Report (Main Table) */}
-        <div className="lg:col-span-2 space-y-4">
+        <div id="tenant-rent-report" className="scroll-mt-4 lg:col-span-2 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-slate-800">Rent Status (Monthly Breakdown)</h2>
+              <h2 className="text-lg font-bold text-slate-800">{outstandingOnly ? 'Outstanding Rent' : 'Rent Status (Monthly Breakdown)'}</h2>
               <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded mt-1 inline-block">
                 {data.summary.paidTenants} / {data.summary.activeTenants} Active Occupied Paid
               </span>
@@ -205,7 +212,7 @@ export default async function ReportsPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {data.tenantBalances.map(({ tenant, unit, property, amountPaid, balance, paymentStatus }) => (
+                  {visibleTenantBalances.map(({ tenant, unit, property, amountPaid, balance, paymentStatus }) => (
                     <tr key={tenant.id}>
                       <td data-label="Tenant" className="font-semibold text-slate-800 text-sm">
                         {tenant.fullName}
@@ -230,10 +237,10 @@ export default async function ReportsPage({
                       </td>
                     </tr>
                   ))}
-                  {data.tenantBalances.length === 0 && (
+                  {visibleTenantBalances.length === 0 && (
                     <tr>
                       <td colSpan={6} className="py-8 text-center text-sm text-slate-400">
-                        No active occupied units found.
+                        {outstandingOnly ? 'No outstanding rent for this month.' : 'No active occupied units found.'}
                       </td>
                     </tr>
                   )}
@@ -244,7 +251,7 @@ export default async function ReportsPage({
         </div>
 
         {/* Expenses Category Breakdowns */}
-        <div className="space-y-4">
+        <div id="expense-breakdown" className="scroll-mt-4 space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-bold text-slate-800">Expense Breakdown</h2>
             <a
@@ -286,7 +293,7 @@ export default async function ReportsPage({
       </div>
 
       {/* Property Performance Summary Table */}
-      <section className="space-y-4">
+      <section id="property-performance" className="scroll-mt-4 space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-bold text-slate-800">Property Performance Summary</h2>
           <a

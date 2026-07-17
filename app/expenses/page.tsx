@@ -1,24 +1,34 @@
 import DeleteButton from '@/components/DeleteButton'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { listExpensesForUser } from '@/lib/data'
-import { currency, formatDate } from '@/lib/format'
+import { currency, dateKey, formatDate } from '@/lib/format'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
+type ExpensesPageParams = {
+  q?: string
+  month?: string
+}
+
 export default async function ExpensesPage({
   searchParams
 }: {
-  searchParams?: Promise<{ q?: string }>
+  searchParams?: Promise<ExpensesPageParams>
 }) {
   const user = await requireCurrentAppUser()
   const params = await searchParams
   const q = (params?.q ?? '').trim().toLowerCase()
+  const requestedMonth = params?.month ?? ''
+  const monthFilter = /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth) ? requestedMonth : ''
   const expenseRows = await listExpensesForUser(user.id)
+  const monthRows = monthFilter
+    ? expenseRows.filter(({ expense }) => dateKey(expense.expenseDate).slice(0, 7) === monthFilter)
+    : expenseRows
 
   const rows = q
-    ? expenseRows.filter(({ expense, property, unit }) =>
+    ? monthRows.filter(({ expense, property, unit }) =>
         [
           expense.title,
           expense.category,
@@ -30,7 +40,7 @@ export default async function ExpensesPage({
           formatDate(expense.expenseDate)
         ].some((val) => val.toLowerCase().includes(q))
       )
-    : expenseRows
+    : monthRows
 
   const getCategoryBadgeStyles = (category: string) => {
     switch (category.toLowerCase()) {
@@ -71,6 +81,7 @@ export default async function ExpensesPage({
       {/* Search */}
       <form method="get" className="flex flex-col gap-3 rounded-xl border bg-white p-4 sm:flex-row"
         style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        {monthFilter && <input type="hidden" name="month" value={monthFilter} />}
         <input
           name="q"
           defaultValue={params?.q ?? ''}
@@ -85,7 +96,7 @@ export default async function ExpensesPage({
         </button>
         {q && (
           <Link
-            href="/expenses"
+            href={monthFilter ? `/expenses?month=${monthFilter}` : '/expenses'}
             className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 sm:w-auto"
           >
             Clear

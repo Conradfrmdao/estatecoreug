@@ -3,7 +3,7 @@ import PropertyRecordsModal from '@/components/PropertyRecordsModal'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { listPaymentsForUser, listPropertiesForUser } from '@/lib/data'
 import { currency, currentPaymentMonth, formatDate, monthLabel } from '@/lib/format'
-import { paymentCoveragePeriods } from '@/lib/rent-cycle'
+import { allocatedPaymentForPeriod, parseMonth, paymentCoveragePeriods } from '@/lib/rent-cycle'
 import { Building2, Download, Plus } from 'lucide-react'
 import Link from 'next/link'
 
@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic'
 
 type PaymentsPageParams = {
   q?: string
+  month?: string
 }
 
 export default async function PaymentsPage({
@@ -21,13 +22,22 @@ export default async function PaymentsPage({
   const user = await requireCurrentAppUser()
   const params = await searchParams
   const q = (params?.q ?? '').trim().toLowerCase()
-  const month = currentPaymentMonth()
+  const requestedMonth = params?.month ?? ''
+  const monthFilter = /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth) ? requestedMonth : ''
+  const month = monthFilter || currentPaymentMonth()
+  const selectedPeriod = monthFilter ? parseMonth(monthFilter) : null
   const [properties, paymentRows] = await Promise.all([
     listPropertiesForUser(user.id),
     listPaymentsForUser(user.id)
   ])
 
-  const filteredRows = paymentRows.filter(({ payment, tenant, unit, property }) => {
+  const amountForView = (payment: (typeof paymentRows)[number]['payment']) =>
+    selectedPeriod ? allocatedPaymentForPeriod(payment, selectedPeriod) : payment.amountPaid
+  const monthRows = selectedPeriod
+    ? paymentRows.filter(({ payment }) => amountForView(payment) > 0)
+    : paymentRows
+
+  const filteredRows = monthRows.filter(({ payment, tenant, unit, property }) => {
     if (!q) return true
 
     return [
@@ -48,7 +58,7 @@ export default async function PaymentsPage({
 
   const propertyCards = properties
     .map((property) => {
-      const allPayments = paymentRows.filter(({ property: rowProperty }) => rowProperty.id === property.id)
+      const allPayments = monthRows.filter(({ property: rowProperty }) => rowProperty.id === property.id)
       const payments = filteredRows.filter(({ property: rowProperty }) => rowProperty.id === property.id)
       const propertyMatches = q
         ? [property.name, property.location].some((value) => value.toLowerCase().includes(q))
@@ -59,8 +69,8 @@ export default async function PaymentsPage({
         allPayments,
         payments,
         propertyMatches,
-        totalPaid: allPayments.reduce((total, { payment }) => total + payment.amountPaid, 0),
-        matchingPaid: payments.reduce((total, { payment }) => total + payment.amountPaid, 0)
+        totalPaid: allPayments.reduce((total, { payment }) => total + amountForView(payment), 0),
+        matchingPaid: payments.reduce((total, { payment }) => total + amountForView(payment), 0)
       }
     })
     .filter(({ payments, propertyMatches }) => !q || propertyMatches || payments.length > 0)
@@ -86,6 +96,7 @@ export default async function PaymentsPage({
 
       <form method="get" className="flex flex-col gap-3 rounded-xl border bg-white p-4 sm:flex-row"
         style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        {monthFilter && <input type="hidden" name="month" value={monthFilter} />}
         <input
           name="q"
           defaultValue={params?.q ?? ''}
@@ -96,7 +107,7 @@ export default async function PaymentsPage({
           Search
         </button>
         {q && (
-          <Link href="/payments" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 sm:w-auto">
+          <Link href={monthFilter ? `/payments?month=${monthFilter}` : '/payments'} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 sm:w-auto">
             Clear
           </Link>
         )}
@@ -165,7 +176,7 @@ export default async function PaymentsPage({
                             {paymentCoveragePeriods(payment).map((period) => monthLabel(period.month)).join(', ')}
                             <span className="mt-1 block text-xs text-slate-400">{payment.monthsCovered} month{payment.monthsCovered === 1 ? '' : 's'}</span>
                           </td>
-                          <td data-label="Amount Paid" className="font-bold text-emerald-600">{currency(payment.amountPaid)}</td>
+                          <td data-label="Amount Paid" className="font-bold text-emerald-600">{currency(amountForView(payment))}</td>
                           <td data-label="Remaining Balance" className={payment.balanceAfterPayment > 0 ? 'text-sm text-amber-700' : 'text-sm text-slate-500'}>
                             {payment.balanceAfterPayment > 0 ? currency(payment.balanceAfterPayment) : 'Fully Paid'}
                           </td>

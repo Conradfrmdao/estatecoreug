@@ -350,7 +350,8 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
                     <input
                       value={propertySearch}
                       onChange={(e) => setPropertySearch(e.target.value)}
-                      className="field-input pl-9"
+                      className="field-input"
+                      style={{ paddingLeft: '2.5rem' }}
                       placeholder="Search property..."
                     />
                   </div>
@@ -404,7 +405,8 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
                     <input
                       value={tenantSearch}
                       onChange={(e) => setTenantSearch(e.target.value)}
-                      className="field-input pl-9"
+                      className="field-input"
+                      style={{ paddingLeft: '2.5rem' }}
                       placeholder="Search unit, tenant, phone, or email..."
                     />
                   </div>

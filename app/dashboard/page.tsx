@@ -93,6 +93,7 @@ function KpiCard({
   sub,
   tone,
   icon: Icon,
+  href,
   direction = 'up'
 }: {
   title: string
@@ -100,13 +101,18 @@ function KpiCard({
   sub: string
   tone: keyof typeof toneStyles
   icon: typeof WalletCards
+  href: string
   direction?: 'up' | 'down'
 }) {
   const style = toneStyles[tone]
   const DirectionIcon = direction === 'up' ? ArrowUpRight : ArrowDownRight
 
   return (
-    <div className="flex min-h-[106px] flex-col justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:min-h-[108px] sm:p-4">
+    <Link
+      href={href}
+      aria-label={`View ${title}`}
+      className="flex min-h-[106px] flex-col justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 sm:min-h-[108px] sm:p-4"
+    >
       <div className="min-w-0 space-y-2">
         <div className="flex min-w-0 items-center gap-2">
           <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full sm:h-9 sm:w-9 ${style.icon}`}>
@@ -123,7 +129,7 @@ function KpiCard({
       <div className="hidden shrink-0 2xl:block">
         <Sparkline color={style.spark} />
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -131,15 +137,21 @@ function PortfolioMetric({
   label,
   value,
   sub,
-  icon: Icon
+  icon: Icon,
+  href
 }: {
   label: string
   value: number
   sub: string
   icon: typeof Building2
+  href: string
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 md:rounded-none md:bg-transparent md:px-2 md:py-1.5">
+    <Link
+      href={href}
+      aria-label={`View ${label}`}
+      className="flex min-w-0 items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 md:rounded-none md:bg-transparent md:px-2 md:py-1.5"
+    >
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200 md:h-9 md:w-9 md:bg-slate-100 md:ring-0">
         <Icon className="h-4 w-4" strokeWidth={1.8} />
       </div>
@@ -148,7 +160,7 @@ function PortfolioMetric({
         <p className="text-lg font-black leading-tight text-slate-950">{value}</p>
         <p className="truncate text-[10.5px] text-slate-500 md:text-[11px]">{sub}</p>
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -273,6 +285,7 @@ export default async function DashboardPage({
           sub={`${data.summary.totalExpected ? Math.round((data.summary.collectedThisMonth / data.summary.totalExpected) * 100) : 0}% of expected`}
           tone="green"
           icon={WalletCards}
+          href={`/payments?month=${month}`}
         />
         <KpiCard
           title="Outstanding Rent"
@@ -280,6 +293,7 @@ export default async function DashboardPage({
           sub={`${data.summary.unpaidTenants} tenants unpaid`}
           tone="amber"
           icon={CircleAlert}
+          href={`/reports?month=${month}&status=outstanding#tenant-rent-report`}
           direction="down"
         />
         <KpiCard
@@ -288,6 +302,7 @@ export default async function DashboardPage({
           sub={`${data.recentExpenses.length} recent expenses`}
           tone="blue"
           icon={ReceiptText}
+          href={`/expenses?month=${month}`}
           direction="down"
         />
         <KpiCard
@@ -296,15 +311,16 @@ export default async function DashboardPage({
           sub={`${monthLabel(month)} result`}
           tone="dark"
           icon={BarChart3}
+          href={`/reports?month=${month}#property-performance`}
         />
       </section>
 
       <section className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm min-[390px]:grid-cols-3 md:grid-cols-5 md:gap-0 md:divide-x md:divide-slate-200 [&>*:last-child]:col-span-2 min-[390px]:[&>*:last-child]:col-span-1">
-        <PortfolioMetric label="Properties" value={data.summary.totalProperties} sub="Total properties" icon={Building2} />
-        <PortfolioMetric label="Units" value={data.summary.totalUnits} sub="Total units" icon={DoorOpen} />
-        <PortfolioMetric label="Occupied" value={data.summary.occupiedUnits} sub="Units occupied" icon={UsersRound} />
-        <PortfolioMetric label="Vacant" value={data.summary.vacantUnits} sub="Units vacant" icon={KeyRound} />
-        <PortfolioMetric label="Tenants" value={data.summary.activeTenants} sub="Active tenants" icon={UsersRound} />
+        <PortfolioMetric label="Properties" value={data.summary.totalProperties} sub="Total properties" icon={Building2} href="/properties" />
+        <PortfolioMetric label="Units" value={data.summary.totalUnits} sub="Total units" icon={DoorOpen} href="/units" />
+        <PortfolioMetric label="Occupied" value={data.summary.occupiedUnits} sub="Units occupied" icon={UsersRound} href="/units?status=occupied" />
+        <PortfolioMetric label="Vacant" value={data.summary.vacantUnits} sub="Units vacant" icon={KeyRound} href="/units?status=vacant" />
+        <PortfolioMetric label="Tenants" value={data.summary.activeTenants} sub="Active tenants" icon={UsersRound} href="/tenants" />
       </section>
 
       <section className="grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
