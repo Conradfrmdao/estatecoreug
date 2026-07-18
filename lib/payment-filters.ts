@@ -1,5 +1,5 @@
 import { currency, dateKey, formatDate, monthLabel } from './format.ts'
-import { paymentCoveragePeriods, type PaymentLike } from './rent-cycle.ts'
+import { paymentBillingPeriods, type PaymentLike } from './rent-cycle.ts'
 
 export type PaymentPeriod = 'all' | 'day' | 'month' | 'year'
 
@@ -68,7 +68,7 @@ export function paymentMatchesSearch(row: PaymentSearchRow, query: string) {
     formatDate(payment.paymentDate),
     String(payment.amountPaid),
     currency(payment.amountPaid),
-    ...paymentCoveragePeriods(payment).map((period) => monthLabel(period.month)),
+    ...paymentBillingPeriods(payment).map((period) => monthLabel(period.month)),
     payment.notes ?? ''
   ].some((value) => value.toLowerCase().includes(normalizedQuery))
 }

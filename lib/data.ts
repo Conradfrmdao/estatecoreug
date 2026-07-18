@@ -15,7 +15,9 @@ import {
 import { db } from '@/lib/db'
 import { currentPaymentMonth, dateKey } from '@/lib/format'
 import {
-  allocatedPaymentForPeriod,
+  addMonths,
+  allocatedPaymentForBillingPeriod,
+  billingMonthForCoverage,
   buildPaymentAllocationPlan,
   calculateOutstandingRentThroughDate,
   calculateTenantPeriodBalance,
@@ -25,8 +27,7 @@ import {
   getPaymentCoverage,
   inferTenantPaymentTerms,
   outstandingRentForPeriods,
-  paymentCoverageDateForPeriod,
-  paymentCoveragePeriods,
+  paymentBillingPeriods,
   parseMonth,
   scheduledRentDueDateForPeriod,
   type TenantPaymentTerms,
@@ -233,13 +234,13 @@ function buildMonthlyPaymentAllocations(paymentRows: PaymentWithTenant[], month:
 
   return paymentRows
     .map((row) => {
-      const allocatedAmount = allocatedPaymentForPeriod(row.payment, period)
+      const allocatedAmount = allocatedPaymentForBillingPeriod(row.payment, period)
       return allocatedAmount > 0
         ? {
             ...row,
             allocatedAmount,
             coverageMonth: period.month,
-            coverageDate: paymentCoverageDateForPeriod(row.payment, period)
+            coverageDate: getPaymentCoverage(row.payment).start
           }
         : null
     })
@@ -341,11 +342,11 @@ function buildCalendarEvents(
 
   for (const { payment, tenant, property, unit } of paymentRows) {
     const coverage = getPaymentCoverage(payment)
-    for (const period of paymentCoveragePeriods(payment)) {
-      const allocatedAmount = allocatedPaymentForPeriod(payment, period)
+    for (const [index, period] of paymentBillingPeriods(payment).entries()) {
+      const allocatedAmount = allocatedPaymentForBillingPeriod(payment, period)
       events.push({
         id: `payment-${payment.id}-${period.month}`,
-        date: toEventDate(paymentCoverageDateForPeriod(payment, period)),
+        date: toEventDate(addMonths(coverage.start, index)),
         title: `${tenant.fullName} rent paid`,
         type: 'payment',
         detail: `${property.name}, Unit ${unit.unitNumber}, ${allocatedAmount.toLocaleString('en-UG')} UGX allocated for ${period.month} from ${coverage.monthsCovered} month${coverage.monthsCovered === 1 ? '' : 's'} covered`,
@@ -591,7 +592,7 @@ export async function listTenantPaymentTargets(userId: number) {
 
     return {
       ...row,
-      targetMonth: target.month,
+      targetMonth: billingMonthForCoverage(target.dueDate, addMonths(target.dueDate, 1)),
       targetDueDate: targetPeriodBalance?.dueDate ?? terms.dueDate,
       targetCoverageStart: target.dueDate,
       targetAmountPaid: target.amountPaid,

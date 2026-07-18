@@ -5,7 +5,7 @@ import { requireCurrentAppUser } from '@/lib/auth'
 import { listPaymentsForUser, listPropertiesForUser } from '@/lib/data'
 import { currency, dateKey, formatDate, monthLabel } from '@/lib/format'
 import { normalizePaymentFilters, paymentMatchesSearch, paymentReceivedInPeriod } from '@/lib/payment-filters'
-import { paymentCoveragePeriods } from '@/lib/rent-cycle'
+import { paymentBillingPeriods } from '@/lib/rent-cycle'
 import { Building2, Download, Plus, WalletCards } from 'lucide-react'
 import Link from 'next/link'
 
@@ -207,7 +207,7 @@ export default async function PaymentsPage({
                           </td>
                           <td data-label="Unit"><span className="block font-semibold text-slate-950">Unit {unit.unitNumber}</span></td>
                           <td data-label="Rent Coverage" className="text-sm text-slate-700">
-                            {paymentCoveragePeriods(payment).map((period) => monthLabel(period.month)).join(', ')}
+                            {paymentBillingPeriods(payment).map((period) => monthLabel(period.month)).join(', ')}
                             <span className="mt-1 block text-xs text-slate-400">{payment.monthsCovered} month{payment.monthsCovered === 1 ? '' : 's'}</span>
                           </td>
                           <td data-label="Amount Paid" className="font-bold text-emerald-600">{currency(payment.amountPaid)}</td>

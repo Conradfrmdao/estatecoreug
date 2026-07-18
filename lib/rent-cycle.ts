@@ -157,6 +157,20 @@ export function addMonths(date: Date, months: number) {
   return next
 }
 
+export function billingMonthForCoverage(start: Date, end: Date) {
+  const coverageStart = new Date(start)
+  const coverageEnd = new Date(end)
+
+  if (Number.isNaN(coverageStart.valueOf()) || Number.isNaN(coverageEnd.valueOf()) || coverageEnd <= coverageStart) {
+    return monthFromDate(coverageStart)
+  }
+
+  const midpoint = new Date(
+    coverageStart.getTime() + Math.floor((coverageEnd.getTime() - coverageStart.getTime()) / 2)
+  )
+  return monthFromDate(midpoint)
+}
+
 export function parseMonth(month: string): RentPeriod {
   const [year, monthNumber] = month.split('-').map(Number)
 
@@ -292,6 +306,52 @@ export function allocatedPaymentForPeriod(payment: PaymentLike, period: RentPeri
   }
 
   return Math.round(payment.amountPaid / getPaymentCoverage(payment).monthsCovered)
+}
+
+export function paymentAllocationBillingMonth(
+  payment: PaymentLike,
+  allocation: RentPaymentAllocation
+) {
+  const allocations = paymentAllocations(payment).sort((a, b) => compareMonths(a.month, b.month))
+  const firstMonth = allocations[0]?.month ?? payment.paymentMonth
+  const monthOffset = compareMonths(allocation.month, firstMonth)
+  const coverageStart = addMonths(getPaymentCoverage(payment).start, monthOffset)
+
+  return billingMonthForCoverage(coverageStart, addMonths(coverageStart, 1))
+}
+
+export function paymentBillingPeriods(payment: PaymentLike) {
+  const allocations = paymentAllocations(payment)
+  if (allocations.length > 0) {
+    return sortedUniqueMonths(
+      allocations.map((allocation) => paymentAllocationBillingMonth(payment, allocation))
+    ).map(parseMonth)
+  }
+
+  const coverage = getPaymentCoverage(payment)
+  return sortedUniqueMonths(
+    Array.from({ length: coverage.monthsCovered }, (_, index) => {
+      const start = addMonths(coverage.start, index)
+      return billingMonthForCoverage(start, addMonths(start, 1))
+    })
+  ).map(parseMonth)
+}
+
+export function allocatedPaymentForBillingPeriod(payment: PaymentLike, period: RentPeriod) {
+  const allocations = paymentAllocations(payment)
+  if (allocations.length > 0) {
+    return allocations
+      .filter((allocation) => paymentAllocationBillingMonth(payment, allocation) === period.month)
+      .reduce((total, allocation) => total + allocation.amount, 0)
+  }
+
+  const coverage = getPaymentCoverage(payment)
+  return Array.from({ length: coverage.monthsCovered }, (_, index) => {
+    const start = addMonths(coverage.start, index)
+    return billingMonthForCoverage(start, addMonths(start, 1)) === period.month
+      ? Math.round(payment.amountPaid / coverage.monthsCovered)
+      : 0
+  }).reduce((total, amount) => total + amount, 0)
 }
 
 export function paymentCoveragePeriods(payment: PaymentLike) {
@@ -483,10 +543,11 @@ export function buildPaymentAllocationPlan(params: {
     coverageStart,
     Math.max(1, compareMonths(lastMonth, firstMonth) + 1)
   )
+  const paymentMonth = billingMonthForCoverage(coverageStart, addMonths(coverageStart, 1))
 
   return {
     allocations,
-    paymentMonth: firstMonth,
+    paymentMonth,
     coverageStart,
     coverageEnd,
     monthsCovered: Math.max(1, months.length),
@@ -499,7 +560,7 @@ export function buildPaymentAllocationPlan(params: {
         ...params.payments,
         {
           amountPaid,
-          paymentMonth: firstMonth,
+          paymentMonth,
           coverageStart,
           coverageEnd,
           monthsCovered: Math.max(1, months.length),

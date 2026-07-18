@@ -3,7 +3,7 @@ import { requireCurrentAppUser } from '@/lib/auth'
 import { buildRentPaymentPlanForTenant, listPaymentsForUser } from '@/lib/data'
 import { db } from '@/lib/db'
 import { MoneyInputError, parseMoneyAmount } from '@/lib/money'
-import { allocatedPaymentForPeriod, parseMonth, PaymentAllocationError } from '@/lib/rent-cycle'
+import { allocatedPaymentForBillingPeriod, parseMonth, PaymentAllocationError } from '@/lib/rent-cycle'
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
       return false
     }
 
-    if (selectedPeriod && allocatedPaymentForPeriod(payment, selectedPeriod) <= 0) {
+    if (selectedPeriod && allocatedPaymentForBillingPeriod(payment, selectedPeriod) <= 0) {
       return false
     }
 
@@ -45,7 +45,7 @@ export async function GET(req: Request) {
   return NextResponse.json(
     filtered.map(({ payment, tenant, unit, property }) => ({
       ...payment,
-      allocatedAmount: selectedPeriod ? allocatedPaymentForPeriod(payment, selectedPeriod) : payment.amountPaid,
+      allocatedAmount: selectedPeriod ? allocatedPaymentForBillingPeriod(payment, selectedPeriod) : payment.amountPaid,
       tenantName: tenant.fullName,
       unitNumber: unit.unitNumber,
       propertyName: property.name,

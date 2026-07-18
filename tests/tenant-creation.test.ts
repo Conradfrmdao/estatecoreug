@@ -42,7 +42,7 @@ test('builds first payment coverage from move-in to next due date', () => {
 
   assert.equal(payment.tenantId, 44)
   assert.equal(payment.unitId, 12)
-  assert.equal(payment.paymentMonth, '2026-01')
+  assert.equal(payment.paymentMonth, '2026-02')
   assert.equal(payment.coverageStart.toISOString().slice(0, 10), '2026-01-31')
   assert.equal(payment.coverageEnd.toISOString().slice(0, 10), '2026-02-28')
   assert.equal(payment.balanceAfterPayment, 0)

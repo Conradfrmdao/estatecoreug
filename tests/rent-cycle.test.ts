@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   allocatedPaymentForPeriod,
+  allocatedPaymentForBillingPeriod,
   buildPaymentAllocationPlan,
   calculateDueDate,
   calculateNextRentDueDate,
@@ -13,6 +14,7 @@ import {
   paymentCoverageDateForPeriod,
   paymentCoveragePeriods,
   PaymentAllocationError,
+  paymentBillingPeriods,
   parseMonth,
   scheduledRentDueDateForPeriod
 } from '../lib/rent-cycle.ts'
@@ -371,9 +373,9 @@ test('keeps a future schedule date while move-in rent remains outstanding', () =
   assert.equal(tenant.rentDueDate.toISOString().slice(0, 10), '2026-07-30')
 })
 
-test('separates the tenancy entry date from the first billable rent month', () => {
+test('labels a June 30 to July 30 rent cycle as July without shifting coverage', () => {
   const moveInDate = new Date('2026-06-30T00:00:00.000Z')
-  const billingStartDate = new Date('2026-07-01T00:00:00.000Z')
+  const billingStartDate = moveInDate
   const tenant = {
     ...baseTenant,
     moveInDate,
@@ -384,7 +386,7 @@ test('separates the tenancy entry date from the first billable rent month', () =
   const balance = calculateTenantPeriodBalance(
     { tenant, unit: { ...baseUnit, rentAmount: 850000 } },
     [],
-    parseMonth('2026-07'),
+    parseMonth('2026-06'),
     new Date('2026-07-18T12:00:00.000Z')
   )
   const outstanding = calculateOutstandingRentThroughDate(
@@ -400,15 +402,20 @@ test('separates the tenancy entry date from the first billable rent month', () =
     payments: [],
     preferredStartDate: tenant.rentDueDate
   })
+  const recordedPayment = { ...payment, amountPaid: 850000 }
 
-  assert.equal(balance?.paymentStatus, 'unpaid')
-  assert.equal(balance?.dueDate.toISOString().slice(0, 10), '2026-07-30')
+  assert.equal(balance?.paymentStatus, 'overdue')
+  assert.equal(balance?.dueDate.toISOString().slice(0, 10), '2026-06-30')
   assert.equal(outstanding.periods, 1)
   assert.equal(outstanding.balance, 850000)
-  assert.equal(outstanding.oldestDueDate?.toISOString().slice(0, 10), '2026-07-30')
+  assert.equal(outstanding.oldestDueDate?.toISOString().slice(0, 10), '2026-06-30')
   assert.equal(payment.paymentMonth, '2026-07')
-  assert.equal(payment.coverageStart.toISOString().slice(0, 10), '2026-07-30')
-  assert.equal(payment.nextRentDueDate.toISOString().slice(0, 10), '2026-08-30')
+  assert.equal(payment.coverageStart.toISOString().slice(0, 10), '2026-06-30')
+  assert.equal(payment.nextRentDueDate.toISOString().slice(0, 10), '2026-07-30')
+  assert.equal(allocatedPaymentForPeriod(recordedPayment, parseMonth('2026-06')), 850000)
+  assert.equal(allocatedPaymentForBillingPeriod(recordedPayment, parseMonth('2026-07')), 850000)
+  assert.equal(allocatedPaymentForBillingPeriod(recordedPayment, parseMonth('2026-06')), 0)
+  assert.deepEqual(paymentBillingPeriods(recordedPayment).map((period) => period.month), ['2026-07'])
 })
 
 test('does not count a genuine arrears cycle before its end date', () => {

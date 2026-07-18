@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
+import { addMonths, billingMonthForCoverage } from '@/lib/rent-cycle'
 import path from 'path'
 
 const styles = StyleSheet.create({
@@ -254,15 +255,23 @@ export function ReceiptDocument({ payment }: ReceiptProps) {
         {allocations.length > 0 && (
           <View style={styles.allocationSection}>
             <Text style={styles.allocationTitle}>Payment allocation</Text>
-            {allocations.map((allocation) => (
+            {allocations.map((allocation, index) => {
+              const allocationStart = addMonths(
+                new Date(payment.coverageStart ?? `${payment.paymentMonth}-01T00:00:00.000Z`),
+                index
+              )
+              const billingMonth = billingMonthForCoverage(allocationStart, addMonths(allocationStart, 1))
+
+              return (
               <View key={`${allocation.month}-${allocation.amount}`} style={styles.allocationRow}>
-                <Text style={{ fontSize: 9 }}>{formatMonth(allocation.month)}</Text>
+                <Text style={{ fontSize: 9 }}>{formatMonth(billingMonth)}</Text>
                 <Text style={{ fontSize: 9 }}>Applied: {formatUGX(allocation.amount)}</Text>
                 <Text style={{ fontSize: 9 }}>
                   Balance: {allocation.balanceAfterAllocation > 0 ? formatUGX(allocation.balanceAfterAllocation) : 'Fully paid'}
                 </Text>
               </View>
-            ))}
+              )
+            })}
           </View>
         )}
 
