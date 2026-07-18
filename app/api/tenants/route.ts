@@ -66,6 +66,7 @@ export async function GET(req: Request) {
       targetMonth: row.targetMonth,
       targetDueDate: row.targetDueDate,
       targetCoverageStart: row.targetCoverageStart,
+      nextPaymentDate: row.nextPaymentDate,
       targetAmountPaid: row.targetAmountPaid,
       targetBalance: row.targetBalance,
       targetScheduledBalance: row.targetScheduledBalance,

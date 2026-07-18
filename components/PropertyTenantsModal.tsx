@@ -2,8 +2,8 @@
 
 import DeleteButton from '@/components/DeleteButton'
 import PropertyRecordsModal from '@/components/PropertyRecordsModal'
-import { formatDate } from '@/lib/format'
-import { daysUntilDate } from '@/lib/rent-cycle'
+import { currency, formatDate } from '@/lib/format'
+import type { RentDisplayStatus } from '@/lib/rent-display'
 import { Search } from 'lucide-react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
@@ -15,22 +15,17 @@ type TenantRecord = {
   email: string | null
   unitNumber: string
   moveInDate: string
-  rentDueDate: string
+  nextPaymentDate: string
+  totalOutstandingBalance: number
+  displayPaymentStatus: RentDisplayStatus
   active: boolean
 }
 
-function nextPaymentState(value: string, active: boolean) {
+function rentAccountState(status: RentDisplayStatus, active: boolean) {
   if (!active) return { badge: 'Inactive', className: 'bg-slate-100 text-slate-500' }
-
-  const days = daysUntilDate(new Date(value))
-  if (days < 0) return { badge: `${Math.abs(days)} days late`, className: 'bg-rose-50 text-rose-700' }
-  if (days <= 4) {
-    return {
-      badge: days === 0 ? 'Due today' : `${days} days left`,
-      className: 'bg-orange-50 text-orange-700'
-    }
-  }
-  return { badge: `${days} days left`, className: 'bg-emerald-50 text-emerald-700' }
+  if (status === 'outstanding') return { badge: 'Outstanding', className: 'bg-rose-50 text-rose-700' }
+  if (status === 'paid') return { badge: 'Paid', className: 'bg-emerald-50 text-emerald-700' }
+  return { badge: 'Cleared', className: 'bg-slate-100 text-slate-600' }
 }
 
 export default function PropertyTenantsModal({
@@ -57,7 +52,8 @@ export default function PropertyTenantsModal({
         tenant.unitNumber,
         tenant.active ? 'active' : 'inactive',
         formatDate(tenant.moveInDate),
-        formatDate(tenant.rentDueDate)
+        formatDate(tenant.nextPaymentDate),
+        tenant.displayPaymentStatus
       ].some((value) => value.toLowerCase().includes(search))
     )
   }, [query, tenants])
@@ -94,14 +90,14 @@ export default function PropertyTenantsModal({
               <th>Unit</th>
               <th>Contact</th>
               <th>Move In Date</th>
-              <th>Next Payment</th>
+              <th>Next Scheduled</th>
               <th>Status</th>
               <th className="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredTenants.map((tenant) => {
-              const nextPayment = nextPaymentState(tenant.rentDueDate, tenant.active)
+              const rentAccount = rentAccountState(tenant.displayPaymentStatus, tenant.active)
               return (
                 <tr key={tenant.id}>
                   <td data-label="Tenant">
@@ -118,10 +114,12 @@ export default function PropertyTenantsModal({
                   <td data-label="Unit"><span className="block font-semibold text-slate-950">Unit {tenant.unitNumber}</span></td>
                   <td data-label="Contact" className="text-sm text-slate-700">{tenant.phone}</td>
                   <td data-label="Move In Date" className="text-sm text-slate-500">{formatDate(tenant.moveInDate)}</td>
-                  <td data-label="Next Payment">
-                    <span className="block text-sm font-semibold text-slate-800">{formatDate(tenant.rentDueDate)}</span>
-                    <span className={`mt-1 inline-flex rounded-full px-2 py-1 text-[11px] font-black ${nextPayment.className}`}>
-                      {nextPayment.badge}
+                  <td data-label="Next Scheduled">
+                    <span className="block text-sm font-semibold text-slate-800">{formatDate(tenant.nextPaymentDate)}</span>
+                    <span className={`mt-1 inline-flex rounded-full px-2 py-1 text-[11px] font-black ${rentAccount.className}`}>
+                      {tenant.displayPaymentStatus === 'outstanding'
+                        ? `${currency(tenant.totalOutstandingBalance)} outstanding`
+                        : rentAccount.badge}
                     </span>
                   </td>
                   <td data-label="Status">
@@ -131,7 +129,7 @@ export default function PropertyTenantsModal({
                   </td>
                   <td data-label="Actions">
                     <div className="flex items-center justify-end gap-2">
-                      {tenant.active && (
+                      {tenant.active && tenant.displayPaymentStatus === 'outstanding' && (
                         <Link href={`/payments/new?tenantId=${tenant.id}`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-slate-50">
                           Record Payment
                         </Link>

@@ -431,6 +431,27 @@ export function calculateNextRentDueDate(params: {
   return rentDueDateForPeriod(new Date(params.moveInDate), parseMonth(cursor))
 }
 
+export function calculateNextScheduledRentDate(params: {
+  moveInDate: Date
+  billingStartDate?: Date
+  rentAmount: number
+  payments: PaymentLike[]
+  referenceDate?: Date
+}) {
+  const moveInDate = new Date(params.moveInDate)
+  const referenceDay = startOfTimeZoneDay(params.referenceDate ?? new Date())
+  const firstUnpaidDate = calculateNextRentDueDate(params)
+  let scheduleMonth = monthFromDate(referenceDay)
+  let nextScheduledDate = rentDueDateForPeriod(moveInDate, parseMonth(scheduleMonth))
+
+  if (nextScheduledDate <= referenceDay) {
+    scheduleMonth = nextMonth(scheduleMonth)
+    nextScheduledDate = rentDueDateForPeriod(moveInDate, parseMonth(scheduleMonth))
+  }
+
+  return firstUnpaidDate > nextScheduledDate ? firstUnpaidDate : nextScheduledDate
+}
+
 export function findOldestOutstandingRent(params: {
   moveInDate: Date
   billingStartDate?: Date

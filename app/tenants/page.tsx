@@ -26,7 +26,7 @@ export default async function TenantsPage({
     listTenantPaymentTargets(user.id)
   ])
 
-  const filteredRows = tenantRows.filter(({ tenant, unit, property }) => {
+  const filteredRows = tenantRows.filter(({ tenant, unit, property, nextPaymentDate, displayPaymentStatus }) => {
     if (!q) return true
 
     return [
@@ -38,7 +38,9 @@ export default async function TenantsPage({
       property.location,
       tenant.active ? 'active' : 'inactive',
       formatDate(tenant.moveInDate),
-      formatDate(tenant.rentDueDate)
+      formatDate(tenant.rentDueDate),
+      formatDate(nextPaymentDate),
+      displayPaymentStatus
     ].some((value) => value.toLowerCase().includes(q))
   })
 
@@ -106,6 +108,7 @@ export default async function TenantsPage({
             property,
             targetMonth,
             targetDueDate,
+            nextPaymentDate,
             targetAmountPaid,
             targetBalance,
             targetScheduledBalance,
@@ -118,7 +121,7 @@ export default async function TenantsPage({
             email: tenant.email,
             active: tenant.active,
             moveInDate: tenant.moveInDate.toISOString(),
-            rentDueDate: tenant.rentDueDate.toISOString(),
+            nextPaymentDate: nextPaymentDate.toISOString(),
             unitId: unit.id,
             unitNumber: unit.unitNumber,
             unitStatus: unit.status,
@@ -169,14 +172,22 @@ export default async function TenantsPage({
               <PropertyTenantsModal
                 propertyName={property.name}
                 propertyLocation={property.location}
-                tenants={propertyTenants.map(({ tenant, unit }) => ({
+                tenants={propertyTenants.map(({
+                  tenant,
+                  unit,
+                  nextPaymentDate,
+                  totalOutstandingBalance,
+                  displayPaymentStatus
+                }) => ({
                   id: tenant.id,
                   fullName: tenant.fullName,
                   phone: tenant.phone,
                   email: tenant.email,
                   unitNumber: unit.unitNumber,
                   moveInDate: tenant.moveInDate.toISOString(),
-                  rentDueDate: tenant.rentDueDate.toISOString(),
+                  nextPaymentDate: nextPaymentDate.toISOString(),
+                  totalOutstandingBalance,
+                  displayPaymentStatus,
                   active: tenant.active
                 }))}
                 downloadHref={`/api/reports/property-detail?month=${month}&propertyId=${property.id}`}

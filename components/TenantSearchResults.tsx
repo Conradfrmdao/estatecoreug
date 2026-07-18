@@ -15,7 +15,7 @@ export type TenantSearchRecord = {
   email: string | null
   active: boolean
   moveInDate: string
-  rentDueDate: string
+  nextPaymentDate: string
   unitId: number
   unitNumber: string
   unitStatus: string
@@ -140,8 +140,8 @@ export default function TenantSearchResults({ tenants }: { tenants: TenantSearch
                 <dd className="mt-1 text-sm font-bold text-slate-800">{formatDate(selected.moveInDate)}</dd>
               </div>
               <div>
-                <dt className="text-xs font-black uppercase text-slate-400">Next payment date</dt>
-                <dd className="mt-1 text-sm font-bold text-slate-800">{formatDate(selected.rentDueDate)}</dd>
+                <dt className="text-xs font-black uppercase text-slate-400">Next scheduled payment</dt>
+                <dd className="mt-1 text-sm font-bold text-slate-800">{formatDate(selected.nextPaymentDate)}</dd>
               </div>
             </div>
 
@@ -200,7 +200,7 @@ export default function TenantSearchResults({ tenants }: { tenants: TenantSearch
                 <th>Property / Unit</th>
                 <th>Contact</th>
                 <th>Monthly Rent</th>
-                <th>Next Payment</th>
+                <th>Next Scheduled</th>
                 <th>Status</th>
                 <th className="text-right">Details</th>
               </tr>
@@ -225,8 +225,8 @@ export default function TenantSearchResults({ tenants }: { tenants: TenantSearch
                       <span className="block max-w-48 truncate text-xs text-slate-500">{tenant.email || 'No email'}</span>
                     </td>
                     <td data-label="Monthly Rent" className="font-bold text-slate-900">{currency(tenant.rentAmount)}</td>
-                    <td data-label="Next Payment">
-                      <span className="block text-sm font-semibold text-slate-800">{formatDate(tenant.rentDueDate)}</span>
+                    <td data-label="Next Scheduled">
+                      <span className="block text-sm font-semibold text-slate-800">{formatDate(tenant.nextPaymentDate)}</span>
                       <span className="block text-xs text-slate-500">
                         {tenant.totalOutstandingBalance > 0 ? currency(tenant.totalOutstandingBalance) : 'Cleared'}
                       </span>

@@ -21,6 +21,7 @@ import {
   billingMonthForCoverage,
   buildPaymentAllocationPlan,
   calculateOutstandingRentThroughDate,
+  calculateNextScheduledRentDate,
   calculateTenantPeriodBalance,
   calculateNextRentDueDate,
   daysUntilDate,
@@ -78,6 +79,7 @@ export type TenantPaymentTarget = TenantWithUnit & {
   targetMonth: string
   targetDueDate: Date
   targetCoverageStart: Date
+  nextPaymentDate: Date
   targetAmountPaid: number
   targetBalance: number
   targetScheduledBalance: number
@@ -557,6 +559,7 @@ export async function listTenantPaymentTargets(userId: number) {
   const tenantRows = await listTenantsForUser(userId)
   const paymentRows = await listPaymentsForUser(userId)
   const paymentsByTenant = new Map<number, RentPayment[]>()
+  const referenceDate = new Date()
 
   for (const { payment } of paymentRows) {
     const rows = paymentsByTenant.get(payment.tenantId) ?? []
@@ -595,6 +598,13 @@ export async function listTenantPaymentTargets(userId: number) {
       targetMonth: billingMonthForCoverage(target.dueDate, addMonths(target.dueDate, 1)),
       targetDueDate: targetPeriodBalance?.dueDate ?? terms.dueDate,
       targetCoverageStart: target.dueDate,
+      nextPaymentDate: calculateNextScheduledRentDate({
+        moveInDate: row.tenant.moveInDate,
+        billingStartDate: row.tenant.billingStartDate,
+        rentAmount: row.unit.rentAmount,
+        payments: tenantPayments,
+        referenceDate
+      }),
       targetAmountPaid: target.amountPaid,
       targetBalance: target.balance,
       targetScheduledBalance: outstanding.balance > 0

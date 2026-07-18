@@ -6,6 +6,7 @@ import {
   buildPaymentAllocationPlan,
   calculateDueDate,
   calculateNextRentDueDate,
+  calculateNextScheduledRentDate,
   calculateOutstandingRentThroughDate,
   calculateTenantPeriodBalance,
   dateKeyInTimeZone,
@@ -371,6 +372,58 @@ test('keeps a future schedule date while move-in rent remains outstanding', () =
   assert.equal(outstanding.balance, 850000)
   assert.equal(outstanding.oldestDueDate?.toISOString().slice(0, 10), '2026-06-30')
   assert.equal(tenant.rentDueDate.toISOString().slice(0, 10), '2026-07-30')
+})
+
+test('separates historical outstanding rent from the next scheduled payment date', () => {
+  assert.equal(
+    calculateNextScheduledRentDate({
+      moveInDate: new Date('2026-04-30T00:00:00.000Z'),
+      billingStartDate: new Date('2026-04-30T00:00:00.000Z'),
+      rentAmount: 300000,
+      payments: [],
+      referenceDate: new Date('2026-07-18T12:00:00.000Z')
+    }).toISOString().slice(0, 10),
+    '2026-07-30'
+  )
+
+  assert.equal(
+    calculateNextScheduledRentDate({
+      moveInDate: new Date('2026-03-18T00:00:00.000Z'),
+      billingStartDate: new Date('2026-03-18T00:00:00.000Z'),
+      rentAmount: 300000,
+      payments: [],
+      referenceDate: new Date('2026-07-18T12:00:00.000Z')
+    }).toISOString().slice(0, 10),
+    '2026-08-18'
+  )
+})
+
+test('keeps prepaid coverage ahead of the normal recurring schedule', () => {
+  const moveInDate = new Date('2026-06-30T00:00:00.000Z')
+  const payment = buildPaymentAllocationPlan({
+    amountPaid: 1500000,
+    moveInDate,
+    rentAmount: 500000,
+    payments: []
+  })
+
+  assert.equal(
+    calculateNextScheduledRentDate({
+      moveInDate,
+      billingStartDate: moveInDate,
+      rentAmount: 500000,
+      payments: [{
+        amountPaid: 1500000,
+        paymentMonth: payment.paymentMonth,
+        coverageStart: payment.coverageStart,
+        coverageEnd: payment.coverageEnd,
+        monthsCovered: payment.monthsCovered,
+        allocations: payment.allocations
+      }],
+      referenceDate: new Date('2026-07-18T12:00:00.000Z')
+    }).toISOString().slice(0, 10),
+    '2026-09-30'
+  )
 })
 
 test('labels a June 30 to July 30 rent cycle as July without shifting coverage', () => {
