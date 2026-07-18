@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import FormNotice from '@/components/FormNotice'
 import { cleanMoneyInput } from '@/lib/money'
-import { Check, Clock3, Home, Search, WalletCards, X } from 'lucide-react'
+import { Check, Home, Search, WalletCards, X } from 'lucide-react'
 
 type Unit = {
   id: number
@@ -66,7 +66,6 @@ export default function TenantForm({ initialData }: TenantFormProps) {
   const [rentDueDate, setRentDueDate] = useState(initialData?.rentDueDate ?? '')
   const [monthsCovered, setMonthsCovered] = useState(1)
   const [customMonths, setCustomMonths] = useState('2')
-  const [paymentTiming, setPaymentTiming] = useState<'advance' | 'arrears'>('advance')
   const [recordFirstPayment, setRecordFirstPayment] = useState(!initialData)
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
@@ -158,7 +157,7 @@ export default function TenantForm({ initialData }: TenantFormProps) {
     if (selectedUnit && recordFirstPayment) {
       setPaymentAmount(String(selectedUnit.rentAmount ? selectedUnit.rentAmount * monthsCovered : ''))
     }
-  }, [initialData, monthsCovered, moveInDate, paymentTiming, recordFirstPayment, selectedUnit])
+  }, [initialData, monthsCovered, moveInDate, recordFirstPayment, selectedUnit])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -180,7 +179,6 @@ export default function TenantForm({ initialData }: TenantFormProps) {
       rentDueDate,
       active,
       monthsCovered,
-      paymentTiming,
       recordFirstPayment,
       paymentAmount,
       paymentMethod
@@ -399,136 +397,94 @@ export default function TenantForm({ initialData }: TenantFormProps) {
 
       {!initialData && (
         <section className="border-y border-slate-200 py-5">
-          <fieldset>
-            <legend className="field-label">Rent payment timing</legend>
-            <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
-              <button
-                type="button"
-                aria-pressed={paymentTiming === 'advance'}
-                onClick={() => setPaymentTiming('advance')}
-                className={`flex min-h-12 items-center justify-center gap-2 rounded-lg px-3 text-sm font-bold transition ${
-                  paymentTiming === 'advance'
-                    ? 'bg-white text-emerald-800 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <WalletCards className="h-4 w-4" strokeWidth={1.9} />
-                Due on move-in
-              </button>
-              <button
-                type="button"
-                aria-pressed={paymentTiming === 'arrears'}
-                onClick={() => {
-                  setPaymentTiming('arrears')
-                  setRecordFirstPayment(false)
-                }}
-                className={`flex min-h-12 items-center justify-center gap-2 rounded-lg px-3 text-sm font-bold transition ${
-                  paymentTiming === 'arrears'
-                    ? 'bg-white text-emerald-800 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Clock3 className="h-4 w-4" strokeWidth={1.9} />
-                Pay at period end
-              </button>
-            </div>
-          </fieldset>
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-semibold text-slate-800">
+            <input
+              type="checkbox"
+              checked={recordFirstPayment}
+              onChange={(event) => {
+                const checked = event.target.checked
+                setRecordFirstPayment(checked)
+                if (!checked) setMonthsCovered(1)
+              }}
+              className="h-[18px] w-[18px] rounded border-slate-300 text-green-600 focus:ring-green-500"
+            />
+            Record first payment now
+          </label>
 
-          <div className="mt-5">
-            <p className="text-sm font-semibold text-slate-950">Rent period</p>
-            <p className="mt-0.5 text-xs text-slate-500">
-              {paymentTiming === 'advance'
-                ? 'This payment covers the selected period from the move-in date.'
-                : 'Payment becomes due after the selected period is completed.'}
-            </p>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {durationOptions.map((months) => (
-              <button
-                key={months}
-                type="button"
-                onClick={() => setMonthsCovered(months)}
-                className="rounded-lg border px-3 py-2 text-sm font-semibold transition"
-                style={{
-                  borderColor: monthsCovered === months ? '#00A550' : '#e2e8f0',
-                  backgroundColor: monthsCovered === months ? '#e6f7ef' : '#fff',
-                  color: monthsCovered === months ? '#007038' : '#374151'
-                }}
-              >
-                {months} mo
-              </button>
-            ))}
-            <label className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: '#e2e8f0' }}>
-              <span className="sr-only">Custom months</span>
-              <input
-                type="number"
-                min="1"
-                value={customMonths}
-                onFocus={() => setMonthsCovered(Math.max(1, Number(customMonths) || 1))}
-                onChange={(e) => {
-                  setCustomMonths(e.target.value)
-                  setMonthsCovered(Math.max(1, Number(e.target.value) || 1))
-                }}
-                className="w-full bg-transparent text-center font-semibold outline-none"
-                placeholder="Custom"
-              />
-            </label>
-          </div>
-
-          {paymentTiming === 'advance' && (
-            <label className="mt-4 flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-semibold text-slate-800">
-              <input
-                type="checkbox"
-                checked={recordFirstPayment}
-                onChange={(event) => setRecordFirstPayment(event.target.checked)}
-                className="h-[18px] w-[18px] rounded border-slate-300 text-green-600 focus:ring-green-500"
-              />
-              Record first payment now
-            </label>
-          )}
-
-          {paymentTiming === 'advance' && recordFirstPayment ? (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          {recordFirstPayment ? (
+            <div className="mt-5 space-y-4">
               <div>
-                <label className="field-label">First payment amount</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(cleanMoneyInput(e.target.value))}
-                  required
-                  className="field-input"
-                />
+                <p className="text-sm font-semibold text-slate-950">Payment coverage</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Choose how many months this first payment covers from the move-in date.
+                </p>
               </div>
-              <div>
-                <label className="field-label">Payment method</label>
-                <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="field-input">
-                  <option value="cash">Cash</option>
-                  <option value="bank_transfer">Bank transfer</option>
-                  <option value="mobile_money">Mobile money</option>
-                  <option value="card">Card</option>
-                  <option value="other">Other</option>
-                </select>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {durationOptions.map((months) => (
+                  <button
+                    key={months}
+                    type="button"
+                    onClick={() => setMonthsCovered(months)}
+                    className="rounded-lg border px-3 py-2 text-sm font-semibold transition"
+                    style={{
+                      borderColor: monthsCovered === months ? '#00A550' : '#e2e8f0',
+                      backgroundColor: monthsCovered === months ? '#e6f7ef' : '#fff',
+                      color: monthsCovered === months ? '#007038' : '#374151'
+                    }}
+                  >
+                    {months} mo
+                  </button>
+                ))}
+                <label className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: '#e2e8f0' }}>
+                  <span className="sr-only">Custom months</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={customMonths}
+                    onFocus={() => setMonthsCovered(Math.max(1, Number(customMonths) || 1))}
+                    onChange={(e) => {
+                      setCustomMonths(e.target.value)
+                      setMonthsCovered(Math.max(1, Number(e.target.value) || 1))
+                    }}
+                    className="w-full bg-transparent text-center font-semibold outline-none"
+                    placeholder="Custom"
+                  />
+                </label>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="field-label">First payment amount</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(cleanMoneyInput(e.target.value))}
+                    required
+                    className="field-input"
+                  />
+                </div>
+                <div>
+                  <label className="field-label">Payment method</label>
+                  <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="field-input">
+                    <option value="cash">Cash</option>
+                    <option value="bank_transfer">Bank transfer</option>
+                    <option value="mobile_money">Mobile money</option>
+                    <option value="card">Card</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
               </div>
             </div>
-          ) : paymentTiming === 'advance' ? (
+          ) : (
             <div className="mt-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
               <WalletCards className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
               <p>
                 No payment will be recorded. {selectedUnit?.rentAmount
                   ? `UGX ${selectedUnit.rentAmount.toLocaleString()} will be outstanding from ${moveInDate || 'the move-in date'}. The next scheduled date is ${rentDueDate || 'calculated from the move-in date'}.`
                   : `Rent will be outstanding from the move-in date. The next scheduled date is ${rentDueDate || 'calculated from the move-in date'}.`}
-              </p>
-            </div>
-          ) : (
-            <div className="mt-4 flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-              <Clock3 className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
-              <p>
-                No payment will be recorded today. {selectedUnit?.rentAmount
-                  ? `UGX ${(selectedUnit.rentAmount * monthsCovered).toLocaleString()} will be due on ${rentDueDate || 'the calculated due date'}.`
-                  : `Payment will be due on ${rentDueDate || 'the calculated due date'}.`}
               </p>
             </div>
           )}

@@ -14,6 +14,7 @@ import {
 } from '@/drizzle/schema'
 import { db } from '@/lib/db'
 import { currentPaymentMonth, dateKey } from '@/lib/format'
+import { getRentDisplayStatus, type RentDisplayStatus } from '@/lib/rent-display'
 import {
   addMonths,
   allocatedPaymentForBillingPeriod,
@@ -80,9 +81,8 @@ export type TenantPaymentTarget = TenantWithUnit & {
   targetAmountPaid: number
   targetBalance: number
   targetScheduledBalance: number
-  targetPaymentStatus: TenantRentStatus
-  paymentTiming: TenantPaymentTerms['paymentTiming']
-  billingCycleMonths: number
+  totalOutstandingBalance: number
+  displayPaymentStatus: RentDisplayStatus
 }
 
 export type TenantOutstandingBalance = TenantWithUnit & {
@@ -583,12 +583,12 @@ export async function listTenantPaymentTargets(userId: number) {
       billingCycleMonths: row.tenant.billingCycleMonths
     })
     const outstanding = calculateOutstandingRentThroughDate(row, tenantPayments)
-    const scheduledMonths = terms.paymentTiming === 'arrears' ? terms.billingCycleMonths : 1
     const targetPeriodBalance = calculateTenantPeriodBalance(
       row,
       tenantPayments,
       parseMonth(target.month)
     )
+    const hasRecordedPayment = tenantPayments.some((payment) => payment.amountPaid > 0)
 
     return {
       ...row,
@@ -601,13 +601,16 @@ export async function listTenantPaymentTargets(userId: number) {
         ? outstanding.balance
         : outstandingRentForPeriods({
             startMonth: target.month,
-            months: scheduledMonths,
+            months: 1,
             rentAmount: row.unit.rentAmount,
             payments: tenantPayments
           }),
-      targetPaymentStatus: targetPeriodBalance?.paymentStatus ?? 'not_due',
-      paymentTiming: terms.paymentTiming,
-      billingCycleMonths: scheduledMonths
+      totalOutstandingBalance: outstanding.balance,
+      displayPaymentStatus: getRentDisplayStatus({
+        outstandingBalance: outstanding.balance,
+        amountPaid: target.amountPaid,
+        hasRecordedPayment
+      })
     } satisfies TenantPaymentTarget
   })
 }

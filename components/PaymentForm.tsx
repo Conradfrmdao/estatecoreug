@@ -24,9 +24,6 @@ type TenantOption = {
   targetAmountPaid?: number
   targetBalance?: number
   targetScheduledBalance?: number
-  targetPaymentStatus?: 'paid' | 'partial' | 'not_due' | 'unpaid' | 'upcoming' | 'due_today' | 'overdue'
-  paymentTiming?: 'advance' | 'arrears'
-  billingCycleMonths?: number
 }
 
 type PropertyOption = {
@@ -68,14 +65,6 @@ function addMonths(dateString: string, months: number) {
 }
 
 function suggestedAmountForTenant(tenant: TenantOption, months: number) {
-  if (
-    tenant.paymentTiming === 'arrears' &&
-    months === Number(tenant.billingCycleMonths ?? 1) &&
-    Number(tenant.targetScheduledBalance ?? 0) > 0
-  ) {
-    return Number(tenant.targetScheduledBalance)
-  }
-
   const targetBalance = Number(tenant.targetBalance ?? tenant.rentAmount)
   const firstMonthBalance = targetBalance > 0 ? targetBalance : tenant.rentAmount
   return firstMonthBalance + Math.max(0, months - 1) * tenant.rentAmount
@@ -85,29 +74,8 @@ function targetCoverageStartForTenant(tenant: TenantOption) {
   return (tenant.targetCoverageStart ?? tenant.targetDueDate ?? tenant.rentDueDate).slice(0, 10)
 }
 
-function scheduledMonthsForTenant(tenant: TenantOption) {
-  return tenant.paymentTiming === 'arrears'
-    ? Math.max(1, Number(tenant.billingCycleMonths ?? 1))
-    : 1
-}
-
-function paymentTargetPresentation(tenant: TenantOption) {
-  const status = tenant.targetPaymentStatus ?? 'not_due'
-
-  if (status === 'overdue') {
-    return { label: 'Overdue', amountClass: 'text-rose-700', labelClass: 'text-rose-600' }
-  }
-  if (status === 'partial' || status === 'unpaid' || status === 'due_today') {
-    return { label: 'Outstanding', amountClass: 'text-amber-700', labelClass: 'text-amber-600' }
-  }
-  if (status === 'upcoming') {
-    return { label: 'Due soon', amountClass: 'text-blue-700', labelClass: 'text-blue-600' }
-  }
-  if (status === 'paid') {
-    return { label: 'Paid', amountClass: 'text-emerald-700', labelClass: 'text-emerald-600' }
-  }
-
-  return { label: 'Next rent', amountClass: 'text-slate-700', labelClass: 'text-slate-500' }
+function paymentTargetPresentation() {
+  return { label: 'Outstanding', amountClass: 'text-amber-700', labelClass: 'text-amber-600' }
 }
 
 function PaymentFormFields({ initialData }: PaymentFormProps) {
@@ -164,7 +132,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
           const matchingTenant = rows.find((t: TenantOption) => t.id === Number(queryTenantId))
           if (matchingTenant) {
             const targetStart = targetCoverageStartForTenant(matchingTenant)
-            const scheduledMonths = scheduledMonthsForTenant(matchingTenant)
+            const scheduledMonths = 1
             setTenantId(matchingTenant.id)
             setCoverageStart(targetStart)
             setPaymentMonth(matchingTenant.targetMonth ?? targetStart.slice(0, 7))
@@ -178,7 +146,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
   }, [queryTenantId, initialData])
 
   const selectedTenant = tenants.find((tenant) => tenant.id === Number(tenantId))
-  const selectedTarget = selectedTenant ? paymentTargetPresentation(selectedTenant) : null
+  const selectedTarget = selectedTenant ? paymentTargetPresentation() : null
   const properties = Array.from(
     tenants.reduce((map, tenant) => {
       const existing = map.get(tenant.propertyId)
@@ -233,7 +201,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
     const matching = tenants.find((tenant) => tenant.id === nextTenantId)
     if (matching) {
       const targetStart = targetCoverageStartForTenant(matching)
-      const scheduledMonths = scheduledMonthsForTenant(matching)
+      const scheduledMonths = 1
       setPropertyId(matching.propertyId)
       setCoverageStart(targetStart)
       setPaymentMonth(matching.targetMonth ?? targetStart.slice(0, 7))
@@ -439,7 +407,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
 
                   <div className="grid gap-2">
                     {tenantOptions.map((tenant) => {
-                      const target = paymentTargetPresentation(tenant)
+                      const target = paymentTargetPresentation()
                       return (
                         <button
                           key={tenant.id}

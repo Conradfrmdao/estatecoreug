@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-type RentStatus = 'paid' | 'partial' | 'not_due' | 'unpaid' | 'upcoming' | 'due_today' | 'overdue'
+type RentDisplayStatus = 'paid' | 'cleared' | 'outstanding'
 
 export type TenantSearchRecord = {
   id: number
@@ -16,8 +16,6 @@ export type TenantSearchRecord = {
   active: boolean
   moveInDate: string
   rentDueDate: string
-  paymentTiming: string
-  billingCycleMonths: number
   unitId: number
   unitNumber: string
   unitStatus: string
@@ -30,21 +28,14 @@ export type TenantSearchRecord = {
   targetAmountPaid: number
   targetBalance: number
   targetScheduledBalance: number
-  targetPaymentStatus: RentStatus
+  totalOutstandingBalance: number
+  displayPaymentStatus: RentDisplayStatus
 }
 
-function statusPresentation(status: RentStatus) {
+function statusPresentation(status: RentDisplayStatus) {
   if (status === 'paid') return { label: 'Paid', className: 'bg-emerald-100 text-emerald-700' }
-  if (status === 'partial') return { label: 'Partial', className: 'bg-amber-100 text-amber-700' }
-  if (status === 'not_due') return { label: 'Not due', className: 'bg-slate-100 text-slate-600' }
-  if (status === 'upcoming') return { label: 'Due soon', className: 'bg-blue-50 text-blue-700' }
-  if (status === 'due_today') return { label: 'Due today', className: 'bg-orange-100 text-orange-700' }
-  if (status === 'overdue') return { label: 'Overdue', className: 'bg-rose-100 text-rose-700' }
+  if (status === 'cleared') return { label: 'Cleared', className: 'bg-slate-100 text-slate-600' }
   return { label: 'Outstanding', className: 'bg-red-100 text-red-700' }
-}
-
-function isDue(status: RentStatus) {
-  return ['partial', 'unpaid', 'due_today', 'overdue'].includes(status)
 }
 
 export default function TenantSearchResults({ tenants }: { tenants: TenantSearchRecord[] }) {
@@ -138,10 +129,8 @@ export default function TenantSearchResults({ tenants }: { tenants: TenantSearch
                 <dd className="mt-1 text-base font-black text-slate-950">{currency(selected.rentAmount)}</dd>
               </div>
               <div>
-                <dt className="text-xs font-black uppercase text-slate-400">Payment arrangement</dt>
-                <dd className="mt-1 text-sm font-bold capitalize text-slate-800">
-                  {selected.paymentTiming} - every {selected.billingCycleMonths} month{selected.billingCycleMonths === 1 ? '' : 's'}
-                </dd>
+                <dt className="text-xs font-black uppercase text-slate-400">Billing frequency</dt>
+                <dd className="mt-1 text-sm font-bold text-slate-800">Monthly</dd>
               </div>
             </div>
 
@@ -160,17 +149,17 @@ export default function TenantSearchResults({ tenants }: { tenants: TenantSearch
               <div>
                 <dt className="flex items-center gap-2 text-xs font-black uppercase text-slate-400"><WalletCards className="h-4 w-4" /> Rent status</dt>
                 <dd className="mt-2">
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-black ${statusPresentation(selected.targetPaymentStatus).className}`}>
-                    {statusPresentation(selected.targetPaymentStatus).label}
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-black ${statusPresentation(selected.displayPaymentStatus).className}`}>
+                    {statusPresentation(selected.displayPaymentStatus).label}
                   </span>
                 </dd>
               </div>
               <div>
                 <dt className="text-xs font-black uppercase text-slate-400">
-                  {isDue(selected.targetPaymentStatus) ? 'Outstanding balance' : 'Next scheduled rent'}
+                  Outstanding balance
                 </dt>
-                <dd className={`mt-1 text-base font-black ${isDue(selected.targetPaymentStatus) ? 'text-amber-700' : 'text-slate-800'}`}>
-                  {currency(selected.targetScheduledBalance || selected.targetBalance)}
+                <dd className={`mt-1 text-base font-black ${selected.totalOutstandingBalance > 0 ? 'text-amber-700' : 'text-slate-800'}`}>
+                  {selected.totalOutstandingBalance > 0 ? currency(selected.totalOutstandingBalance) : 'Cleared'}
                 </dd>
                 <dd className="text-xs text-slate-500">{monthLabel(selected.targetMonth)} - {currency(selected.targetAmountPaid)} already paid</dd>
               </div>
@@ -185,7 +174,7 @@ export default function TenantSearchResults({ tenants }: { tenants: TenantSearch
           <Link href={`/tenants/${selected.id}/edit`} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
             Edit tenant
           </Link>
-          {selected.active && isDue(selected.targetPaymentStatus) && (
+          {selected.active && selected.displayPaymentStatus === 'outstanding' && (
             <Link href={`/payments/new?tenantId=${selected.id}`} className="inline-flex min-h-11 items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-700">
               Record payment
             </Link>
@@ -218,7 +207,7 @@ export default function TenantSearchResults({ tenants }: { tenants: TenantSearch
             </thead>
             <tbody>
               {tenants.map((tenant) => {
-                const status = statusPresentation(tenant.targetPaymentStatus)
+                const status = statusPresentation(tenant.displayPaymentStatus)
                 return (
                   <tr key={tenant.id}>
                     <td data-label="Tenant">
@@ -238,7 +227,9 @@ export default function TenantSearchResults({ tenants }: { tenants: TenantSearch
                     <td data-label="Monthly Rent" className="font-bold text-slate-900">{currency(tenant.rentAmount)}</td>
                     <td data-label="Next Payment">
                       <span className="block text-sm font-semibold text-slate-800">{formatDate(tenant.rentDueDate)}</span>
-                      <span className="block text-xs text-slate-500">{currency(tenant.targetScheduledBalance || tenant.targetBalance)}</span>
+                      <span className="block text-xs text-slate-500">
+                        {tenant.totalOutstandingBalance > 0 ? currency(tenant.totalOutstandingBalance) : 'Cleared'}
+                      </span>
                     </td>
                     <td data-label="Status"><span className={`rounded-full px-2 py-1 text-xs font-black ${status.className}`}>{status.label}</span></td>
                     <td data-label="Details">

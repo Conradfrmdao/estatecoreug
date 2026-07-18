@@ -60,10 +60,8 @@ export function planTenantCreation(body: Record<string, unknown>, now = new Date
   const monthsCovered = parsePositiveInteger(body.monthsCovered, 1)
   const active = parseBoolean(body.active, true)
   const requestedFirstPayment = parseBoolean(body.recordFirstPayment, false)
-  const paymentTiming: PaymentTiming = body.paymentTiming === 'advance' || body.paymentTiming === 'arrears'
-    ? body.paymentTiming
-    : 'advance'
-  const recordFirstPayment = paymentTiming === 'advance' && requestedFirstPayment
+  const paymentTiming: PaymentTiming = 'advance'
+  const recordFirstPayment = requestedFirstPayment
   const paymentAmount = recordFirstPayment
     ? parseMoneyAmount(body.paymentAmount, 'First payment amount')
     : 0

@@ -109,7 +109,8 @@ export default async function TenantsPage({
             targetAmountPaid,
             targetBalance,
             targetScheduledBalance,
-            targetPaymentStatus
+            totalOutstandingBalance,
+            displayPaymentStatus
           }) => ({
             id: tenant.id,
             fullName: tenant.fullName,
@@ -118,8 +119,6 @@ export default async function TenantsPage({
             active: tenant.active,
             moveInDate: tenant.moveInDate.toISOString(),
             rentDueDate: tenant.rentDueDate.toISOString(),
-            paymentTiming: tenant.paymentTiming,
-            billingCycleMonths: tenant.billingCycleMonths,
             unitId: unit.id,
             unitNumber: unit.unitNumber,
             unitStatus: unit.status,
@@ -132,7 +131,8 @@ export default async function TenantsPage({
             targetAmountPaid,
             targetBalance,
             targetScheduledBalance,
-            targetPaymentStatus
+            totalOutstandingBalance,
+            displayPaymentStatus
           }))}
         />
       )}

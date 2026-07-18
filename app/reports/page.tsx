@@ -7,14 +7,10 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-function rentStatusBadge(status: string) {
-  if (status === 'paid') return { label: 'PAID', className: 'badge-green' }
-  if (status === 'partial') return { label: 'PARTIAL', className: 'bg-amber-100 text-amber-700' }
-  if (status === 'not_due') return { label: 'NOT DUE', className: 'bg-slate-100 text-slate-600' }
-  if (status === 'upcoming') return { label: 'DUE SOON', className: 'bg-blue-50 text-blue-700' }
-  if (status === 'due_today') return { label: 'DUE TODAY', className: 'bg-orange-100 text-orange-700' }
-  if (status === 'overdue') return { label: 'OVERDUE', className: 'bg-rose-100 text-rose-700' }
-  return { label: 'UNPAID', className: 'bg-red-100 text-red-700' }
+function rentStatusBadge(amountPaid: number, balance: number) {
+  if (balance > 0) return { label: 'OUTSTANDING', className: 'bg-red-100 text-red-700' }
+  if (amountPaid > 0) return { label: 'PAID', className: 'badge-green' }
+  return { label: 'CLEARED', className: 'bg-slate-100 text-slate-600' }
 }
 
 export default async function ReportsPage({
@@ -27,9 +23,7 @@ export default async function ReportsPage({
   const data = await getDashboardData(user.id, month)
   const outstandingOnly = searchParams?.status === 'outstanding'
   const visibleTenantBalances = outstandingOnly
-    ? data.tenantBalances.filter(({ balance, paymentStatus }) =>
-        balance > 0 && !['not_due', 'upcoming'].includes(paymentStatus)
-      )
+    ? data.tenantBalances.filter(({ balance }) => balance > 0)
     : data.tenantBalances
 
   // Calculations for Property Performance Summary
@@ -212,7 +206,7 @@ export default async function ReportsPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleTenantBalances.map(({ tenant, unit, property, amountPaid, balance, paymentStatus }) => (
+                  {visibleTenantBalances.map(({ tenant, unit, property, amountPaid, balance }) => (
                     <tr key={tenant.id}>
                       <td data-label="Tenant" className="font-semibold text-slate-800 text-sm">
                         {tenant.fullName}
@@ -228,11 +222,11 @@ export default async function ReportsPage({
                         {currency(amountPaid)}
                       </td>
                       <td data-label="Balance" className="text-xs font-semibold" style={{ color: balance > 0 ? '#b45309' : '#64748b' }}>
-                        {balance > 0 ? currency(balance) : '—'}
+                        {balance > 0 ? currency(balance) : 'Cleared'}
                       </td>
                       <td data-label="Status">
-                        <span className={`badge ${rentStatusBadge(paymentStatus).className}`}>
-                          {rentStatusBadge(paymentStatus).label}
+                        <span className={`badge ${rentStatusBadge(amountPaid, balance).className}`}>
+                          {rentStatusBadge(amountPaid, balance).label}
                         </span>
                       </td>
                     </tr>

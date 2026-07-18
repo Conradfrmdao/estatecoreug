@@ -109,7 +109,7 @@ test('marks move-in rent outstanding when first payment is not recorded', () => 
   assert.equal(plan.rentDueDate.toISOString().slice(0, 10), '2026-08-17')
 })
 
-test('plans explicit end-of-period rent without creating a payment', () => {
+test('ignores legacy end-of-period input and uses the standard payment flow', () => {
   const plan = planTenantCreation({
     unitId: 7,
     fullName: 'Deferred Tenant',
@@ -121,8 +121,8 @@ test('plans explicit end-of-period rent without creating a payment', () => {
     paymentAmount: '900000'
   })
 
-  assert.equal(plan.paymentTiming, 'arrears')
-  assert.equal(plan.recordFirstPayment, false)
-  assert.equal(plan.paymentAmount, 0)
+  assert.equal(plan.paymentTiming, 'advance')
+  assert.equal(plan.recordFirstPayment, true)
+  assert.equal(plan.paymentAmount, 900000)
   assert.equal(plan.rentDueDate.toISOString().slice(0, 10), '2026-10-01')
 })

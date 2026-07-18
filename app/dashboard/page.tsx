@@ -19,7 +19,7 @@ import {
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getDashboardData } from '@/lib/data'
 import { currency, currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
-import { isOutstandingRentStatus, paymentCoveragePeriods } from '@/lib/rent-cycle'
+import { paymentCoveragePeriods } from '@/lib/rent-cycle'
 
 export const dynamic = 'force-dynamic'
 
@@ -164,14 +164,10 @@ function PortfolioMetric({
   )
 }
 
-function statusBadge(status: string, daysUntilDue: number) {
-  if (status === 'paid') return 'Paid'
-  if (status === 'not_due') return 'Not due yet'
-  if (status === 'due_today') return 'Due today'
-  if (status === 'overdue') return `${Math.abs(daysUntilDue)} days late`
-  if (status === 'upcoming') return `${daysUntilDue} days left`
-  if (status === 'partial') return 'Partial'
-  return 'Unpaid'
+function statusBadge(amountPaid: number, balance: number) {
+  if (balance > 0) return 'Outstanding'
+  if (amountPaid > 0) return 'Paid'
+  return 'Cleared'
 }
 
 export default async function DashboardPage({
@@ -185,15 +181,11 @@ export default async function DashboardPage({
   const data = await getDashboardData(user.id, month)
 
   const activeCount = data.tenantBalances.length
-  const currentCount = data.tenantBalances.filter((row) =>
-    ['paid', 'not_due', 'upcoming'].includes(row.paymentStatus)
-  ).length
-  const partialCount = data.tenantBalances.filter((row) => row.paymentStatus === 'partial').length
-  const unpaidCount = data.tenantBalances.filter((row) =>
-    isOutstandingRentStatus(row.paymentStatus) && row.paymentStatus !== 'partial'
-  ).length
-  const paidDeg = activeCount ? (currentCount / activeCount) * 360 : 0
-  const partialDeg = activeCount ? (partialCount / activeCount) * 360 : 0
+  const paidCount = data.tenantBalances.filter((row) => row.balance <= 0 && row.amountPaid > 0).length
+  const clearedCount = data.tenantBalances.filter((row) => row.balance <= 0 && row.amountPaid <= 0).length
+  const outstandingCount = data.tenantBalances.filter((row) => row.balance > 0).length
+  const paidDeg = activeCount ? (paidCount / activeCount) * 360 : 0
+  const clearedDeg = activeCount ? (clearedCount / activeCount) * 360 : 0
   const selectedMonthDays = monthDays(month)
   const today = new Date()
   const todayKey = dateKey(today)
@@ -216,7 +208,7 @@ export default async function DashboardPage({
   }
 
   const upcomingPayments = data.tenantBalances
-    .filter((row) => row.paymentStatus !== 'paid')
+    .filter((row) => row.balance > 0)
     .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
     .slice(0, 3)
 
@@ -341,7 +333,7 @@ export default async function DashboardPage({
               className="relative flex h-[5.5rem] w-[5.5rem] shrink-0 items-center justify-center rounded-full"
               style={{
                 background: activeCount
-                  ? `conic-gradient(#007a3d 0deg ${paidDeg}deg, #f59e0b ${paidDeg}deg ${paidDeg + partialDeg}deg, #ef4444 ${paidDeg + partialDeg}deg 360deg)`
+                  ? `conic-gradient(#007a3d 0deg ${paidDeg}deg, #94a3b8 ${paidDeg}deg ${paidDeg + clearedDeg}deg, #ef4444 ${paidDeg + clearedDeg}deg 360deg)`
                   : '#e5e7eb'
               }}
             >
@@ -352,16 +344,16 @@ export default async function DashboardPage({
             </div>
             <div className="flex-1 space-y-1.5 text-xs">
               <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-emerald-700" />Current</span>
-                <span className="font-bold text-slate-950">{currentCount}</span>
+                <span className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-emerald-700" />Paid</span>
+                <span className="font-bold text-slate-950">{paidCount}</span>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-amber-500" />Partial</span>
-                <span className="font-bold text-slate-950">{partialCount}</span>
+                <span className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-slate-400" />Cleared</span>
+                <span className="font-bold text-slate-950">{clearedCount}</span>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-red-500" />Outstanding</span>
-                <span className="font-bold text-slate-950">{unpaidCount}</span>
+                <span className="font-bold text-slate-950">{outstandingCount}</span>
               </div>
             </div>
           </div>
@@ -369,7 +361,7 @@ export default async function DashboardPage({
 
         <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-black text-slate-950">Upcoming Payments</h2>
+            <h2 className="text-sm font-black text-slate-950">Outstanding Rent</h2>
             <Link href={`/tenants?month=${month}&status=unpaid`} className="text-xs font-bold text-emerald-700">View all</Link>
           </div>
           <div className="space-y-2">
@@ -382,7 +374,7 @@ export default async function DashboardPage({
                 <div className="max-w-[8rem] shrink-0 text-right">
                   <p className="truncate font-bold text-slate-950">{currency(row.balance)}</p>
                   <span className="rounded-md bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-600">
-                    {statusBadge(row.paymentStatus, row.daysUntilDue)}
+                    {statusBadge(row.amountPaid, row.balance)}
                   </span>
                 </div>
               </div>
