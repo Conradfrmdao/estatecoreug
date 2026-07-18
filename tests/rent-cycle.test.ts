@@ -374,6 +374,126 @@ test('keeps a future schedule date while move-in rent remains outstanding', () =
   assert.equal(tenant.rentDueDate.toISOString().slice(0, 10), '2026-07-30')
 })
 
+test('marks the full started multi-month advance period outstanding', () => {
+  const moveInDate = new Date('2026-04-30T00:00:00.000Z')
+  const tenant = {
+    ...baseTenant,
+    moveInDate,
+    billingStartDate: moveInDate,
+    rentDueDate: new Date('2026-07-30T00:00:00.000Z'),
+    paymentTiming: 'advance',
+    billingCycleMonths: 3
+  }
+  const outstanding = calculateOutstandingRentThroughDate(
+    { tenant, unit: { ...baseUnit, rentAmount: 300000 } },
+    [],
+    new Date('2026-07-18T12:00:00.000Z')
+  )
+
+  assert.equal(outstanding.periods, 3)
+  assert.equal(outstanding.balance, 900000)
+  assert.equal(
+    calculateNextScheduledRentDate({
+      moveInDate,
+      billingStartDate: moveInDate,
+      billingCycleMonths: 3,
+      rentAmount: 300000,
+      payments: [],
+      referenceDate: new Date('2026-07-18T12:00:00.000Z')
+    }).toISOString().slice(0, 10),
+    '2026-07-30'
+  )
+})
+
+test('subtracts a partial payment from a multi-month outstanding period', () => {
+  const moveInDate = new Date('2026-04-30T00:00:00.000Z')
+  const paymentPlan = buildPaymentAllocationPlan({
+    amountPaid: 200000,
+    moveInDate,
+    rentAmount: 500000,
+    payments: []
+  })
+  const payment = {
+    amountPaid: 200000,
+    paymentMonth: paymentPlan.paymentMonth,
+    coverageStart: paymentPlan.coverageStart,
+    coverageEnd: paymentPlan.coverageEnd,
+    monthsCovered: paymentPlan.monthsCovered,
+    allocations: paymentPlan.allocations
+  }
+  const outstanding = calculateOutstandingRentThroughDate(
+    {
+      tenant: {
+        ...baseTenant,
+        moveInDate,
+        billingStartDate: moveInDate,
+        rentDueDate: new Date('2026-07-30T00:00:00.000Z'),
+        paymentTiming: 'advance',
+        billingCycleMonths: 3
+      },
+      unit: { ...baseUnit, rentAmount: 500000 }
+    },
+    [payment],
+    new Date('2026-07-18T12:00:00.000Z')
+  )
+
+  assert.equal(outstanding.periods, 3)
+  assert.equal(outstanding.balance, 1300000)
+})
+
+test('clears a paid multi-month period and starts the next full cycle on its boundary', () => {
+  const moveInDate = new Date('2026-04-30T00:00:00.000Z')
+  const paymentPlan = buildPaymentAllocationPlan({
+    amountPaid: 900000,
+    moveInDate,
+    rentAmount: 300000,
+    payments: []
+  })
+  const payment = {
+    amountPaid: 900000,
+    paymentMonth: paymentPlan.paymentMonth,
+    coverageStart: paymentPlan.coverageStart,
+    coverageEnd: paymentPlan.coverageEnd,
+    monthsCovered: paymentPlan.monthsCovered,
+    allocations: paymentPlan.allocations
+  }
+  const tenant = {
+    ...baseTenant,
+    moveInDate,
+    billingStartDate: moveInDate,
+    rentDueDate: new Date('2026-07-30T00:00:00.000Z'),
+    paymentTiming: 'advance',
+    billingCycleMonths: 3
+  }
+
+  const beforeCycleBoundary = calculateOutstandingRentThroughDate(
+    { tenant, unit: { ...baseUnit, rentAmount: 300000 } },
+    [payment],
+    new Date('2026-07-18T12:00:00.000Z')
+  )
+  const afterCycleBoundary = calculateOutstandingRentThroughDate(
+    { tenant, unit: { ...baseUnit, rentAmount: 300000 } },
+    [payment],
+    new Date('2026-07-31T12:00:00.000Z')
+  )
+
+  assert.equal(beforeCycleBoundary.periods, 0)
+  assert.equal(beforeCycleBoundary.balance, 0)
+  assert.equal(afterCycleBoundary.periods, 3)
+  assert.equal(afterCycleBoundary.balance, 900000)
+  assert.equal(
+    calculateNextScheduledRentDate({
+      moveInDate,
+      billingStartDate: moveInDate,
+      billingCycleMonths: 3,
+      rentAmount: 300000,
+      payments: [payment],
+      referenceDate: new Date('2026-07-31T12:00:00.000Z')
+    }).toISOString().slice(0, 10),
+    '2026-10-30'
+  )
+})
+
 test('separates historical outstanding rent from the next scheduled payment date', () => {
   assert.equal(
     calculateNextScheduledRentDate({

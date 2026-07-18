@@ -388,7 +388,7 @@ export default function TenantForm({ initialData }: TenantFormProps) {
         </div>
 
         <div>
-          <label className="field-label">Next rent due date</label>
+          <label className="field-label">Period end / next scheduled date</label>
           <div className="field-input bg-slate-50 text-slate-700">
             {rentDueDate || 'Choose move-in date and duration'}
           </div>
@@ -397,85 +397,79 @@ export default function TenantForm({ initialData }: TenantFormProps) {
 
       {!initialData && (
         <section className="border-y border-slate-200 py-5">
-          <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-semibold text-slate-800">
+          <div>
+            <p className="text-sm font-semibold text-slate-950">Rent period</p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Choose how many months this tenant is paying for or will owe from the move-in date.
+            </p>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {durationOptions.map((months) => (
+              <button
+                key={months}
+                type="button"
+                onClick={() => setMonthsCovered(months)}
+                className="rounded-lg border px-3 py-2 text-sm font-semibold transition"
+                style={{
+                  borderColor: monthsCovered === months ? '#00A550' : '#e2e8f0',
+                  backgroundColor: monthsCovered === months ? '#e6f7ef' : '#fff',
+                  color: monthsCovered === months ? '#007038' : '#374151'
+                }}
+              >
+                {months} mo
+              </button>
+            ))}
+            <label className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: '#e2e8f0' }}>
+              <span className="sr-only">Custom months</span>
+              <input
+                type="number"
+                min="1"
+                value={customMonths}
+                onFocus={() => setMonthsCovered(Math.max(1, Number(customMonths) || 1))}
+                onChange={(e) => {
+                  setCustomMonths(e.target.value)
+                  setMonthsCovered(Math.max(1, Number(e.target.value) || 1))
+                }}
+                className="w-full bg-transparent text-center font-semibold outline-none"
+                placeholder="Custom"
+              />
+            </label>
+          </div>
+
+          <label className="mt-4 flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-semibold text-slate-800">
             <input
               type="checkbox"
               checked={recordFirstPayment}
-              onChange={(event) => {
-                const checked = event.target.checked
-                setRecordFirstPayment(checked)
-                if (!checked) setMonthsCovered(1)
-              }}
+              onChange={(event) => setRecordFirstPayment(event.target.checked)}
               className="h-[18px] w-[18px] rounded border-slate-300 text-green-600 focus:ring-green-500"
             />
             Record first payment now
           </label>
 
           {recordFirstPayment ? (
-            <div className="mt-5 space-y-4">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
-                <p className="text-sm font-semibold text-slate-950">Payment coverage</p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Choose how many months this first payment covers from the move-in date.
-                </p>
+                <label className="field-label">First payment amount</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(cleanMoneyInput(e.target.value))}
+                  required
+                  className="field-input"
+                />
               </div>
-
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                {durationOptions.map((months) => (
-                  <button
-                    key={months}
-                    type="button"
-                    onClick={() => setMonthsCovered(months)}
-                    className="rounded-lg border px-3 py-2 text-sm font-semibold transition"
-                    style={{
-                      borderColor: monthsCovered === months ? '#00A550' : '#e2e8f0',
-                      backgroundColor: monthsCovered === months ? '#e6f7ef' : '#fff',
-                      color: monthsCovered === months ? '#007038' : '#374151'
-                    }}
-                  >
-                    {months} mo
-                  </button>
-                ))}
-                <label className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: '#e2e8f0' }}>
-                  <span className="sr-only">Custom months</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={customMonths}
-                    onFocus={() => setMonthsCovered(Math.max(1, Number(customMonths) || 1))}
-                    onChange={(e) => {
-                      setCustomMonths(e.target.value)
-                      setMonthsCovered(Math.max(1, Number(e.target.value) || 1))
-                    }}
-                    className="w-full bg-transparent text-center font-semibold outline-none"
-                    placeholder="Custom"
-                  />
-                </label>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="field-label">First payment amount</label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(cleanMoneyInput(e.target.value))}
-                    required
-                    className="field-input"
-                  />
-                </div>
-                <div>
-                  <label className="field-label">Payment method</label>
-                  <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="field-input">
-                    <option value="cash">Cash</option>
-                    <option value="bank_transfer">Bank transfer</option>
-                    <option value="mobile_money">Mobile money</option>
-                    <option value="card">Card</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
+              <div>
+                <label className="field-label">Payment method</label>
+                <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="field-input">
+                  <option value="cash">Cash</option>
+                  <option value="bank_transfer">Bank transfer</option>
+                  <option value="mobile_money">Mobile money</option>
+                  <option value="card">Card</option>
+                  <option value="other">Other</option>
+                </select>
               </div>
             </div>
           ) : (
@@ -483,8 +477,8 @@ export default function TenantForm({ initialData }: TenantFormProps) {
               <WalletCards className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
               <p>
                 No payment will be recorded. {selectedUnit?.rentAmount
-                  ? `UGX ${selectedUnit.rentAmount.toLocaleString()} will be outstanding from ${moveInDate || 'the move-in date'}. The next scheduled date is ${rentDueDate || 'calculated from the move-in date'}.`
-                  : `Rent will be outstanding from the move-in date. The next scheduled date is ${rentDueDate || 'calculated from the move-in date'}.`}
+                  ? `UGX ${(selectedUnit.rentAmount * monthsCovered).toLocaleString()} will be outstanding for ${monthsCovered} month${monthsCovered === 1 ? '' : 's'}, from ${moveInDate || 'the move-in date'} to ${rentDueDate || 'the calculated period end'}.`
+                  : `Rent for ${monthsCovered} month${monthsCovered === 1 ? '' : 's'} will be outstanding from the move-in date to ${rentDueDate || 'the calculated period end'}.`}
               </p>
             </div>
           )}

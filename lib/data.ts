@@ -84,6 +84,7 @@ export type TenantPaymentTarget = TenantWithUnit & {
   targetBalance: number
   targetScheduledBalance: number
   totalOutstandingBalance: number
+  totalOutstandingPeriods: number
   displayPaymentStatus: RentDisplayStatus
 }
 
@@ -601,6 +602,7 @@ export async function listTenantPaymentTargets(userId: number) {
       nextPaymentDate: calculateNextScheduledRentDate({
         moveInDate: row.tenant.moveInDate,
         billingStartDate: row.tenant.billingStartDate,
+        billingCycleMonths: terms.billingCycleMonths,
         rentAmount: row.unit.rentAmount,
         payments: tenantPayments,
         referenceDate
@@ -611,11 +613,12 @@ export async function listTenantPaymentTargets(userId: number) {
         ? outstanding.balance
         : outstandingRentForPeriods({
             startMonth: target.month,
-            months: 1,
+            months: terms.billingCycleMonths,
             rentAmount: row.unit.rentAmount,
             payments: tenantPayments
           }),
       totalOutstandingBalance: outstanding.balance,
+      totalOutstandingPeriods: outstanding.periods,
       displayPaymentStatus: getRentDisplayStatus({
         outstandingBalance: outstanding.balance,
         amountPaid: target.amountPaid,
@@ -663,6 +666,23 @@ export async function buildRentPaymentPlanForTenant(params: {
     payments: paymentRows,
     preferredStartDate: params.preferredStartDate ?? tenantRow.tenant.rentDueDate
   })
+  const nextScheduledRentDate = calculateNextScheduledRentDate({
+    moveInDate: tenantRow.tenant.moveInDate,
+    billingStartDate: tenantRow.tenant.billingStartDate,
+    billingCycleMonths: terms.billingCycleMonths,
+    rentAmount: tenantRow.unit.rentAmount,
+    payments: [
+      ...paymentRows,
+      {
+        amountPaid: params.amountPaid,
+        paymentMonth: plan.paymentMonth,
+        coverageStart: plan.coverageStart,
+        coverageEnd: plan.coverageEnd,
+        monthsCovered: plan.monthsCovered,
+        allocations: plan.allocations
+      }
+    ]
+  })
 
   return {
     ...plan,
@@ -673,7 +693,7 @@ export async function buildRentPaymentPlanForTenant(params: {
           terms,
           tenantRow.tenant.billingStartDate
         )
-      : plan.nextRentDueDate,
+      : nextScheduledRentDate,
     paymentTerms: terms,
     tenantRow,
     unitId: tenantRow.unit.id,
@@ -737,7 +757,13 @@ export async function recalculateTenantRentDueDate(
         paymentTerms,
         tenantRow.tenant.billingStartDate
       )
-    : nextCoverageStart
+    : calculateNextScheduledRentDate({
+        moveInDate: tenantRow.tenant.moveInDate,
+        billingStartDate: tenantRow.tenant.billingStartDate,
+        billingCycleMonths: paymentTerms.billingCycleMonths,
+        rentAmount: tenantRow.unit.rentAmount,
+        payments: paymentRows
+      })
 
   await db
     .update(tenants)

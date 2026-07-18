@@ -21,9 +21,12 @@ type TenantOption = {
   targetMonth?: string
   targetDueDate?: string
   targetCoverageStart?: string
+  nextPaymentDate?: string
   targetAmountPaid?: number
   targetBalance?: number
   targetScheduledBalance?: number
+  totalOutstandingBalance?: number
+  totalOutstandingPeriods?: number
 }
 
 type PropertyOption = {
@@ -65,9 +68,17 @@ function addMonths(dateString: string, months: number) {
 }
 
 function suggestedAmountForTenant(tenant: TenantOption, months: number) {
+  const outstandingPeriods = Math.max(1, Number(tenant.totalOutstandingPeriods ?? 1))
+  const totalOutstanding = Number(tenant.totalOutstandingBalance ?? 0)
+  if (totalOutstanding > 0 && months === outstandingPeriods) return totalOutstanding
+
   const targetBalance = Number(tenant.targetBalance ?? tenant.rentAmount)
   const firstMonthBalance = targetBalance > 0 ? targetBalance : tenant.rentAmount
   return firstMonthBalance + Math.max(0, months - 1) * tenant.rentAmount
+}
+
+function scheduledMonthsForTenant(tenant: TenantOption) {
+  return Math.max(1, Number(tenant.totalOutstandingPeriods ?? 1))
 }
 
 function targetCoverageStartForTenant(tenant: TenantOption) {
@@ -132,7 +143,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
           const matchingTenant = rows.find((t: TenantOption) => t.id === Number(queryTenantId))
           if (matchingTenant) {
             const targetStart = targetCoverageStartForTenant(matchingTenant)
-            const scheduledMonths = 1
+            const scheduledMonths = scheduledMonthsForTenant(matchingTenant)
             setTenantId(matchingTenant.id)
             setCoverageStart(targetStart)
             setPaymentMonth(matchingTenant.targetMonth ?? targetStart.slice(0, 7))
@@ -201,7 +212,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
     const matching = tenants.find((tenant) => tenant.id === nextTenantId)
     if (matching) {
       const targetStart = targetCoverageStartForTenant(matching)
-      const scheduledMonths = 1
+      const scheduledMonths = scheduledMonthsForTenant(matching)
       setPropertyId(matching.propertyId)
       setCoverageStart(targetStart)
       setPaymentMonth(matching.targetMonth ?? targetStart.slice(0, 7))
@@ -429,10 +440,10 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
                               {target.label}
                             </span>
                             <span className={`block text-sm font-black ${target.amountClass}`}>
-                              {currency(Number(tenant.targetBalance ?? tenant.rentAmount))}
+                              {currency(Number(tenant.totalOutstandingBalance ?? tenant.targetBalance ?? tenant.rentAmount))}
                             </span>
                             <span className="block text-[10px] font-semibold text-slate-400">
-                              {formatDate(tenant.targetDueDate ?? tenant.rentDueDate)}
+                              {formatDate(tenant.nextPaymentDate ?? tenant.targetDueDate ?? tenant.rentDueDate)}
                             </span>
                             {tenant.id === tenantId && <Check className="ml-auto mt-1 h-4 w-4 text-emerald-700" strokeWidth={2} />}
                           </span>
@@ -466,7 +477,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
               {currency(Number(selectedTenant.targetScheduledBalance ?? selectedTenant.targetBalance ?? selectedTenant.rentAmount))}
             </p>
             <p className="mt-0.5 text-xs text-slate-500">
-              Due {formatDate(selectedTenant.targetDueDate ?? selectedTenant.rentDueDate)}
+              Next scheduled {formatDate(selectedTenant.nextPaymentDate ?? selectedTenant.targetDueDate ?? selectedTenant.rentDueDate)}
             </p>
           </div>
           <div>

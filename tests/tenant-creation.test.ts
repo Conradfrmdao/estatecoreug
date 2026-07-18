@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  buildFirstPaymentPlan,
   buildFirstPaymentValues,
   planTenantCreation
 } from '../lib/tenant-creation.ts'
@@ -107,6 +108,38 @@ test('marks move-in rent outstanding when first payment is not recorded', () => 
   assert.equal(plan.recordFirstPayment, false)
   assert.equal(plan.paymentAmount, 0)
   assert.equal(plan.rentDueDate.toISOString().slice(0, 10), '2026-08-17')
+})
+
+test('preserves a multi-month rent period when the first payment is not recorded', () => {
+  const plan = planTenantCreation({
+    unitId: 4,
+    fullName: 'Three Month Tenant',
+    phone: '+256700000004',
+    moveInDate: '2026-04-30',
+    monthsCovered: 3,
+    recordFirstPayment: false
+  })
+
+  assert.equal(plan.monthsCovered, 3)
+  assert.equal(plan.recordFirstPayment, false)
+  assert.equal(plan.paymentAmount, 0)
+  assert.equal(plan.rentDueDate.toISOString().slice(0, 10), '2026-07-30')
+})
+
+test('keeps the selected period end after a partial first payment', () => {
+  const plan = planTenantCreation({
+    unitId: 5,
+    fullName: 'Partial Three Month Tenant',
+    phone: '+256700000005',
+    moveInDate: '2026-04-30',
+    monthsCovered: 3,
+    recordFirstPayment: true,
+    paymentAmount: 200000
+  })
+  const firstPayment = buildFirstPaymentPlan(plan, 55, 500000)
+
+  assert.equal(firstPayment.paymentValues.balanceAfterPayment, 300000)
+  assert.equal(firstPayment.nextRentDueDate.toISOString().slice(0, 10), '2026-07-30')
 })
 
 test('ignores legacy end-of-period input and uses the standard payment flow', () => {

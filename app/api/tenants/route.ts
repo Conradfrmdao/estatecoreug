@@ -71,6 +71,7 @@ export async function GET(req: Request) {
       targetBalance: row.targetBalance,
       targetScheduledBalance: row.targetScheduledBalance,
       totalOutstandingBalance: row.totalOutstandingBalance,
+      totalOutstandingPeriods: row.totalOutstandingPeriods,
       displayPaymentStatus: row.displayPaymentStatus,
     }))
   )

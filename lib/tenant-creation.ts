@@ -99,7 +99,9 @@ export function buildFirstPaymentPlan(plan: TenantCreationPlan, tenantId: number
   })
 
   return {
-    nextRentDueDate: allocation.nextRentDueDate,
+    nextRentDueDate: allocation.nextRentDueDate > plan.rentDueDate
+      ? allocation.nextRentDueDate
+      : plan.rentDueDate,
     paymentValues: {
       tenantId,
       unitId: plan.unitId,
