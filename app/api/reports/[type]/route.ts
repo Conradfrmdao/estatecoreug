@@ -3,6 +3,7 @@ import { getDashboardData, getPropertySummaryData, listPaymentsForUser, listProp
 import { currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
 import { normalizePaymentFilters, paymentMatchesSearch, paymentReceivedInPeriod } from '@/lib/payment-filters'
 import { ReportDocument } from '@/lib/pdf/reports'
+import { scopeReportRows } from '@/lib/report-scope'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { NextResponse } from 'next/server'
 import React from 'react'
@@ -25,6 +26,22 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
     const { searchParams } = new URL(req.url)
     const month = searchParams.get('month') ?? currentPaymentMonth()
     const { type } = await params
+    const propertyIdParam = searchParams.get('propertyId')
+    const requestedPropertyId = propertyIdParam === null ? null : Number(propertyIdParam)
+
+    if (propertyIdParam !== null && (!Number.isInteger(requestedPropertyId) || Number(requestedPropertyId) < 1)) {
+      return NextResponse.json({ error: 'A valid property id is required.' }, { status: 400 })
+    }
+
+    const scopedProperty = requestedPropertyId
+      ? (await listPropertiesForUser(user.id)).find((property) => property.id === requestedPropertyId) ?? null
+      : null
+
+    if (requestedPropertyId && !scopedProperty) {
+      return NextResponse.json({ error: 'Property not found.' }, { status: 404 })
+    }
+
+    const scopeName = scopedProperty?.name ?? 'All Properties'
     let dashboardData: Awaited<ReturnType<typeof getDashboardData>> | null = null
     let reportProps: any = null
     const loadDashboardData = async () => {
@@ -34,7 +51,22 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
 
     if (type === 'monthly-rent') {
       const dashboardData = await loadDashboardData()
-      const payments = dashboardData.monthlyPayments
+      const monthlyPayments = scopeReportRows(
+        dashboardData.monthlyPayments,
+        requestedPropertyId,
+        ({ unit }) => unit.propertyId
+      )
+      const tenantBalances = scopeReportRows(
+        dashboardData.tenantBalances,
+        requestedPropertyId,
+        ({ unit }) => unit.propertyId
+      )
+      const outstandingTenants = scopeReportRows(
+        dashboardData.outstandingTenants,
+        requestedPropertyId,
+        ({ unit }) => unit.propertyId
+      )
+      const payments = monthlyPayments
         .map(({ payment, tenant, unit, property, allocatedAmount, coverageDate }) => ({
           id: payment.id,
           tenantName: tenant.fullName,
@@ -47,30 +79,19 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
 
       reportProps = {
         type: 'monthly-rent',
-        title: `Monthly Rent Report - ${monthLabel(month)}`,
+        title: `${scopeName} Monthly Rent Report - ${monthLabel(month)}`,
         month: monthLabel(month),
         data: {
           payments,
           summary: {
-            totalExpected: dashboardData.summary.totalExpected,
-            totalCollected: dashboardData.summary.collectedThisMonth,
-            totalOutstanding: dashboardData.summary.totalOutstanding
+            totalExpected: tenantBalances.reduce((total, row) => total + row.unit.rentAmount, 0),
+            totalCollected: monthlyPayments.reduce((total, row) => total + row.allocatedAmount, 0),
+            totalOutstanding: outstandingTenants.reduce((total, row) => total + row.balance, 0)
           }
         }
       }
     } else if (type === 'payment-history') {
-      const requestedPropertyId = Number(searchParams.get('propertyId'))
-      const [properties, paymentRows] = await Promise.all([
-        listPropertiesForUser(user.id),
-        listPaymentsForUser(user.id)
-      ])
-      const property = Number.isInteger(requestedPropertyId) && requestedPropertyId > 0
-        ? properties.find((row) => row.id === requestedPropertyId)
-        : null
-
-      if (searchParams.has('propertyId') && !property) {
-        return NextResponse.json({ error: 'Property not found.' }, { status: 404 })
-      }
+      const paymentRows = await listPaymentsForUser(user.id)
 
       const filters = normalizePaymentFilters({
         period: searchParams.get('period'),
@@ -80,7 +101,7 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
       })
       const query = (searchParams.get('q') ?? '').trim().toLowerCase()
       const payments = paymentRows
-        .filter((row) => !property || row.property.id === property.id)
+        .filter((row) => !scopedProperty || row.property.id === scopedProperty.id)
         .filter(({ payment }) => paymentReceivedInPeriod(payment.paymentDate, filters.period, {
           day: filters.day,
           month: filters.month,
@@ -107,7 +128,7 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
 
       reportProps = {
         type: 'payment-history',
-        title: `${property?.name ?? 'All Properties'} Payment History`,
+        title: `${scopeName} Payment History`,
         periodLabel: filterDescription,
         data: {
           payments,
@@ -119,7 +140,11 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
       }
     } else if (type === 'unpaid-tenants') {
       const dashboardData = await loadDashboardData()
-      const unpaid = dashboardData.outstandingTenants
+      const unpaid = scopeReportRows(
+        dashboardData.outstandingTenants,
+        requestedPropertyId,
+        ({ unit }) => unit.propertyId
+      )
         .map((tb) => ({
           tenantName: tb.tenant.fullName,
           propertyName: tb.property.name,
@@ -131,7 +156,7 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
 
       reportProps = {
         type: 'unpaid-tenants',
-        title: `Unpaid Tenants Report - ${monthLabel(month)}`,
+        title: `${scopeName} Unpaid Tenants Report - ${monthLabel(month)}`,
         month: monthLabel(month),
         data: {
           unpaid,
@@ -143,15 +168,26 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
       }
     } else if (type === 'income-expense') {
       const dashboardData = await loadDashboardData()
+      const scopedExpenses = scopeReportRows(
+        dashboardData.expenses,
+        requestedPropertyId,
+        ({ expense }) => expense.propertyId
+      )
+      const scopedIncome = scopeReportRows(
+        dashboardData.monthlyPayments,
+        requestedPropertyId,
+        ({ unit }) => unit.propertyId
+      ).reduce((total, row) => total + row.allocatedAmount, 0)
+      const monthlyExpenses = scopedExpenses.filter(
+        ({ expense }) => dateKey(expense.expenseDate).slice(0, 7) === month
+      )
+      const expenseTotal = monthlyExpenses.reduce((total, row) => total + row.expense.amount, 0)
       const expenseByCategory = new Map<string, number>()
-      dashboardData.expenses.forEach(({ expense }) => {
-        const expMonth = dateKey(expense.expenseDate).slice(0, 7)
-        if (expMonth === month) {
-          expenseByCategory.set(
-            expense.category,
-            (expenseByCategory.get(expense.category) ?? 0) + expense.amount
-          )
-        }
+      monthlyExpenses.forEach(({ expense }) => {
+        expenseByCategory.set(
+          expense.category,
+          (expenseByCategory.get(expense.category) ?? 0) + expense.amount
+        )
       })
 
       const categories = Array.from(expenseByCategory.entries()).map(([category, amount]) => ({
@@ -159,8 +195,7 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
         amount
       })).sort((a, b) => b.amount - a.amount)
 
-      const recentExpenses = dashboardData.expenses
-        .filter(({ expense }) => dateKey(expense.expenseDate).slice(0, 7) === month)
+      const recentExpenses = monthlyExpenses
         .map(({ expense, property }) => ({
           title: expense.title,
           category: expense.category,
@@ -171,24 +206,22 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
 
       reportProps = {
         type: 'income-expense',
-        title: `Income vs Expense Report - ${monthLabel(month)}`,
+        title: `${scopeName} Income vs Expense Report - ${monthLabel(month)}`,
         monthRange: monthLabel(month),
         data: {
-          income: dashboardData.summary.collectedThisMonth,
-          expenses: dashboardData.summary.expensesThisMonth,
-          net: dashboardData.summary.netThisMonth,
+          income: scopedIncome,
+          expenses: expenseTotal,
+          net: scopedIncome - expenseTotal,
           categories,
           recentExpenses
         }
       }
     } else if (type === 'property-detail') {
-      const propertyId = Number(searchParams.get('propertyId'))
-
-      if (!Number.isInteger(propertyId) || propertyId < 1) {
+      if (!requestedPropertyId) {
         return NextResponse.json({ error: 'A valid property id is required.' }, { status: 400 })
       }
 
-      const propertyData = await getPropertySummaryData(user.id, propertyId, month)
+      const propertyData = await getPropertySummaryData(user.id, requestedPropertyId, month)
 
       if (!propertyData) {
         return NextResponse.json({ error: 'Property not found.' }, { status: 404 })
@@ -203,7 +236,8 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
       }
     } else if (type === 'property-summary') {
       const dashboardData = await loadDashboardData()
-      const propertyData = dashboardData.properties.map((property) => {
+      const reportProperties = scopedProperty ? [scopedProperty] : dashboardData.properties
+      const propertyData = reportProperties.map((property) => {
         const pUnits = dashboardData.units.filter(({ unit }) => unit.propertyId === property.id)
         const occupiedUnits = pUnits.filter(({ unit }) => unit.status === 'occupied')
         const tenantBalances = dashboardData.tenantBalances.filter(({ unit }) => unit.propertyId === property.id)
@@ -249,6 +283,8 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
     const filename = safeFilenamePart(
       type === 'property-detail' && reportProps?.propertyName
         ? `estatecore-${reportProps.propertyName}-${month}-property-report`
+        : scopedProperty
+          ? `estatecore-${scopedProperty.name}-${type}-${month}`
         : type === 'payment-history'
           ? `estatecore-filtered-payments-${dateKey()}`
         : `estatecore-${type}-${month}`

@@ -441,6 +441,35 @@ test('subtracts a partial payment from a multi-month outstanding period', () => 
   assert.equal(outstanding.balance, 1300000)
 })
 
+test('keeps later months outstanding after a payment clears the first month', () => {
+  const moveInDate = new Date('2026-04-30T00:00:00.000Z')
+  const paymentPlan = buildPaymentAllocationPlan({
+    amountPaid: 500000,
+    moveInDate,
+    rentAmount: 500000,
+    payments: []
+  })
+  const outstanding = calculateOutstandingRentThroughDate(
+    {
+      tenant: {
+        ...baseTenant,
+        moveInDate,
+        billingStartDate: moveInDate,
+        rentDueDate: new Date('2026-07-30T00:00:00.000Z'),
+        paymentTiming: 'advance',
+        billingCycleMonths: 3
+      },
+      unit: { ...baseUnit, rentAmount: 500000 }
+    },
+    [{ ...paymentPlan, amountPaid: 500000 }],
+    new Date('2026-07-18T12:00:00.000Z')
+  )
+
+  assert.equal(paymentPlan.balanceAfterPayment, 0)
+  assert.equal(outstanding.periods, 2)
+  assert.equal(outstanding.balance, 1000000)
+})
+
 test('clears a paid multi-month period and starts the next full cycle on its boundary', () => {
   const moveInDate = new Date('2026-04-30T00:00:00.000Z')
   const paymentPlan = buildPaymentAllocationPlan({

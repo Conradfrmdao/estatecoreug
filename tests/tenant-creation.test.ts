@@ -138,7 +138,7 @@ test('keeps the selected period end after a partial first payment', () => {
   })
   const firstPayment = buildFirstPaymentPlan(plan, 55, 500000)
 
-  assert.equal(firstPayment.paymentValues.balanceAfterPayment, 300000)
+  assert.equal(firstPayment.paymentValues.balanceAfterPayment, 1300000)
   assert.equal(firstPayment.nextRentDueDate.toISOString().slice(0, 10), '2026-07-30')
 })
 

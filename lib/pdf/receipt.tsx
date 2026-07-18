@@ -188,6 +188,7 @@ export function ReceiptDocument({ payment }: ReceiptProps) {
     return `UGX ${amount.toLocaleString('en-US')}`
   }
   const allocations = Array.isArray(payment.allocations) ? payment.allocations : []
+  const firstAllocationMonth = allocations[0]?.month
   const formatMonth = (month: string) => {
     const [year, monthNumber] = month.split('-').map(Number)
     if (!year || !monthNumber) {
@@ -255,10 +256,13 @@ export function ReceiptDocument({ payment }: ReceiptProps) {
         {allocations.length > 0 && (
           <View style={styles.allocationSection}>
             <Text style={styles.allocationTitle}>Payment allocation</Text>
-            {allocations.map((allocation, index) => {
+            {allocations.map((allocation) => {
+              const [firstYear, firstMonth] = (firstAllocationMonth ?? allocation.month).split('-').map(Number)
+              const [allocationYear, allocationMonth] = allocation.month.split('-').map(Number)
+              const monthOffset = (allocationYear - firstYear) * 12 + allocationMonth - firstMonth
               const allocationStart = addMonths(
                 new Date(payment.coverageStart ?? `${payment.paymentMonth}-01T00:00:00.000Z`),
-                index
+                Math.max(0, monthOffset)
               )
               const billingMonth = billingMonthForCoverage(allocationStart, addMonths(allocationStart, 1))
 

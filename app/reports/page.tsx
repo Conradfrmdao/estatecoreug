@@ -166,29 +166,6 @@ export default async function ReportsPage({
                 {data.summary.paidTenants} / {data.summary.activeTenants} Active Occupied Paid
               </span>
             </div>
-            <div className="grid gap-2 min-[430px]:grid-cols-2 sm:flex sm:flex-wrap">
-              <a
-                href={`/api/reports/monthly-rent?month=${month}`}
-                download
-                className="flex min-h-10 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
-                style={{ backgroundColor: '#00A550' }}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Export Monthly Rent
-              </a>
-              <a
-                href={`/api/reports/unpaid-tenants?month=${month}`}
-                download
-                className="flex min-h-10 items-center justify-center gap-1 rounded-lg border border-amber-300 bg-amber-50/50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-50"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Export Unpaid Tenants
-              </a>
-            </div>
           </div>
 
           <div className="overflow-hidden rounded-xl border bg-white"
@@ -246,20 +223,7 @@ export default async function ReportsPage({
 
         {/* Expenses Category Breakdowns */}
         <div id="expense-breakdown" className="scroll-mt-4 space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-bold text-slate-800">Expense Breakdown</h2>
-            <a
-              href={`/api/reports/income-expense?month=${month}`}
-              download
-              className="flex min-h-10 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 sm:inline-flex"
-              style={{ backgroundColor: '#00A550' }}
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Export Cash Flow
-            </a>
-          </div>
+          <h2 className="text-lg font-bold text-slate-800">Expense Breakdown</h2>
           <div className="rounded-xl border bg-white p-5 space-y-4" style={{ borderColor: '#e2e8f0' }}>
             {expenseCategories.map(({ category, amount }) => {
               const percentage = data.summary.expensesThisMonth > 0 
@@ -288,20 +252,7 @@ export default async function ReportsPage({
 
       {/* Property Performance Summary Table */}
       <section id="property-performance" className="scroll-mt-4 space-y-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-bold text-slate-800">Property Performance Summary</h2>
-          <a
-            href={`/api/reports/property-summary?month=${month}`}
-            download
-            className="flex min-h-10 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 sm:inline-flex"
-            style={{ backgroundColor: '#00A550' }}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Export Portfolio Summary
-          </a>
-        </div>
+        <h2 className="text-lg font-bold text-slate-800">Property Performance Summary</h2>
         <div className="overflow-hidden rounded-xl border bg-white"
           style={{ borderColor: '#e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
           <div className="overflow-x-auto">

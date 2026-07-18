@@ -106,7 +106,10 @@ export function buildFirstPaymentPlan(plan: TenantCreationPlan, tenantId: number
       tenantId,
       unitId: plan.unitId,
       amountPaid: plan.paymentAmount,
-      balanceAfterPayment: allocation.balanceAfterPayment,
+      balanceAfterPayment: Math.max(
+        rentAmount * plan.monthsCovered - plan.paymentAmount,
+        0
+      ),
       paymentMonth: allocation.paymentMonth,
       coverageStart: allocation.coverageStart,
       coverageEnd: allocation.coverageEnd,

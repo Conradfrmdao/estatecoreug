@@ -666,26 +666,32 @@ export async function buildRentPaymentPlanForTenant(params: {
     payments: paymentRows,
     preferredStartDate: params.preferredStartDate ?? tenantRow.tenant.rentDueDate
   })
+  const paymentsAfterPayment = [
+    ...paymentRows,
+    {
+      amountPaid: params.amountPaid,
+      paymentMonth: plan.paymentMonth,
+      coverageStart: plan.coverageStart,
+      coverageEnd: plan.coverageEnd,
+      monthsCovered: plan.monthsCovered,
+      allocations: plan.allocations
+    }
+  ]
   const nextScheduledRentDate = calculateNextScheduledRentDate({
     moveInDate: tenantRow.tenant.moveInDate,
     billingStartDate: tenantRow.tenant.billingStartDate,
     billingCycleMonths: terms.billingCycleMonths,
     rentAmount: tenantRow.unit.rentAmount,
-    payments: [
-      ...paymentRows,
-      {
-        amountPaid: params.amountPaid,
-        paymentMonth: plan.paymentMonth,
-        coverageStart: plan.coverageStart,
-        coverageEnd: plan.coverageEnd,
-        monthsCovered: plan.monthsCovered,
-        allocations: plan.allocations
-      }
-    ]
+    payments: paymentsAfterPayment
   })
+  const outstandingAfterPayment = calculateOutstandingRentThroughDate(
+    tenantRow,
+    paymentsAfterPayment
+  )
 
   return {
     ...plan,
+    balanceAfterPayment: outstandingAfterPayment.balance,
     nextRentDueDate: terms.paymentTiming === 'arrears'
       ? scheduledRentDueDateForPeriod(
           tenantRow.tenant.moveInDate,
