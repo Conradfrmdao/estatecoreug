@@ -12,6 +12,7 @@ export function formatDate(value: Date | string | null | undefined) {
   }
 
   return new Intl.DateTimeFormat('en-UG', {
+    timeZone: 'Africa/Kampala',
     month: 'short',
     day: 'numeric',
     year: 'numeric'
