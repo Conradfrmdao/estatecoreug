@@ -209,6 +209,7 @@ function monthsBetweenDates(start: Date, end: Date) {
 
 export function inferTenantPaymentTerms(params: {
   moveInDate: Date
+  billingStartDate?: Date
   rentDueDate: Date
   rentAmount: number
   payments: PaymentLike[]
@@ -217,6 +218,7 @@ export function inferTenantPaymentTerms(params: {
 }): TenantPaymentTerms {
   const coverageStart = calculateNextRentDueDate({
     moveInDate: params.moveInDate,
+    billingStartDate: params.billingStartDate,
     rentAmount: params.rentAmount,
     payments: params.payments
   })
@@ -247,14 +249,15 @@ export function inferTenantPaymentTerms(params: {
 export function scheduledRentDueDateForPeriod(
   moveInDate: Date,
   period: RentPeriod,
-  terms: Pick<TenantPaymentTerms, 'paymentTiming' | 'billingCycleMonths'>
+  terms: Pick<TenantPaymentTerms, 'paymentTiming' | 'billingCycleMonths'>,
+  billingStartDate = moveInDate
 ) {
   if (terms.paymentTiming === 'advance') {
     return rentDueDateForPeriod(moveInDate, period)
   }
 
-  const moveInMonth = monthFromDate(moveInDate)
-  const monthOffset = Math.max(0, compareMonths(period.month, moveInMonth))
+  const billingStartMonth = monthFromDate(billingStartDate)
+  const monthOffset = Math.max(0, compareMonths(period.month, billingStartMonth))
   const cycleMonths = Math.max(1, Math.trunc(terms.billingCycleMonths))
   const cycleEndOffset = (Math.floor(monthOffset / cycleMonths) + 1) * cycleMonths
   return addMonths(moveInDate, cycleEndOffset)
@@ -348,12 +351,13 @@ export function outstandingRentForPeriods(params: {
 
 export function calculateNextRentDueDate(params: {
   moveInDate: Date
+  billingStartDate?: Date
   rentAmount: number
   payments: PaymentLike[]
   maxMonths?: number
 }) {
   const totals = paidByMonth(params.payments)
-  let cursor = monthFromDate(new Date(params.moveInDate))
+  let cursor = monthFromDate(new Date(params.billingStartDate ?? params.moveInDate))
   const maxMonths = params.maxMonths ?? 240
 
   for (let index = 0; index < maxMonths; index += 1) {
@@ -369,13 +373,15 @@ export function calculateNextRentDueDate(params: {
 
 export function findOldestOutstandingRent(params: {
   moveInDate: Date
+  billingStartDate?: Date
   rentAmount: number
   payments: PaymentLike[]
   preferredStartDate?: Date
 }) {
   const moveInDate = new Date(params.moveInDate)
-  const preferredDate = params.preferredStartDate ? new Date(params.preferredStartDate) : moveInDate
-  const startMonth = monthFromDate(moveInDate)
+  const billingStartDate = new Date(params.billingStartDate ?? params.moveInDate)
+  const preferredDate = params.preferredStartDate ? new Date(params.preferredStartDate) : billingStartDate
+  const startMonth = monthFromDate(billingStartDate)
   const preferredMonth = compareMonths(monthFromDate(preferredDate), startMonth) < 0
     ? startMonth
     : monthFromDate(preferredDate)
@@ -409,6 +415,7 @@ export function findOldestOutstandingRent(params: {
 export function buildPaymentAllocationPlan(params: {
   amountPaid: number
   moveInDate: Date
+  billingStartDate?: Date
   rentAmount: number
   payments: PaymentLike[]
   preferredStartDate?: Date
@@ -423,6 +430,7 @@ export function buildPaymentAllocationPlan(params: {
   const totals = paidByMonth(params.payments)
   const target = findOldestOutstandingRent({
     moveInDate,
+    billingStartDate: params.billingStartDate,
     rentAmount: params.rentAmount,
     payments: params.payments,
     preferredStartDate: params.preferredStartDate
@@ -485,6 +493,7 @@ export function buildPaymentAllocationPlan(params: {
     balanceAfterPayment: allocations[0]?.balanceAfterAllocation ?? target.balance,
     nextRentDueDate: calculateNextRentDueDate({
       moveInDate,
+      billingStartDate: params.billingStartDate,
       rentAmount: params.rentAmount,
       payments: [
         ...params.payments,
@@ -509,8 +518,9 @@ export function calculateTenantPeriodBalance(
   referenceDate = new Date()
 ) {
   const moveInDate = new Date(row.tenant.moveInDate)
+  const billingStartDate = new Date(row.tenant.billingStartDate ?? row.tenant.moveInDate)
 
-  if (!row.tenant.active || moveInDate >= period.end) {
+  if (!row.tenant.active || billingStartDate >= period.end) {
     return null
   }
 
@@ -521,6 +531,7 @@ export function calculateTenantPeriodBalance(
   const balance = Math.max(row.unit.rentAmount - amountPaid, 0)
   const terms = inferTenantPaymentTerms({
     moveInDate,
+    billingStartDate,
     rentDueDate: row.tenant.rentDueDate,
     rentAmount: row.unit.rentAmount,
     payments,
@@ -528,7 +539,7 @@ export function calculateTenantPeriodBalance(
     billingCycleMonths: row.tenant.billingCycleMonths
   })
   const storedDueDate = new Date(row.tenant.rentDueDate)
-  const scheduledDueDate = scheduledRentDueDateForPeriod(moveInDate, period, terms)
+  const scheduledDueDate = scheduledRentDueDateForPeriod(moveInDate, period, terms, billingStartDate)
   const arrearsCoverageStart = parseMonth(monthFromDate(terms.coverageStart)).start
   const arrearsCoverageEnd = addMonths(arrearsCoverageStart, terms.billingCycleMonths)
   const isCurrentArrearsCycle = terms.paymentTiming === 'arrears' &&
@@ -540,12 +551,16 @@ export function calculateTenantPeriodBalance(
     ? storedDueDate
     : scheduledDueDate
   const daysUntilDue = daysUntilDate(dueDate, referenceDate)
+  const periodHasStarted = period.start <= startOfTimeZoneDay(referenceDate)
+  const hasSeparateBillingMonth = monthFromDate(billingStartDate) !== monthFromDate(moveInDate)
 
   let paymentStatus: TenantRentStatus = 'not_due'
   if (balance <= 0) {
     paymentStatus = 'paid'
   } else if (amountPaid > 0) {
     paymentStatus = 'partial'
+  } else if (terms.paymentTiming === 'advance' && hasSeparateBillingMonth && periodHasStarted && daysUntilDue > 0) {
+    paymentStatus = 'unpaid'
   } else if (daysUntilDue > 0 && daysUntilDue <= 5) {
     paymentStatus = 'upcoming'
   } else if (daysUntilDue === 0) {
@@ -570,13 +585,14 @@ export function calculateOutstandingRentThroughDate(
   maxMonths = 240
 ) {
   const moveInDate = new Date(row.tenant.moveInDate)
+  const billingStartDate = new Date(row.tenant.billingStartDate ?? row.tenant.moveInDate)
   const finalMonth = monthFromDate(startOfTimeZoneDay(referenceDate))
-  let cursor = monthFromDate(moveInDate)
+  let cursor = monthFromDate(billingStartDate)
   let balance = 0
   let periods = 0
   let oldestDueDate: Date | null = null
 
-  if (!row.tenant.active || moveInDate > referenceDate) {
+  if (!row.tenant.active || billingStartDate > referenceDate) {
     return { balance, periods, oldestDueDate }
   }
 

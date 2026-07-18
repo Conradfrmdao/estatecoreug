@@ -150,7 +150,7 @@ try {
          FROM information_schema.columns
         WHERE table_schema = 'public'
           AND (
-            (table_name = 'tenants' AND column_name IN ('payment_timing', 'billing_cycle_months')) OR
+            (table_name = 'tenants' AND column_name IN ('payment_timing', 'billing_cycle_months', 'billing_start_date')) OR
             (table_name = 'support_conversations' AND column_name IN ('landlord_read_at', 'admin_read_at'))
           )
         ORDER BY table_name, column_name`

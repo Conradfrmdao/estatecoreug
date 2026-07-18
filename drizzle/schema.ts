@@ -47,6 +47,7 @@ export const tenants = pgTable('tenants', {
   phone: varchar('phone', { length: 50 }).notNull(),
   email: varchar('email', { length: 255 }),
   moveInDate: timestamp('move_in_date', { withTimezone: true }).notNull(),
+  billingStartDate: timestamp('billing_start_date', { withTimezone: true }).notNull(),
   rentDueDate: timestamp('rent_due_date', { withTimezone: true }).notNull(),
   paymentTiming: varchar('payment_timing', { length: 50 }).default('advance').notNull(),
   billingCycleMonths: integer('billing_cycle_months').default(1).notNull(),

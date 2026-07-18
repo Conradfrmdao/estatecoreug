@@ -93,6 +93,9 @@ export async function PATCH(req: Request, { params }: TenantRouteContext) {
   const moveInDate = body.moveInDate ? new Date(body.moveInDate) : new Date()
   const rentDueDate = body.rentDueDate ? new Date(body.rentDueDate) : new Date()
   const active = Boolean(body.active)
+  const billingStartDate = existing.tenant.billingStartDate.getTime() === existing.tenant.moveInDate.getTime()
+    ? moveInDate
+    : existing.tenant.billingStartDate
 
   if (!unitId || !fullName || !phone || Number.isNaN(moveInDate.valueOf()) || Number.isNaN(rentDueDate.valueOf())) {
     return NextResponse.json({ error: 'Unit, name, phone, move-in date, and rent due date are required.' }, { status: 400 })
@@ -124,6 +127,7 @@ export async function PATCH(req: Request, { params }: TenantRouteContext) {
         phone,
         email,
         moveInDate,
+        billingStartDate,
         rentDueDate,
         active
       })

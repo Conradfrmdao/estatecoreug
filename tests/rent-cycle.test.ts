@@ -24,6 +24,7 @@ const baseTenant = {
   phone: '+256700000000',
   email: null,
   moveInDate: new Date('2026-01-10T00:00:00.000Z'),
+  billingStartDate: new Date('2026-01-10T00:00:00.000Z'),
   rentDueDate: new Date('2026-02-10T00:00:00.000Z'),
   paymentTiming: 'advance',
   billingCycleMonths: 1,
@@ -306,6 +307,7 @@ test('keeps end-of-period rent not due until the agreed date', () => {
   const tenant = {
     ...baseTenant,
     moveInDate: new Date('2026-07-01T00:00:00.000Z'),
+    billingStartDate: new Date('2026-07-01T00:00:00.000Z'),
     rentDueDate: new Date('2026-08-01T00:00:00.000Z'),
     paymentTiming: 'arrears',
     billingCycleMonths: 1
@@ -334,6 +336,7 @@ test('accumulates every unpaid advance period whose due date has passed', () => 
   const tenant = {
     ...baseTenant,
     moveInDate: new Date('2026-01-30T00:00:00.000Z'),
+    billingStartDate: new Date('2026-01-30T00:00:00.000Z'),
     rentDueDate: new Date('2026-01-30T00:00:00.000Z'),
     paymentTiming: 'advance'
   }
@@ -352,6 +355,7 @@ test('keeps a future schedule date while move-in rent remains outstanding', () =
   const tenant = {
     ...baseTenant,
     moveInDate: new Date('2026-06-30T00:00:00.000Z'),
+    billingStartDate: new Date('2026-06-30T00:00:00.000Z'),
     rentDueDate: new Date('2026-07-30T00:00:00.000Z'),
     paymentTiming: 'advance'
   }
@@ -367,10 +371,51 @@ test('keeps a future schedule date while move-in rent remains outstanding', () =
   assert.equal(tenant.rentDueDate.toISOString().slice(0, 10), '2026-07-30')
 })
 
+test('separates the tenancy entry date from the first billable rent month', () => {
+  const moveInDate = new Date('2026-06-30T00:00:00.000Z')
+  const billingStartDate = new Date('2026-07-01T00:00:00.000Z')
+  const tenant = {
+    ...baseTenant,
+    moveInDate,
+    billingStartDate,
+    rentDueDate: new Date('2026-07-30T00:00:00.000Z'),
+    paymentTiming: 'advance'
+  }
+  const balance = calculateTenantPeriodBalance(
+    { tenant, unit: { ...baseUnit, rentAmount: 850000 } },
+    [],
+    parseMonth('2026-07'),
+    new Date('2026-07-18T12:00:00.000Z')
+  )
+  const outstanding = calculateOutstandingRentThroughDate(
+    { tenant, unit: { ...baseUnit, rentAmount: 850000 } },
+    [],
+    new Date('2026-07-18T12:00:00.000Z')
+  )
+  const payment = buildPaymentAllocationPlan({
+    amountPaid: 850000,
+    moveInDate,
+    billingStartDate,
+    rentAmount: 850000,
+    payments: [],
+    preferredStartDate: tenant.rentDueDate
+  })
+
+  assert.equal(balance?.paymentStatus, 'unpaid')
+  assert.equal(balance?.dueDate.toISOString().slice(0, 10), '2026-07-30')
+  assert.equal(outstanding.periods, 1)
+  assert.equal(outstanding.balance, 850000)
+  assert.equal(outstanding.oldestDueDate?.toISOString().slice(0, 10), '2026-07-30')
+  assert.equal(payment.paymentMonth, '2026-07')
+  assert.equal(payment.coverageStart.toISOString().slice(0, 10), '2026-07-30')
+  assert.equal(payment.nextRentDueDate.toISOString().slice(0, 10), '2026-08-30')
+})
+
 test('does not count a genuine arrears cycle before its end date', () => {
   const tenant = {
     ...baseTenant,
     moveInDate: new Date('2026-05-30T00:00:00.000Z'),
+    billingStartDate: new Date('2026-05-30T00:00:00.000Z'),
     rentDueDate: new Date('2026-07-30T00:00:00.000Z'),
     paymentTiming: 'arrears',
     billingCycleMonths: 2
@@ -416,6 +461,7 @@ test('does not classify the next scheduled rent as outstanding after a full paym
       tenant: {
         ...baseTenant,
         moveInDate,
+        billingStartDate: moveInDate,
         rentDueDate: payment.nextRentDueDate
       },
       unit: { ...baseUnit, rentAmount: 4200000 }

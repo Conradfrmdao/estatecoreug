@@ -567,12 +567,14 @@ export async function listTenantPaymentTargets(userId: number) {
     const tenantPayments = paymentsByTenant.get(row.tenant.id) ?? []
     const target = findOldestOutstandingRent({
       moveInDate: row.tenant.moveInDate,
+      billingStartDate: row.tenant.billingStartDate,
       rentAmount: row.unit.rentAmount,
       payments: tenantPayments,
       preferredStartDate: row.tenant.rentDueDate
     })
     const terms = inferTenantPaymentTerms({
       moveInDate: row.tenant.moveInDate,
+      billingStartDate: row.tenant.billingStartDate,
       rentDueDate: row.tenant.rentDueDate,
       rentAmount: row.unit.rentAmount,
       payments: tenantPayments,
@@ -627,6 +629,7 @@ export async function buildRentPaymentPlanForTenant(params: {
     .map(({ payment }) => payment)
   const terms = inferTenantPaymentTerms({
     moveInDate: tenantRow.tenant.moveInDate,
+    billingStartDate: tenantRow.tenant.billingStartDate,
     rentDueDate: tenantRow.tenant.rentDueDate,
     rentAmount: tenantRow.unit.rentAmount,
     payments: allPaymentRows,
@@ -641,6 +644,7 @@ export async function buildRentPaymentPlanForTenant(params: {
   const plan = buildPaymentAllocationPlan({
     amountPaid: params.amountPaid,
     moveInDate: tenantRow.tenant.moveInDate,
+    billingStartDate: tenantRow.tenant.billingStartDate,
     rentAmount: tenantRow.unit.rentAmount,
     payments: paymentRows,
     preferredStartDate: params.preferredStartDate ?? tenantRow.tenant.rentDueDate
@@ -652,7 +656,8 @@ export async function buildRentPaymentPlanForTenant(params: {
       ? scheduledRentDueDateForPeriod(
           tenantRow.tenant.moveInDate,
           parseMonth(plan.nextRentDueDate.toISOString().slice(0, 7)),
-          terms
+          terms,
+          tenantRow.tenant.billingStartDate
         )
       : plan.nextRentDueDate,
     paymentTerms: terms,
@@ -673,6 +678,7 @@ export async function getTenantPaymentTermsForUser(userId: number, tenantId: num
 
   return inferTenantPaymentTerms({
     moveInDate: tenantRow.tenant.moveInDate,
+    billingStartDate: tenantRow.tenant.billingStartDate,
     rentDueDate: tenantRow.tenant.rentDueDate,
     rentAmount: tenantRow.unit.rentAmount,
     payments: paymentRows,
@@ -697,6 +703,7 @@ export async function recalculateTenantRentDueDate(
     .map(({ payment }) => payment)
   const paymentTerms = preservedTerms ?? inferTenantPaymentTerms({
     moveInDate: tenantRow.tenant.moveInDate,
+    billingStartDate: tenantRow.tenant.billingStartDate,
     rentDueDate: tenantRow.tenant.rentDueDate,
     rentAmount: tenantRow.unit.rentAmount,
     payments: paymentRows,
@@ -705,6 +712,7 @@ export async function recalculateTenantRentDueDate(
   })
   const nextCoverageStart = calculateNextRentDueDate({
     moveInDate: tenantRow.tenant.moveInDate,
+    billingStartDate: tenantRow.tenant.billingStartDate,
     rentAmount: tenantRow.unit.rentAmount,
     payments: paymentRows
   })
@@ -712,7 +720,8 @@ export async function recalculateTenantRentDueDate(
     ? scheduledRentDueDateForPeriod(
         tenantRow.tenant.moveInDate,
         parseMonth(nextCoverageStart.toISOString().slice(0, 7)),
-        paymentTerms
+        paymentTerms,
+        tenantRow.tenant.billingStartDate
       )
     : nextCoverageStart
 

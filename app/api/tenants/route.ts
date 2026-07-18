@@ -115,6 +115,7 @@ export async function POST(req: Request) {
         phone: plan.phone,
         email: plan.email,
         moveInDate: plan.moveInDate,
+        billingStartDate: plan.moveInDate,
         rentDueDate: plan.rentDueDate,
         paymentTiming: plan.paymentTiming,
         billingCycleMonths: plan.monthsCovered,
