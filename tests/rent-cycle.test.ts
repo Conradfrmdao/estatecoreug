@@ -160,6 +160,53 @@ test('allocates top-up payments to the oldest unpaid balance before future rent'
   )
 })
 
+test('carries an advance payment above monthly rent into the next month', () => {
+  const moveInDate = new Date('2026-07-01T00:00:00.000Z')
+  const payment = buildPaymentAllocationPlan({
+    amountPaid: 650000,
+    moveInDate,
+    rentAmount: 500000,
+    payments: [],
+    preferredStartDate: moveInDate
+  })
+
+  assert.deepEqual(payment.allocations, [
+    {
+      month: '2026-07',
+      amount: 500000,
+      rentAmount: 500000,
+      balanceAfterAllocation: 0
+    },
+    {
+      month: '2026-08',
+      amount: 150000,
+      rentAmount: 500000,
+      balanceAfterAllocation: 350000
+    }
+  ])
+  assert.equal(payment.monthsCovered, 2)
+  assert.equal(payment.nextRentDueDate.toISOString().slice(0, 10), '2026-08-01')
+
+  const augustBalance = calculateTenantPeriodBalance(
+    {
+      tenant: {
+        ...baseTenant,
+        moveInDate,
+        billingStartDate: moveInDate,
+        rentDueDate: new Date('2026-08-01T00:00:00.000Z')
+      },
+      unit: { ...baseUnit, rentAmount: 500000 }
+    },
+    [{ ...payment, amountPaid: 650000 }],
+    parseMonth('2026-08'),
+    new Date('2026-08-01T12:00:00.000Z')
+  )
+
+  assert.equal(augustBalance?.amountPaid, 150000)
+  assert.equal(augustBalance?.balance, 350000)
+  assert.equal(augustBalance?.paymentStatus, 'partial')
+})
+
 test('rejects tiny accidental residual balances instead of saving confusing carry-forward cents', () => {
   const firstPayment = buildPaymentAllocationPlan({
     amountPaid: 250000,

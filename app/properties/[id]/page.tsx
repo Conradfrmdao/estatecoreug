@@ -1,16 +1,12 @@
 import {
   ArrowLeft,
-  Building2,
   Download,
-  Edit,
-  Home,
-  ReceiptText,
-  UsersRound,
-  WalletCards
+  Edit
 } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+import PropertySummaryCards from '@/components/PropertySummaryCards'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getPropertySummaryData } from '@/lib/data'
 import { currency, currentPaymentMonth, formatDate, monthLabel } from '@/lib/format'
@@ -36,49 +32,6 @@ function statusBadge(occupied: boolean, outstandingBalance: number, amountPaid: 
   }
 
   return <span className="badge badge-slate">Cleared</span>
-}
-
-function SummaryCard({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  tone = 'slate'
-}: {
-  label: string
-  value: string | number
-  sub: string
-  icon: typeof Building2
-  tone?: 'green' | 'amber' | 'rose' | 'slate'
-}) {
-  const toneClass = {
-    green: 'bg-emerald-50 text-emerald-700',
-    amber: 'bg-amber-50 text-amber-700',
-    rose: 'bg-rose-50 text-rose-700',
-    slate: 'bg-slate-100 text-slate-700'
-  }[tone]
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
-      <div className="flex items-center gap-2">
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${toneClass}`}>
-          <Icon className="h-4 w-4" strokeWidth={1.9} />
-        </span>
-
-        <p className="min-w-0 truncate text-[11px] font-black uppercase tracking-wide text-slate-500">
-          {label}
-        </p>
-      </div>
-
-      <p className="mt-4 whitespace-nowrap text-[clamp(1.25rem,1.7vw,1.9rem)] font-black leading-none tracking-tight text-slate-950">
-        {value}
-      </p>
-
-      <p className="mt-2 truncate text-xs font-semibold text-slate-500">
-        {sub}
-      </p>
-    </div>
-  )
 }
 
 export default async function PropertySummaryPage({
@@ -160,53 +113,60 @@ export default async function PropertySummaryPage({
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-        <SummaryCard
-          label="Units"
-          value={data.summary.totalUnits}
-          sub={`${data.summary.occupiedUnits} occupied`}
-          icon={Building2}
-        />
-
-        <SummaryCard
-          label="Tenants"
-          value={data.summary.activeTenants}
-          sub={`${data.summary.totalTenants} total records`}
-          icon={UsersRound}
-          tone="green"
-        />
-
-        <SummaryCard
-          label="Rent Roll"
-          value={currency(data.summary.monthlyRentRoll)}
-          sub="all unit prices"
-          icon={Home}
-        />
-
-        <SummaryCard
-          label="Paid"
-          value={currency(data.summary.collectedThisMonth)}
-          sub={monthLabel(month)}
-          icon={WalletCards}
-          tone="green"
-        />
-
-        <SummaryCard
-          label="Outstanding"
-          value={currency(data.summary.outstandingRent)}
-          sub="all rent due to date"
-          icon={WalletCards}
-          tone="amber"
-        />
-
-        <SummaryCard
-          label="Expenses"
-          value={currency(data.summary.expensesThisMonth)}
-          sub="selected month"
-          icon={ReceiptText}
-          tone="rose"
-        />
-      </section>
+      <PropertySummaryCards
+        propertyName={data.property.name}
+        monthLabel={monthLabel(month)}
+        summary={{
+          totalUnits: data.summary.totalUnits,
+          occupiedUnits: data.summary.occupiedUnits,
+          activeTenants: data.summary.activeTenants,
+          totalTenants: data.summary.totalTenants,
+          monthlyRentRoll: data.summary.monthlyRentRoll,
+          collectedThisMonth: data.summary.collectedThisMonth,
+          outstandingRent: data.summary.outstandingRent,
+          expensesThisMonth: data.summary.expensesThisMonth
+        }}
+        units={data.unitSummaries.map(({ unit, activeTenant }) => ({
+          id: unit.id,
+          unitNumber: unit.unitNumber,
+          rentAmount: unit.rentAmount,
+          status: unit.status,
+          tenantName: activeTenant?.fullName ?? null
+        }))}
+        tenants={data.tenants.map(({ tenant, unit }) => ({
+          id: tenant.id,
+          fullName: tenant.fullName,
+          phone: tenant.phone,
+          email: tenant.email,
+          unitNumber: unit.unitNumber,
+          active: tenant.active,
+          moveInDate: formatDate(tenant.moveInDate)
+        }))}
+        receipts={data.monthlyReceipts.map(({ payment, tenant, unit }) => ({
+          id: payment.id,
+          tenantName: tenant.fullName,
+          unitNumber: unit.unitNumber,
+          amountPaid: payment.amountPaid,
+          paymentDate: formatDate(payment.paymentDate),
+          paymentMethod: payment.paymentMethod
+        }))}
+        outstanding={data.outstandingTenants.map(({ tenant, unit, balance, periods, oldestDueDate }) => ({
+          tenantId: tenant.id,
+          tenantName: tenant.fullName,
+          unitNumber: unit.unitNumber,
+          balance,
+          periods,
+          oldestDueDate: formatDate(oldestDueDate)
+        }))}
+        expenses={data.monthlyExpenses.map(({ expense, unit }) => ({
+          id: expense.id,
+          title: expense.title,
+          category: expense.category,
+          amount: expense.amount,
+          expenseDate: formatDate(expense.expenseDate),
+          unitNumber: unit?.unitNumber ?? null
+        }))}
+      />
 
       <section className="overflow-hidden rounded-xl border bg-white shadow-sm" style={{ borderColor: '#e2e8f0' }}>
         <div className="border-b border-slate-100 px-4 py-3">

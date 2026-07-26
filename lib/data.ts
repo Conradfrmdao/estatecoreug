@@ -123,8 +123,11 @@ export type PropertySummaryData = {
     netThisMonth: number
   }
   unitSummaries: PropertyUnitSummary[]
+  tenants: TenantWithUnit[]
   tenantBalances: TenantBalance[]
+  outstandingTenants: TenantOutstandingBalance[]
   monthlyPayments: MonthlyPaymentAllocation[]
+  monthlyReceipts: PaymentWithTenant[]
   recentPayments: PaymentWithTenant[]
   monthlyExpenses: ExpenseWithProperty[]
   recentExpenses: ExpenseWithProperty[]
@@ -920,8 +923,11 @@ export async function getPropertySummaryData(
       netThisMonth: collectedThisMonth - expensesThisMonth
     },
     unitSummaries,
+    tenants: propertyTenants,
     tenantBalances: propertyTenantBalances,
+    outstandingTenants: propertyOutstandingTenants,
     monthlyPayments: propertyMonthlyPayments,
+    monthlyReceipts: propertyMonthlyReceipts,
     recentPayments: propertyPayments.slice(0, 8),
     monthlyExpenses: propertyMonthlyExpenses,
     recentExpenses: propertyExpenses.slice(0, 8)
