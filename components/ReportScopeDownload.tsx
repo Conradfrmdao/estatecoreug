@@ -1,7 +1,11 @@
 'use client'
 
 import { Download } from 'lucide-react'
-import { scopedReportUrl, type ScopedReportType } from '@/lib/report-scope'
+import {
+  scopedReportUrl,
+  type ScopedReportPeriod,
+  type ScopedReportType
+} from '@/lib/report-scope'
 import { useState } from 'react'
 
 type ReportProperty = {
@@ -11,9 +15,11 @@ type ReportProperty = {
 
 export default function ReportScopeDownload({
   month,
+  period,
   properties
 }: {
   month: string
+  period: ScopedReportPeriod
   properties: ReportProperty[]
 }) {
   const [scope, setScope] = useState('overall')
@@ -24,7 +30,7 @@ export default function ReportScopeDownload({
       label: selectedProperty ? 'Property report' : 'Portfolio report',
       type: selectedProperty ? 'property-detail' : 'property-summary'
     },
-    { label: 'Monthly rent', type: 'monthly-rent' },
+    { label: period === 'all' ? 'All-time rent' : 'Monthly rent', type: 'monthly-rent' },
     { label: 'Unpaid tenants', type: 'unpaid-tenants' },
     { label: 'Cash flow', type: 'income-expense' }
   ]
@@ -55,7 +61,7 @@ export default function ReportScopeDownload({
         {downloads.map((download) => (
           <a
             key={download.type}
-            href={scopedReportUrl(download.type, month, propertyId)}
+            href={scopedReportUrl(download.type, month, propertyId, period)}
             download
             className="inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-center text-xs font-bold text-emerald-800 transition hover:bg-emerald-100 sm:text-sm"
           >

@@ -5,6 +5,8 @@ export type ScopedReportType =
   | 'property-summary'
   | 'property-detail'
 
+export type ScopedReportPeriod = 'month' | 'all'
+
 export function scopeReportRows<T>(
   rows: T[],
   propertyId: number | null,
@@ -18,9 +20,11 @@ export function scopeReportRows<T>(
 export function scopedReportUrl(
   type: ScopedReportType,
   month: string,
-  propertyId?: number | null
+  propertyId?: number | null,
+  period: ScopedReportPeriod = 'month'
 ) {
   const params = new URLSearchParams({ month })
   if (propertyId) params.set('propertyId', String(propertyId))
+  if (period === 'all') params.set('period', 'all')
   return `/api/reports/${type}?${params.toString()}`
 }

@@ -265,12 +265,12 @@ export function ReportDocument(props: ReportProps) {
         {/* Meta Info */}
         <View style={styles.reportMeta}>
           <Text style={styles.metaText}>Generated: {dateStr}</Text>
-          {props.type === 'monthly-rent' && <Text style={styles.metaText}>Month: {props.month}</Text>}
+          {props.type === 'monthly-rent' && <Text style={styles.metaText}>Period: {props.month}</Text>}
           {props.type === 'payment-history' && <Text style={styles.metaText}>Filter: {props.periodLabel}</Text>}
-          {props.type === 'unpaid-tenants' && <Text style={styles.metaText}>As of Month: {props.month}</Text>}
+          {props.type === 'unpaid-tenants' && <Text style={styles.metaText}>Period: {props.month}</Text>}
           {props.type === 'income-expense' && <Text style={styles.metaText}>Period: {props.monthRange}</Text>}
-          {props.type === 'property-summary' && <Text style={styles.metaText}>Month: {props.month}</Text>}
-          {props.type === 'property-detail' && <Text style={styles.metaText}>Property: {props.propertyName} | Month: {props.month}</Text>}
+          {props.type === 'property-summary' && <Text style={styles.metaText}>Period: {props.month}</Text>}
+          {props.type === 'property-detail' && <Text style={styles.metaText}>Property: {props.propertyName} | Period: {props.month}</Text>}
         </View>
 
         {/* Report Content */}
@@ -303,7 +303,7 @@ export function ReportDocument(props: ReportProps) {
               </View>
               {props.data.payments.length === 0 ? (
                 <View style={styles.tableRow}>
-                  <Text style={{ width: '100%', textAlign: 'center', color: '#94a3b8' }}>No payments logged for this month.</Text>
+                  <Text style={{ width: '100%', textAlign: 'center', color: '#94a3b8' }}>No payments logged for this period.</Text>
                 </View>
               ) : (
                 props.data.payments.map((p, index) => (
@@ -560,7 +560,7 @@ export function ReportDocument(props: ReportProps) {
               )}
             </View>
 
-            <Text style={styles.sectionTitle}>Recent Payments</Text>
+            <Text style={styles.sectionTitle}>Payments in Period</Text>
             <View style={styles.table}>
               <View style={[styles.tableRow, styles.tableHeader]}>
                 <Text style={[styles.th, { width: '28%' }]}>Tenant</Text>
@@ -570,7 +570,7 @@ export function ReportDocument(props: ReportProps) {
               </View>
               {props.data.recentPayments.length === 0 ? (
                 <View style={styles.tableRow}>
-                  <Text style={{ width: '100%', textAlign: 'center', color: '#94a3b8' }}>No payments recorded for this property.</Text>
+                  <Text style={{ width: '100%', textAlign: 'center', color: '#94a3b8' }}>No payments recorded for this property in the period.</Text>
                 </View>
               ) : (
                 props.data.recentPayments.map((row, index) => (
@@ -584,7 +584,7 @@ export function ReportDocument(props: ReportProps) {
               )}
             </View>
 
-            <Text style={styles.sectionTitle}>Recent Expenses</Text>
+            <Text style={styles.sectionTitle}>Expenses in Period</Text>
             <View style={styles.table}>
               <View style={[styles.tableRow, styles.tableHeader]}>
                 <Text style={[styles.th, { width: '34%' }]}>Expense</Text>
@@ -594,7 +594,7 @@ export function ReportDocument(props: ReportProps) {
               </View>
               {props.data.recentExpenses.length === 0 ? (
                 <View style={styles.tableRow}>
-                  <Text style={{ width: '100%', textAlign: 'center', color: '#94a3b8' }}>No expenses recorded for this property.</Text>
+                  <Text style={{ width: '100%', textAlign: 'center', color: '#94a3b8' }}>No expenses recorded for this property in the period.</Text>
                 </View>
               ) : (
                 props.data.recentExpenses.map((row, index) => (

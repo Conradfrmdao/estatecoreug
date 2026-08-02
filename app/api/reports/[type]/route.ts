@@ -3,7 +3,11 @@ import { getDashboardData, getPropertySummaryData, listPaymentsForUser, listProp
 import { currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
 import { normalizePaymentFilters, paymentMatchesSearch, paymentReceivedInPeriod } from '@/lib/payment-filters'
 import { ReportDocument } from '@/lib/pdf/reports'
-import { scopeReportRows } from '@/lib/report-scope'
+import {
+  buildReportPeriodSnapshot,
+  normalizeReportMonth,
+  normalizeReportPeriod
+} from '@/lib/report-period'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { NextResponse } from 'next/server'
 import React from 'react'
@@ -24,7 +28,9 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
   try {
     const user = await requireCurrentAppUser()
     const { searchParams } = new URL(req.url)
-    const month = searchParams.get('month') ?? currentPaymentMonth()
+    const month = normalizeReportMonth(searchParams.get('month'), currentPaymentMonth())
+    const reportPeriod = normalizeReportPeriod(searchParams.get('period'))
+    const reportPeriodLabel = reportPeriod === 'all' ? 'All time' : monthLabel(month)
     const { type } = await params
     const propertyIdParam = searchParams.get('propertyId')
     const requestedPropertyId = propertyIdParam === null ? null : Number(propertyIdParam)
@@ -51,42 +57,32 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
 
     if (type === 'monthly-rent') {
       const dashboardData = await loadDashboardData()
-      const monthlyPayments = scopeReportRows(
-        dashboardData.monthlyPayments,
-        requestedPropertyId,
-        ({ unit }) => unit.propertyId
-      )
-      const tenantBalances = scopeReportRows(
-        dashboardData.tenantBalances,
-        requestedPropertyId,
-        ({ unit }) => unit.propertyId
-      )
-      const outstandingTenants = scopeReportRows(
-        dashboardData.outstandingTenants,
-        requestedPropertyId,
-        ({ unit }) => unit.propertyId
-      )
-      const payments = monthlyPayments
-        .map(({ payment, tenant, unit, property, allocatedAmount, coverageDate }) => ({
+      const snapshot = buildReportPeriodSnapshot(dashboardData, {
+        period: reportPeriod,
+        month,
+        propertyId: requestedPropertyId
+      })
+      const payments = snapshot.payments
+        .map(({ payment, tenant, unit, property, reportAmount, reportDate }) => ({
           id: payment.id,
           tenantName: tenant.fullName,
           propertyName: property.name,
           unitNumber: unit.unitNumber,
-          amountPaid: allocatedAmount,
-          paymentDate: coverageDate,
+          amountPaid: reportAmount,
+          paymentDate: reportDate,
           paymentMethod: payment.paymentMethod
         }))
 
       reportProps = {
         type: 'monthly-rent',
-        title: `${scopeName} Monthly Rent Report - ${monthLabel(month)}`,
-        month: monthLabel(month),
+        title: `${scopeName} ${reportPeriod === 'all' ? 'All-Time' : 'Monthly'} Rent Report - ${reportPeriodLabel}`,
+        month: reportPeriodLabel,
         data: {
           payments,
           summary: {
-            totalExpected: tenantBalances.reduce((total, row) => total + row.unit.rentAmount, 0),
-            totalCollected: monthlyPayments.reduce((total, row) => total + row.allocatedAmount, 0),
-            totalOutstanding: outstandingTenants.reduce((total, row) => total + row.balance, 0)
+            totalExpected: snapshot.summary.expected,
+            totalCollected: snapshot.summary.collected,
+            totalOutstanding: snapshot.summary.outstanding
           }
         }
       }
@@ -140,24 +136,26 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
       }
     } else if (type === 'unpaid-tenants') {
       const dashboardData = await loadDashboardData()
-      const unpaid = scopeReportRows(
-        dashboardData.outstandingTenants,
-        requestedPropertyId,
-        ({ unit }) => unit.propertyId
-      )
-        .map((tb) => ({
-          tenantName: tb.tenant.fullName,
-          propertyName: tb.property.name,
-          unitNumber: tb.unit.unitNumber,
-          rentAmount: tb.unit.rentAmount,
-          balance: tb.balance,
-          phone: tb.tenant.phone
+      const snapshot = buildReportPeriodSnapshot(dashboardData, {
+        period: reportPeriod,
+        month,
+        propertyId: requestedPropertyId
+      })
+      const unpaid = snapshot.tenantRows
+        .filter(({ balance }) => balance > 0)
+        .map((row) => ({
+          tenantName: row.tenant.fullName,
+          propertyName: row.property.name,
+          unitNumber: row.unit.unitNumber,
+          rentAmount: row.expected,
+          balance: row.balance,
+          phone: row.tenant.phone
         }))
 
       reportProps = {
         type: 'unpaid-tenants',
-        title: `${scopeName} Unpaid Tenants Report - ${monthLabel(month)}`,
-        month: monthLabel(month),
+        title: `${scopeName} Unpaid Tenants Report - ${reportPeriodLabel}`,
+        month: reportPeriodLabel,
         data: {
           unpaid,
           summary: {
@@ -168,22 +166,13 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
       }
     } else if (type === 'income-expense') {
       const dashboardData = await loadDashboardData()
-      const scopedExpenses = scopeReportRows(
-        dashboardData.expenses,
-        requestedPropertyId,
-        ({ expense }) => expense.propertyId
-      )
-      const scopedIncome = scopeReportRows(
-        dashboardData.monthlyPayments,
-        requestedPropertyId,
-        ({ unit }) => unit.propertyId
-      ).reduce((total, row) => total + row.allocatedAmount, 0)
-      const monthlyExpenses = scopedExpenses.filter(
-        ({ expense }) => dateKey(expense.expenseDate).slice(0, 7) === month
-      )
-      const expenseTotal = monthlyExpenses.reduce((total, row) => total + row.expense.amount, 0)
+      const snapshot = buildReportPeriodSnapshot(dashboardData, {
+        period: reportPeriod,
+        month,
+        propertyId: requestedPropertyId
+      })
       const expenseByCategory = new Map<string, number>()
-      monthlyExpenses.forEach(({ expense }) => {
+      snapshot.expenses.forEach(({ expense }) => {
         expenseByCategory.set(
           expense.category,
           (expenseByCategory.get(expense.category) ?? 0) + expense.amount
@@ -195,7 +184,7 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
         amount
       })).sort((a, b) => b.amount - a.amount)
 
-      const recentExpenses = monthlyExpenses
+      const recentExpenses = snapshot.expenses
         .map(({ expense, property }) => ({
           title: expense.title,
           category: expense.category,
@@ -206,12 +195,12 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
 
       reportProps = {
         type: 'income-expense',
-        title: `${scopeName} Income vs Expense Report - ${monthLabel(month)}`,
-        monthRange: monthLabel(month),
+        title: `${scopeName} Income vs Expense Report - ${reportPeriodLabel}`,
+        monthRange: reportPeriodLabel,
         data: {
-          income: scopedIncome,
-          expenses: expenseTotal,
-          net: scopedIncome - expenseTotal,
+          income: snapshot.summary.collected,
+          expenses: snapshot.summary.expenses,
+          net: snapshot.summary.net,
           categories,
           recentExpenses
         }
@@ -227,12 +216,69 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
         return NextResponse.json({ error: 'Property not found.' }, { status: 404 })
       }
 
+      const dashboardData = await loadDashboardData()
+      const snapshot = buildReportPeriodSnapshot(dashboardData, {
+        period: reportPeriod,
+        month,
+        propertyId: requestedPropertyId
+      })
+      const tenantTotalsByUnit = new Map<number, { amountPaid: number; balance: number }>()
+      snapshot.tenantRows.forEach((row) => {
+        const current = tenantTotalsByUnit.get(row.unit.id) ?? { amountPaid: 0, balance: 0 }
+        tenantTotalsByUnit.set(row.unit.id, {
+          amountPaid: current.amountPaid + row.amountPaid,
+          balance: current.balance + row.balance
+        })
+      })
+      const expensesByUnit = new Map<number, number>()
+      snapshot.expenses.forEach(({ expense }) => {
+        if (expense.unitId) {
+          expensesByUnit.set(
+            expense.unitId,
+            (expensesByUnit.get(expense.unitId) ?? 0) + expense.amount
+          )
+        }
+      })
+      const reportPropertyData = {
+        ...propertyData,
+        summary: {
+          ...propertyData.summary,
+          monthlyExpected: snapshot.summary.expected,
+          collectedThisMonth: snapshot.summary.collected,
+          outstandingRent: snapshot.summary.outstanding,
+          expensesThisMonth: snapshot.summary.expenses,
+          netThisMonth: snapshot.summary.net
+        },
+        unitSummaries: propertyData.unitSummaries.map((row) => {
+          const tenantTotals = tenantTotalsByUnit.get(row.unit.id) ?? { amountPaid: 0, balance: 0 }
+          return {
+            ...row,
+            monthlyAmountPaid: tenantTotals.amountPaid,
+            monthlyBalance: tenantTotals.balance,
+            outstandingBalance: tenantTotals.balance,
+            monthlyExpenses: expensesByUnit.get(row.unit.id) ?? 0
+          }
+        }),
+        recentPayments: snapshot.payments.map((row) => ({
+          payment: {
+            ...row.payment,
+            amountPaid: row.reportAmount,
+            paymentDate: row.reportDate
+          },
+          tenant: row.tenant,
+          unit: row.unit,
+          property: row.property
+        })),
+        monthlyExpenses: snapshot.expenses,
+        recentExpenses: snapshot.expenses
+      }
+
       reportProps = {
         type: 'property-detail',
-        title: `${propertyData.property.name} Property Report - ${monthLabel(month)}`,
+        title: `${propertyData.property.name} Property Report - ${reportPeriodLabel}`,
         propertyName: propertyData.property.name,
-        month: monthLabel(month),
-        data: propertyData
+        month: reportPeriodLabel,
+        data: reportPropertyData
       }
     } else if (type === 'property-summary') {
       const dashboardData = await loadDashboardData()
@@ -240,15 +286,11 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
       const propertyData = reportProperties.map((property) => {
         const pUnits = dashboardData.units.filter(({ unit }) => unit.propertyId === property.id)
         const occupiedUnits = pUnits.filter(({ unit }) => unit.status === 'occupied')
-        const tenantBalances = dashboardData.tenantBalances.filter(({ unit }) => unit.propertyId === property.id)
-        const collected = dashboardData.monthlyPayments
-          .filter(({ unit }) => unit.propertyId === property.id)
-          .reduce((total, payment) => total + payment.allocatedAmount, 0)
-        const expenses = dashboardData.expenses
-          .filter(({ expense }) =>
-            expense.propertyId === property.id && dateKey(expense.expenseDate).slice(0, 7) === month
-          )
-          .reduce((total, row) => total + row.expense.amount, 0)
+        const snapshot = buildReportPeriodSnapshot(dashboardData, {
+          period: reportPeriod,
+          month,
+          propertyId: property.id
+        })
         const occupancyRate = pUnits.length > 0
           ? Math.round((occupiedUnits.length / pUnits.length) * 100)
           : 0
@@ -260,18 +302,18 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
           unitsCount: pUnits.length,
           occupiedCount: occupiedUnits.length,
           occupancyRate,
-          expected: tenantBalances.reduce((total, row) => total + row.unit.rentAmount, 0),
-          collected,
-          outstanding: tenantBalances.reduce((total, row) => total + row.balance, 0),
-          expenses,
-          net: collected - expenses
+          expected: snapshot.summary.expected,
+          collected: snapshot.summary.collected,
+          outstanding: snapshot.summary.outstanding,
+          expenses: snapshot.summary.expenses,
+          net: snapshot.summary.net
         }
       })
 
       reportProps = {
         type: 'property-summary',
-        title: `Property Portfolio Performance - ${monthLabel(month)}`,
-        month: monthLabel(month),
+        title: `Property Portfolio Performance - ${reportPeriodLabel}`,
+        month: reportPeriodLabel,
         data: propertyData
       }
     } else {
@@ -282,12 +324,12 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
     const buffer: Buffer = await renderToBuffer(element as any)
     const filename = safeFilenamePart(
       type === 'property-detail' && reportProps?.propertyName
-        ? `estatecore-${reportProps.propertyName}-${month}-property-report`
+        ? `estatecore-${reportProps.propertyName}-${reportPeriod === 'all' ? 'all-time' : month}-property-report`
         : scopedProperty
-          ? `estatecore-${scopedProperty.name}-${type}-${month}`
+          ? `estatecore-${scopedProperty.name}-${type}-${reportPeriod === 'all' ? 'all-time' : month}`
         : type === 'payment-history'
           ? `estatecore-filtered-payments-${dateKey()}`
-        : `estatecore-${type}-${month}`
+        : `estatecore-${type}-${reportPeriod === 'all' ? 'all-time' : month}`
     )
 
     return new Response(new Uint8Array(buffer), {

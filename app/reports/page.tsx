@@ -1,9 +1,14 @@
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getDashboardData } from '@/lib/data'
-import { currency, currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
+import { currency, currentPaymentMonth, monthLabel } from '@/lib/format'
+import {
+  buildReportPeriodSnapshot,
+  normalizeReportMonth,
+  normalizeReportPeriod
+} from '@/lib/report-period'
+import { scopedReportUrl } from '@/lib/report-scope'
 import ReportScopeDownload from '@/components/ReportScopeDownload'
 import { Download } from 'lucide-react'
-import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,68 +21,49 @@ function rentStatusBadge(amountPaid: number, balance: number) {
 export default async function ReportsPage({
   searchParams
 }: {
-  searchParams?: { month?: string; status?: string }
+  searchParams?: Promise<{ month?: string; period?: string; status?: string }>
 }) {
   const user = await requireCurrentAppUser()
-  const month = searchParams?.month ?? currentPaymentMonth()
+  const query = await searchParams
+  const month = normalizeReportMonth(query?.month, currentPaymentMonth())
+  const period = normalizeReportPeriod(query?.period)
   const data = await getDashboardData(user.id, month)
-  const outstandingOnly = searchParams?.status === 'outstanding'
+  const snapshot = buildReportPeriodSnapshot(data, { period, month })
+  const periodLabel = period === 'all' ? 'All time' : monthLabel(month)
+  const outstandingOnly = query?.status === 'outstanding'
   const visibleTenantBalances = outstandingOnly
-    ? data.tenantBalances.filter(({ balance }) => balance > 0)
-    : data.tenantBalances
+    ? snapshot.tenantRows.filter(({ balance }) => balance > 0)
+    : snapshot.tenantRows
 
   // Calculations for Property Performance Summary
   const propertyStats = data.properties.map((property) => {
-    // Units in this property
     const pUnits = data.units.filter(({ unit }) => unit.propertyId === property.id)
     const occupiedUnits = pUnits.filter(({ unit }) => unit.status === 'occupied')
-
-    // Expected rent from active tenants in occupied units
-    const expected = pUnits.reduce((acc, { unit }) => {
-      // Find active tenant for this unit
-      const unitTenant = data.tenantBalances.find(({ tenant }) => tenant.unitId === unit.id)
-      return acc + (unitTenant ? unit.rentAmount : 0)
-    }, 0)
-
-    // Collected rent for this property in the selected month
-    const collected = data.monthlyPayments.reduce((acc, { allocatedAmount, unit }) => {
-      if (unit.propertyId === property.id) {
-        return acc + allocatedAmount
-      }
-      return acc
-    }, 0)
-
-    // Expenses for this property in the selected month
-    const expenses = data.expenses.reduce((acc, { expense }) => {
-      // Parse expense month
-      const expMonth = dateKey(expense.expenseDate).slice(0, 7)
-      if (expMonth === month && expense.propertyId === property.id) {
-        return acc + expense.amount
-      }
-      return acc
-    }, 0)
+    const propertySnapshot = buildReportPeriodSnapshot(data, {
+      period,
+      month,
+      propertyId: property.id
+    })
 
     return {
       property,
       totalUnits: pUnits.length,
       occupiedCount: occupiedUnits.length,
-      expected,
-      collected,
-      expenses,
-      net: collected - expenses
+      expected: propertySnapshot.summary.expected,
+      collected: propertySnapshot.summary.collected,
+      outstanding: propertySnapshot.summary.outstanding,
+      expenses: propertySnapshot.summary.expenses,
+      net: propertySnapshot.summary.net
     }
   })
 
   // Expense breakdown by category
   const expenseByCategory = new Map<string, number>()
-  data.expenses.forEach(({ expense }) => {
-    const expMonth = dateKey(expense.expenseDate).slice(0, 7)
-    if (expMonth === month) {
-      expenseByCategory.set(
-        expense.category,
-        (expenseByCategory.get(expense.category) ?? 0) + expense.amount
-      )
-    }
+  snapshot.expenses.forEach(({ expense }) => {
+    expenseByCategory.set(
+      expense.category,
+      (expenseByCategory.get(expense.category) ?? 0) + expense.amount
+    )
   })
 
   const expenseCategories = Array.from(expenseByCategory.entries()).map(([category, amount]) => ({
@@ -95,9 +81,18 @@ export default async function ReportsPage({
           </p>
         </div>
 
-        {/* Month Selector Form */}
-        <form method="get" className="grid w-full gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto] sm:items-center">
+        <form method="get" className="grid w-full gap-2 sm:w-auto sm:grid-cols-[auto_minmax(9rem,auto)_auto_minmax(10rem,auto)_auto] sm:items-center">
           {outstandingOnly && <input type="hidden" name="status" value="outstanding" />}
+          <label htmlFor="report-period" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Period:</label>
+          <select
+            id="report-period"
+            name="period"
+            defaultValue={period}
+            className="field-input px-3 py-1.5"
+          >
+            <option value="month">Selected month</option>
+            <option value="all">All time</option>
+          </select>
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Report Month:</label>
           <input
             type="month"
@@ -117,39 +112,40 @@ export default async function ReportsPage({
 
       <ReportScopeDownload
         month={month}
+        period={period}
         properties={data.properties.map((property) => ({ id: property.id, name: property.name }))}
       />
 
       {/* Financial Summary Cards */}
       <section className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
         <div className="rounded-xl border bg-white p-3 space-y-1.5 sm:p-5 sm:space-y-2" style={{ borderColor: '#e2e8f0' }}>
-          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block sm:text-xs">Income Collected</span>
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block sm:text-xs">Rent Collected</span>
           <span className="text-base font-bold block leading-tight sm:text-2xl" style={{ color: '#00A550' }}>
-            {currency(data.summary.collectedThisMonth)}
+            {currency(snapshot.summary.collected)}
           </span>
-          <span className="text-xs text-slate-500 block">for {monthLabel(month)}</span>
+          <span className="text-xs text-slate-500 block">{periodLabel}</span>
         </div>
 
         <div className="rounded-xl border bg-white p-3 space-y-1.5 sm:p-5 sm:space-y-2" style={{ borderColor: '#e2e8f0' }}>
           <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block sm:text-xs">Outstanding Rent</span>
           <span className="text-base font-bold block leading-tight text-amber-600 sm:text-2xl">
-            {currency(data.summary.totalOutstanding)}
+            {currency(snapshot.summary.outstanding)}
           </span>
-          <span className="text-xs text-slate-500 block">unpaid balances</span>
+          <span className="text-xs text-slate-500 block">{period === 'all' ? 'all rent due to date' : `due for ${periodLabel}`}</span>
         </div>
 
         <div className="rounded-xl border bg-white p-3 space-y-1.5 sm:p-5 sm:space-y-2" style={{ borderColor: '#e2e8f0' }}>
-          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block sm:text-xs">Monthly Expenses</span>
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block sm:text-xs">Expenses</span>
           <span className="text-base font-bold block leading-tight text-rose-600 sm:text-2xl">
-            {currency(data.summary.expensesThisMonth)}
+            {currency(snapshot.summary.expenses)}
           </span>
-          <span className="text-xs text-slate-500 block">maintenance & operations</span>
+          <span className="text-xs text-slate-500 block">{periodLabel}</span>
         </div>
 
         <div className="rounded-xl border bg-white p-3 space-y-1.5 sm:p-5 sm:space-y-2" style={{ borderColor: '#e2e8f0' }}>
-          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block sm:text-xs">Net Operating Income</span>
-          <span className="text-base font-bold block leading-tight sm:text-2xl" style={{ color: data.summary.netThisMonth >= 0 ? '#00A550' : '#e11d48' }}>
-            {currency(data.summary.netThisMonth)}
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block sm:text-xs">Net Cash Flow</span>
+          <span className="text-base font-bold block leading-tight sm:text-2xl" style={{ color: snapshot.summary.net >= 0 ? '#00A550' : '#e11d48' }}>
+            {currency(snapshot.summary.net)}
           </span>
           <span className="text-xs text-slate-500 block">collected - expenses</span>
         </div>
@@ -161,9 +157,9 @@ export default async function ReportsPage({
         <div id="tenant-rent-report" className="scroll-mt-4 lg:col-span-2 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-slate-800">{outstandingOnly ? 'Outstanding Rent' : 'Rent Status (Monthly Breakdown)'}</h2>
+              <h2 className="text-lg font-bold text-slate-800">{outstandingOnly ? 'Outstanding Rent' : `Rent Status - ${periodLabel}`}</h2>
               <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded mt-1 inline-block">
-                {data.summary.paidTenants} / {data.summary.activeTenants} Active Occupied Paid
+                {snapshot.summary.paidTenants} paid, {snapshot.summary.outstandingTenants} outstanding
               </span>
             </div>
           </div>
@@ -183,7 +179,7 @@ export default async function ReportsPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleTenantBalances.map(({ tenant, unit, property, amountPaid, balance }) => (
+                  {visibleTenantBalances.map(({ tenant, unit, property, expected, amountPaid, balance }) => (
                     <tr key={tenant.id}>
                       <td data-label="Tenant" className="font-semibold text-slate-800 text-sm">
                         {tenant.fullName}
@@ -193,7 +189,7 @@ export default async function ReportsPage({
                         <span className="block text-[10px] text-slate-400">{property.name}</span>
                       </td>
                       <td data-label="Expected" className="text-xs text-slate-600">
-                        {currency(unit.rentAmount)}
+                        {currency(expected)}
                       </td>
                       <td data-label="Paid" className="text-xs font-semibold" style={{ color: '#00A550' }}>
                         {currency(amountPaid)}
@@ -211,7 +207,7 @@ export default async function ReportsPage({
                   {visibleTenantBalances.length === 0 && (
                     <tr>
                       <td colSpan={6} className="py-8 text-center text-sm text-slate-400">
-                        {outstandingOnly ? 'No outstanding rent for this month.' : 'No active occupied units found.'}
+                        {outstandingOnly ? `No outstanding rent for ${periodLabel}.` : `No tenant rent records for ${periodLabel}.`}
                       </td>
                     </tr>
                   )}
@@ -226,8 +222,8 @@ export default async function ReportsPage({
           <h2 className="text-lg font-bold text-slate-800">Expense Breakdown</h2>
           <div className="rounded-xl border bg-white p-5 space-y-4" style={{ borderColor: '#e2e8f0' }}>
             {expenseCategories.map(({ category, amount }) => {
-              const percentage = data.summary.expensesThisMonth > 0 
-                ? (amount / data.summary.expensesThisMonth) * 100 
+              const percentage = snapshot.summary.expenses > 0
+                ? (amount / snapshot.summary.expenses) * 100
                 : 0
               return (
                 <div key={category} className="space-y-1.5">
@@ -243,7 +239,7 @@ export default async function ReportsPage({
             })}
             {expenseCategories.length === 0 && (
               <div className="py-8 text-center text-xs text-slate-400">
-                No expense records for this month.
+                No expense records for {periodLabel.toLowerCase()}.
               </div>
             )}
           </div>
@@ -262,15 +258,16 @@ export default async function ReportsPage({
                   <th>Property</th>
                   <th>Location</th>
                   <th>Occupancy</th>
-                  <th>Monthly Expected</th>
-                  <th>Monthly Collected</th>
-                  <th>Monthly Expenses</th>
+                  <th>{period === 'all' ? 'Tracked Rent' : 'Expected'}</th>
+                  <th>Collected</th>
+                  <th>Outstanding</th>
+                  <th>Expenses</th>
                   <th>Net Cash Flow</th>
                   <th>Property Report</th>
                 </tr>
               </thead>
               <tbody>
-                {propertyStats.map(({ property, totalUnits, occupiedCount, expected, collected, expenses, net }) => (
+                {propertyStats.map(({ property, totalUnits, occupiedCount, expected, collected, outstanding, expenses, net }) => (
                   <tr key={property.id}>
                     <td data-label="Property" className="font-semibold text-slate-800 text-sm">
                       {property.name}
@@ -281,13 +278,16 @@ export default async function ReportsPage({
                     <td data-label="Occupancy">
                       <span className="badge badge-green">{occupiedCount} / {totalUnits} Occupied</span>
                     </td>
-                    <td data-label="Monthly Expected" className="text-xs text-slate-600">
+                    <td data-label={period === 'all' ? 'Tracked Rent' : 'Expected'} className="text-xs text-slate-600">
                       {currency(expected)}
                     </td>
-                    <td data-label="Monthly Collected" className="text-xs font-semibold" style={{ color: '#00A550' }}>
+                    <td data-label="Collected" className="text-xs font-semibold" style={{ color: '#00A550' }}>
                       {currency(collected)}
                     </td>
-                    <td data-label="Monthly Expenses" className="text-xs font-semibold text-rose-600">
+                    <td data-label="Outstanding" className="text-xs font-semibold text-amber-700">
+                      {currency(outstanding)}
+                    </td>
+                    <td data-label="Expenses" className="text-xs font-semibold text-rose-600">
                       {currency(expenses)}
                     </td>
                     <td data-label="Net Cash Flow" className="text-xs font-bold" style={{ color: net >= 0 ? '#00A550' : '#e11d48' }}>
@@ -295,7 +295,7 @@ export default async function ReportsPage({
                     </td>
                     <td data-label="Property Report">
                       <a
-                        href={`/api/reports/property-detail?month=${month}&propertyId=${property.id}`}
+                        href={scopedReportUrl('property-detail', month, property.id, period)}
                         download
                         className="inline-flex min-h-10 items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
                       >
@@ -307,7 +307,7 @@ export default async function ReportsPage({
                 ))}
                 {propertyStats.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="py-8 text-center text-sm text-slate-400">
+                    <td colSpan={9} className="py-8 text-center text-sm text-slate-400">
                       No properties found in your portfolio.
                     </td>
                   </tr>

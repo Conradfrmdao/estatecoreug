@@ -29,4 +29,8 @@ test('adds the selected property to every scoped report download', () => {
     scopedReportUrl('monthly-rent', '2026-07'),
     '/api/reports/monthly-rent?month=2026-07'
   )
+  assert.equal(
+    scopedReportUrl('unpaid-tenants', '2026-07', 11, 'all'),
+    '/api/reports/unpaid-tenants?month=2026-07&propertyId=11&period=all'
+  )
 })
