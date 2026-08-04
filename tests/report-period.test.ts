@@ -86,7 +86,7 @@ function reportDataFixture() {
       }
     ],
     tenantBalances: [
-      { tenant, unit, property, amountPaid: 200, balance: 300 },
+      { tenant, unit, property, amountPaid: 0, balance: 500 },
       { tenant: otherTenant, unit: otherUnit, property: otherProperty, amountPaid: 900, balance: 0 }
     ],
     outstandingTenants: [
@@ -95,7 +95,7 @@ function reportDataFixture() {
   } as any
 }
 
-test('selected-month reports exclude accumulated balances and other months', () => {
+test('selected-month reports use billing-month allocations instead of raw tenant balances', () => {
   const snapshot = buildReportPeriodSnapshot(reportDataFixture(), {
     period: 'month',
     month: '2026-07',

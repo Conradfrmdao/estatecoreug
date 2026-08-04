@@ -116,16 +116,28 @@ export function buildReportPeriodSnapshot(
     periodExpenses = data.expenses
       .filter(({ expense }) => matchesProperty(propertyId, expense.propertyId))
   } else {
+    const paidByTenant = new Map<number, number>()
+    for (const { tenant, allocatedAmount } of data.monthlyPayments) {
+      paidByTenant.set(
+        tenant.id,
+        (paidByTenant.get(tenant.id) ?? 0) + allocatedAmount
+      )
+    }
+
     tenantRows = data.tenantBalances
       .filter(({ unit }) => matchesProperty(propertyId, unit.propertyId))
-      .map((row) => ({
-        tenant: row.tenant,
-        unit: row.unit,
-        property: row.property,
-        expected: row.unit.rentAmount,
-        amountPaid: row.amountPaid,
-        balance: row.balance
-      }))
+      .map((row) => {
+        const amountPaid = paidByTenant.get(row.tenant.id) ?? 0
+
+        return {
+          tenant: row.tenant,
+          unit: row.unit,
+          property: row.property,
+          expected: row.unit.rentAmount,
+          amountPaid,
+          balance: Math.max(row.unit.rentAmount - amountPaid, 0)
+        }
+      })
 
     payments = data.monthlyPayments
       .filter(({ unit }) => matchesProperty(propertyId, unit.propertyId))
