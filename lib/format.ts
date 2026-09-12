@@ -61,3 +61,32 @@ export function toDateInputValue(value: Date | string | null | undefined) {
 
   return new Date(value).toISOString().slice(0, 10)
 }
+
+export function monthShortLabel(month: string) {
+  if (!month) {
+    return 'All months'
+  }
+
+  const [year, monthNumber] = month.split('-').map(Number)
+  if (!year || !monthNumber) {
+    return month
+  }
+
+  return new Intl.DateTimeFormat('en-UG', {
+    month: 'short',
+    year: 'numeric'
+  }).format(new Date(Date.UTC(year, monthNumber - 1, 1)))
+}
+
+export function monthListLabel(months: string[], maxListed = 2) {
+  if (months.length === 0) {
+    return ''
+  }
+
+  const listed = months.slice(0, maxListed).map(monthShortLabel)
+  const remaining = months.length - listed.length
+
+  return remaining > 0
+    ? `${listed.join(', ')} +${remaining} more`
+    : listed.join(', ')
+}

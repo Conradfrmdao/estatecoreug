@@ -1,6 +1,7 @@
 'use client'
 
-import { currency, formatDate, monthLabel } from '@/lib/format'
+import CarryForwardNote, { CarryForwardBreakdown } from '@/components/CarryForwardNote'
+import { currency, currentPaymentMonth, formatDate, monthLabel, monthShortLabel } from '@/lib/format'
 import { Building2, CalendarDays, Home, Mail, Phone, UserRound, WalletCards, X } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -29,6 +30,10 @@ export type TenantSearchRecord = {
   targetBalance: number
   targetScheduledBalance: number
   totalOutstandingBalance: number
+  outstandingMonths: { month: string; balance: number }[]
+  carriedForwardBalance: number
+  carriedForwardMonths: { month: string; balance: number }[]
+  currentMonthBalance: number
   displayPaymentStatus: RentDisplayStatus
 }
 
@@ -156,14 +161,42 @@ export default function TenantSearchResults({ tenants }: { tenants: TenantSearch
               </div>
               <div>
                 <dt className="text-xs font-black uppercase text-slate-400">
-                  Outstanding balance
+                  Total amount demanded
                 </dt>
                 <dd className={`mt-1 text-base font-black ${selected.totalOutstandingBalance > 0 ? 'text-amber-700' : 'text-slate-800'}`}>
                   {selected.totalOutstandingBalance > 0 ? currency(selected.totalOutstandingBalance) : 'Cleared'}
                 </dd>
+                <dd>
+                  <CarryForwardNote
+                    carriedForwardBalance={selected.carriedForwardBalance}
+                    carriedForwardMonths={selected.carriedForwardMonths}
+                  />
+                </dd>
                 <dd className="text-xs text-slate-500">{monthLabel(selected.targetMonth)} - {currency(selected.targetAmountPaid)} already paid</dd>
               </div>
             </div>
+
+            {selected.outstandingMonths.length > 0 && (
+              <div className="p-4">
+                <dt className="text-xs font-black uppercase text-slate-400">How this balance builds up</dt>
+                <dd className="mt-2">
+                  <CarryForwardBreakdown
+                    months={selected.outstandingMonths}
+                    currentMonth={currentPaymentMonth()}
+                  />
+                  <div className="mt-2 flex items-center justify-between gap-3 border-t border-slate-200 pt-2 text-xs">
+                    <span className="font-black uppercase tracking-wide text-slate-500">Total demanded</span>
+                    <span className="font-black text-amber-700">{currency(selected.totalOutstandingBalance)}</span>
+                  </div>
+                  {selected.carriedForwardBalance > 0 && (
+                    <p className="mt-2 text-[11px] font-semibold text-slate-500">
+                      {currency(selected.currentMonthBalance)} is for {monthShortLabel(currentPaymentMonth())};
+                      {' '}{currency(selected.carriedForwardBalance)} was carried forward from earlier months.
+                    </p>
+                  )}
+                </dd>
+              </div>
+            )}
           </dl>
         </div>
 
@@ -174,7 +207,7 @@ export default function TenantSearchResults({ tenants }: { tenants: TenantSearch
           <Link href={`/tenants/${selected.id}/edit`} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
             Edit tenant
           </Link>
-          {selected.active && selected.displayPaymentStatus === 'outstanding' && (
+          {selected.active && (
             <Link href={`/payments/new?tenantId=${selected.id}`} className="inline-flex min-h-11 items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-700">
               Record payment
             </Link>
@@ -230,6 +263,11 @@ export default function TenantSearchResults({ tenants }: { tenants: TenantSearch
                       <span className="block text-xs text-slate-500">
                         {tenant.totalOutstandingBalance > 0 ? currency(tenant.totalOutstandingBalance) : 'Cleared'}
                       </span>
+                      <CarryForwardNote
+                        carriedForwardBalance={tenant.carriedForwardBalance}
+                        carriedForwardMonths={tenant.carriedForwardMonths}
+                        className="block"
+                      />
                     </td>
                     <td data-label="Status"><span className={`rounded-full px-2 py-1 text-xs font-black ${status.className}`}>{status.label}</span></td>
                     <td data-label="Details">

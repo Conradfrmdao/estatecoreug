@@ -3,6 +3,7 @@
 import React, { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import FormNotice from '@/components/FormNotice'
+import CarryForwardNote, { CarryForwardBreakdown } from '@/components/CarryForwardNote'
 import { currency, currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
 import { cleanMoneyInput } from '@/lib/money'
 import { Building2, Check, ChevronLeft, Search, UserRound, X } from 'lucide-react'
@@ -27,6 +28,10 @@ type TenantOption = {
   targetScheduledBalance?: number
   totalOutstandingBalance?: number
   totalOutstandingPeriods?: number
+  outstandingMonths?: { month: string; balance: number }[]
+  carriedForwardBalance?: number
+  carriedForwardMonths?: { month: string; balance: number }[]
+  currentMonthBalance?: number
 }
 
 type PropertyOption = {
@@ -85,7 +90,19 @@ function targetCoverageStartForTenant(tenant: TenantOption) {
   return (tenant.targetCoverageStart ?? tenant.targetDueDate ?? tenant.rentDueDate).slice(0, 10)
 }
 
-function paymentTargetPresentation() {
+function paymentDueAmountForTenant(tenant: TenantOption) {
+  const outstanding = Number(tenant.totalOutstandingBalance ?? 0)
+  if (outstanding > 0) return outstanding
+
+  const targetBalance = Number(tenant.targetBalance ?? 0)
+  return targetBalance > 0 ? targetBalance : tenant.rentAmount
+}
+
+function paymentTargetPresentation(tenant?: TenantOption) {
+  if (tenant && Number(tenant.totalOutstandingBalance ?? 0) <= 0) {
+    return { label: 'Paid up', amountClass: 'text-emerald-700', labelClass: 'text-emerald-600' }
+  }
+
   return { label: 'Outstanding', amountClass: 'text-amber-700', labelClass: 'text-amber-600' }
 }
 
@@ -119,7 +136,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
 
   useEffect(() => {
     fetch(
-      initialData ? '/api/tenants' : '/api/tenants?active=true&paymentDue=true',
+      initialData ? '/api/tenants' : '/api/tenants?active=true',
       { cache: 'no-store' }
     )
       .then((r) => r.json())
@@ -157,7 +174,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
   }, [queryTenantId, initialData])
 
   const selectedTenant = tenants.find((tenant) => tenant.id === Number(tenantId))
-  const selectedTarget = selectedTenant ? paymentTargetPresentation() : null
+  const selectedTarget = selectedTenant ? paymentTargetPresentation(selectedTenant) : null
   const properties = Array.from(
     tenants.reduce((map, tenant) => {
       const existing = map.get(tenant.propertyId)
@@ -385,7 +402,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
                     {filteredProperties.length === 0 && (
                       <p className="rounded-xl bg-slate-50 px-3 py-6 text-center text-sm font-semibold text-slate-500">
                         {tenants.length === 0
-                          ? 'No tenant payments are currently due.'
+                          ? 'No active tenants were found.'
                           : 'No properties match that search.'}
                       </p>
                     )}
@@ -418,7 +435,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
 
                   <div className="grid gap-2">
                     {tenantOptions.map((tenant) => {
-                      const target = paymentTargetPresentation()
+                      const target = paymentTargetPresentation(tenant)
                       return (
                         <button
                           key={tenant.id}
@@ -440,11 +457,17 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
                               {target.label}
                             </span>
                             <span className={`block text-sm font-black ${target.amountClass}`}>
-                              {currency(Number(tenant.totalOutstandingBalance ?? tenant.targetBalance ?? tenant.rentAmount))}
+                              {currency(paymentDueAmountForTenant(tenant))}
                             </span>
                             <span className="block text-[10px] font-semibold text-slate-400">
                               {formatDate(tenant.nextPaymentDate ?? tenant.targetDueDate ?? tenant.rentDueDate)}
                             </span>
+                            <CarryForwardNote
+                              compact
+                              carriedForwardBalance={Number(tenant.carriedForwardBalance ?? 0)}
+                              carriedForwardMonths={tenant.carriedForwardMonths ?? []}
+                              className="justify-end whitespace-nowrap text-right"
+                            />
                             {tenant.id === tenantId && <Check className="ml-auto mt-1 h-4 w-4 text-emerald-700" strokeWidth={2} />}
                           </span>
                         </button>
@@ -464,27 +487,51 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
       )}
 
       {selectedTenant ? (
-        <div className="grid gap-3 rounded-xl border bg-slate-50 p-4 text-sm text-slate-700 sm:grid-cols-3" style={{ borderColor: '#e2e8f0' }}>
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Monthly rent</p>
-            <p className="mt-1 font-black text-slate-950">{currency(selectedTenant.rentAmount)}</p>
+        <div className="grid gap-4 rounded-xl border bg-slate-50 p-4 text-sm text-slate-700" style={{ borderColor: '#e2e8f0' }}>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Monthly rent</p>
+              <p className="mt-1 font-black text-slate-950">{currency(selectedTenant.rentAmount)}</p>
+            </div>
+            <div>
+              <p className={`text-xs font-black uppercase tracking-[0.12em] ${selectedTarget?.labelClass ?? 'text-slate-400'}`}>
+                {selectedTarget?.label ?? 'Scheduled amount'}
+              </p>
+              <p className={`mt-1 font-black ${selectedTarget?.amountClass ?? 'text-slate-950'}`}>
+                {currency(paymentDueAmountForTenant(selectedTenant))}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Next scheduled {formatDate(selectedTenant.nextPaymentDate ?? selectedTenant.targetDueDate ?? selectedTenant.rentDueDate)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Already paid</p>
+              <p className="mt-1 font-black text-emerald-700">{currency(Number(selectedTenant.targetAmountPaid ?? 0))}</p>
+              <p className="mt-0.5 text-xs text-slate-500">Extra money carries forward.</p>
+            </div>
           </div>
-          <div>
-            <p className={`text-xs font-black uppercase tracking-[0.12em] ${selectedTarget?.labelClass ?? 'text-slate-400'}`}>
-              {selectedTarget?.label ?? 'Scheduled amount'}
+
+          {Number(selectedTenant.carriedForwardBalance ?? 0) > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">
+                Balance carried forward
+              </p>
+              <p className="mt-1 text-sm font-black text-amber-800">
+                {currency(Number(selectedTenant.carriedForwardBalance ?? 0))} from earlier months
+              </p>
+              <CarryForwardBreakdown
+                months={selectedTenant.outstandingMonths ?? []}
+                currentMonth={currentPaymentMonth()}
+                className="mt-2 border-t border-amber-200 pt-2"
+              />
+            </div>
+          )}
+
+          {Number(selectedTenant.totalOutstandingBalance ?? 0) <= 0 && (
+            <p className="rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-xs font-semibold text-emerald-800">
+              This tenant has no rent due yet. This payment will be recorded in advance for {monthLabel(paymentMonth)}.
             </p>
-            <p className={`mt-1 font-black ${selectedTarget?.amountClass ?? 'text-slate-950'}`}>
-              {currency(Number(selectedTenant.targetScheduledBalance ?? selectedTenant.targetBalance ?? selectedTenant.rentAmount))}
-            </p>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Next scheduled {formatDate(selectedTenant.nextPaymentDate ?? selectedTenant.targetDueDate ?? selectedTenant.rentDueDate)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Already paid</p>
-            <p className="mt-1 font-black text-emerald-700">{currency(Number(selectedTenant.targetAmountPaid ?? 0))}</p>
-            <p className="mt-0.5 text-xs text-slate-500">Extra money carries forward.</p>
-          </div>
+          )}
         </div>
       ) : null}
 

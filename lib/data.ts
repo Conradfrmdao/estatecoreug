@@ -14,7 +14,12 @@ import {
 } from '@/drizzle/schema'
 import { db } from '@/lib/db'
 import { currentPaymentMonth, dateKey } from '@/lib/format'
-import { getRentDisplayStatus, type RentDisplayStatus } from '@/lib/rent-display'
+import {
+  getRentDisplayStatus,
+  summarizeCarryForward,
+  type OutstandingMonthSummary,
+  type RentDisplayStatus
+} from '@/lib/rent-display'
 import {
   addMonths,
   allocatedPaymentForBillingPeriod,
@@ -85,6 +90,10 @@ export type TenantPaymentTarget = TenantWithUnit & {
   targetScheduledBalance: number
   totalOutstandingBalance: number
   totalOutstandingPeriods: number
+  outstandingMonths: OutstandingMonthSummary[]
+  carriedForwardBalance: number
+  carriedForwardMonths: OutstandingMonthSummary[]
+  currentMonthBalance: number
   displayPaymentStatus: RentDisplayStatus
 }
 
@@ -92,6 +101,10 @@ export type TenantOutstandingBalance = TenantWithUnit & {
   balance: number
   periods: number
   oldestDueDate: Date
+  outstandingMonths: OutstandingMonthSummary[]
+  carriedForwardBalance: number
+  carriedForwardMonths: OutstandingMonthSummary[]
+  currentMonthBalance: number
 }
 
 export type PropertyUnitSummary = UnitWithProperty & {
@@ -207,6 +220,7 @@ function buildOutstandingTenantBalances(
   paymentRows: PaymentWithTenant[],
   referenceDate = new Date()
 ) {
+  const currentMonth = dateKey(referenceDate).slice(0, 7)
   const paymentsByTenant = new Map<number, RentPayment[]>()
 
   for (const { payment } of paymentRows) {
@@ -226,11 +240,18 @@ function buildOutstandingTenantBalances(
       return []
     }
 
+    const outstandingMonths = outstanding.months.map(({ month, balance }) => ({ month, balance }))
+    const carryForward = summarizeCarryForward(outstandingMonths, currentMonth)
+
     return [{
       ...row,
       balance: outstanding.balance,
       periods: outstanding.periods,
-      oldestDueDate: outstanding.oldestDueDate
+      oldestDueDate: outstanding.oldestDueDate,
+      outstandingMonths,
+      carriedForwardBalance: carryForward.carriedForwardBalance,
+      carriedForwardMonths: carryForward.carriedForwardMonths,
+      currentMonthBalance: carryForward.currentMonthBalance
     } satisfies TenantOutstandingBalance]
   })
 }
@@ -564,6 +585,7 @@ export async function listTenantPaymentTargets(userId: number) {
   const paymentRows = await listPaymentsForUser(userId)
   const paymentsByTenant = new Map<number, RentPayment[]>()
   const referenceDate = new Date()
+  const currentMonth = dateKey(referenceDate).slice(0, 7)
 
   for (const { payment } of paymentRows) {
     const rows = paymentsByTenant.get(payment.tenantId) ?? []
@@ -596,6 +618,8 @@ export async function listTenantPaymentTargets(userId: number) {
       parseMonth(target.month)
     )
     const hasRecordedPayment = tenantPayments.some((payment) => payment.amountPaid > 0)
+    const outstandingMonths = outstanding.months.map(({ month, balance }) => ({ month, balance }))
+    const carryForward = summarizeCarryForward(outstandingMonths, currentMonth)
 
     return {
       ...row,
@@ -622,6 +646,10 @@ export async function listTenantPaymentTargets(userId: number) {
           }),
       totalOutstandingBalance: outstanding.balance,
       totalOutstandingPeriods: outstanding.periods,
+      outstandingMonths,
+      carriedForwardBalance: carryForward.carriedForwardBalance,
+      carriedForwardMonths: carryForward.carriedForwardMonths,
+      currentMonthBalance: carryForward.currentMonthBalance,
       displayPaymentStatus: getRentDisplayStatus({
         outstandingBalance: outstanding.balance,
         amountPaid: target.amountPaid,

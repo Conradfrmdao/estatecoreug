@@ -72,6 +72,10 @@ export async function GET(req: Request) {
       targetScheduledBalance: row.targetScheduledBalance,
       totalOutstandingBalance: row.totalOutstandingBalance,
       totalOutstandingPeriods: row.totalOutstandingPeriods,
+      outstandingMonths: row.outstandingMonths,
+      carriedForwardBalance: row.carriedForwardBalance,
+      carriedForwardMonths: row.carriedForwardMonths,
+      currentMonthBalance: row.currentMonthBalance,
       displayPaymentStatus: row.displayPaymentStatus,
     }))
   )

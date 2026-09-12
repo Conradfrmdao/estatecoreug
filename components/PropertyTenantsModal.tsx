@@ -1,8 +1,9 @@
 'use client'
 
 import DeleteButton from '@/components/DeleteButton'
+import CarryForwardNote from '@/components/CarryForwardNote'
 import PropertyRecordsModal from '@/components/PropertyRecordsModal'
-import { currency, formatDate } from '@/lib/format'
+import { currency, currentPaymentMonth, formatDate, monthShortLabel } from '@/lib/format'
 import type { RentDisplayStatus } from '@/lib/rent-display'
 import { Search } from 'lucide-react'
 import Link from 'next/link'
@@ -17,6 +18,9 @@ type TenantRecord = {
   moveInDate: string
   nextPaymentDate: string
   totalOutstandingBalance: number
+  carriedForwardBalance: number
+  carriedForwardMonths: { month: string; balance: number }[]
+  currentMonthBalance: number
   displayPaymentStatus: RentDisplayStatus
   active: boolean
 }
@@ -40,6 +44,7 @@ export default function PropertyTenantsModal({
   downloadHref: string
 }) {
   const [query, setQuery] = useState('')
+  const currentMonthName = useMemo(() => monthShortLabel(currentPaymentMonth()), [])
   const filteredTenants = useMemo(() => {
     const search = query.trim().toLowerCase()
     if (!search) return tenants
@@ -121,6 +126,16 @@ export default function PropertyTenantsModal({
                         ? `${currency(tenant.totalOutstandingBalance)} outstanding`
                         : rentAccount.badge}
                     </span>
+                    <CarryForwardNote
+                      carriedForwardBalance={tenant.carriedForwardBalance}
+                      carriedForwardMonths={tenant.carriedForwardMonths}
+                      className="block"
+                    />
+                    {tenant.carriedForwardBalance > 0 && (
+                      <span className="mt-0.5 block text-[11px] font-semibold text-slate-500">
+                        {currency(tenant.currentMonthBalance)} for {currentMonthName}
+                      </span>
+                    )}
                   </td>
                   <td data-label="Status">
                     <span className={tenant.active ? 'badge badge-green' : 'badge bg-slate-100 text-slate-500'}>
@@ -129,7 +144,7 @@ export default function PropertyTenantsModal({
                   </td>
                   <td data-label="Actions">
                     <div className="flex items-center justify-end gap-2">
-                      {tenant.active && tenant.displayPaymentStatus === 'outstanding' && (
+                      {tenant.active && (
                         <Link href={`/payments/new?tenantId=${tenant.id}`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-slate-50">
                           Record Payment
                         </Link>

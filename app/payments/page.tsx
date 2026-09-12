@@ -1,11 +1,12 @@
 import DeleteButton from '@/components/DeleteButton'
 import PaymentFilters from '@/components/PaymentFilters'
 import PropertyRecordsModal from '@/components/PropertyRecordsModal'
+import TenantRentDemandList from '@/components/TenantRentDemandList'
 import { requireCurrentAppUser } from '@/lib/auth'
-import { listPaymentsForUser, listPropertiesForUser } from '@/lib/data'
-import { currency, dateKey, formatDate, monthLabel } from '@/lib/format'
+import { listPaymentsForUser, listPropertiesForUser, listTenantPaymentTargets } from '@/lib/data'
+import { currency, dateKey, formatDate, monthLabel, monthShortLabel } from '@/lib/format'
 import { normalizePaymentFilters, paymentMatchesSearch, paymentReceivedInPeriod } from '@/lib/payment-filters'
-import { paymentBillingPeriods } from '@/lib/rent-cycle'
+import { paymentAllocations, paymentBillingPeriods } from '@/lib/rent-cycle'
 import { Building2, Download, Plus, WalletCards } from 'lucide-react'
 import Link from 'next/link'
 
@@ -28,9 +29,10 @@ export default async function PaymentsPage({
   const user = await requireCurrentAppUser()
   const params = await searchParams
   const q = (params?.q ?? '').trim().toLowerCase()
-  const [properties, paymentRows] = await Promise.all([
+  const [properties, paymentRows, tenantTargets] = await Promise.all([
     listPropertiesForUser(user.id),
-    listPaymentsForUser(user.id)
+    listPaymentsForUser(user.id),
+    listTenantPaymentTargets(user.id)
   ])
   const today = dateKey()
   const requestedPropertyId = Number(params?.propertyId)
@@ -74,11 +76,29 @@ export default async function PaymentsPage({
         ? [property.name, property.location].some((value) => value.toLowerCase().includes(q))
         : true
 
+      const demandRows = tenantTargets
+        .filter((row) =>
+          row.property.id === property.id && row.tenant.active && row.totalOutstandingBalance > 0
+        )
+        .sort((a, b) => b.carriedForwardBalance - a.carriedForwardBalance)
+        .map((row) => ({
+          tenantId: row.tenant.id,
+          tenantName: row.tenant.fullName,
+          unitNumber: row.unit.unitNumber,
+          rentAmount: row.unit.rentAmount,
+          nextPaymentDate: row.nextPaymentDate.toISOString(),
+          totalOutstandingBalance: row.totalOutstandingBalance,
+          carriedForwardBalance: row.carriedForwardBalance,
+          carriedForwardMonths: row.carriedForwardMonths,
+          currentMonthBalance: row.currentMonthBalance
+        }))
+
       return {
         property,
         allPayments,
         payments,
         propertyMatches,
+        demandRows,
         totalPaid: allPayments.reduce((total, { payment }) => total + payment.amountPaid, 0),
         matchingPaid: payments.reduce((total, { payment }) => total + payment.amountPaid, 0)
       }
@@ -140,7 +160,7 @@ export default async function PaymentsPage({
       <section className="space-y-3">
         <h2 className="text-sm font-black text-slate-950">Properties</h2>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {propertyCards.map(({ property, allPayments, payments: propertyPayments, totalPaid, matchingPaid }) => {
+          {propertyCards.map(({ property, allPayments, payments: propertyPayments, demandRows, totalPaid, matchingPaid }) => {
             const downloadParams = new URLSearchParams({
               propertyId: String(property.id),
               period,
@@ -171,12 +191,21 @@ export default async function PaymentsPage({
                   <p className="text-[10px] font-bold uppercase text-emerald-700">{q ? 'Matching paid' : 'Total paid'}</p>
                 </div>
               </div>
+              {demandRows.length > 0 && (
+                <p className="mt-2 text-[11px] font-semibold text-amber-700">
+                  {currency(demandRows.reduce((total, row) => total + row.totalOutstandingBalance, 0))} demanded from{' '}
+                  {demandRows.length} tenant{demandRows.length === 1 ? '' : 's'}
+                  {demandRows.some((row) => row.carriedForwardBalance > 0) &&
+                    ` - includes ${currency(demandRows.reduce((total, row) => total + row.carriedForwardBalance, 0))} carried forward`}
+                </p>
+              )}
               <PropertyRecordsModal
                 buttonLabel={propertyPayments.length === allPayments.length ? 'View payments' : `View ${propertyPayments.length} matching payments`}
                 title={`${property.name} Payments`}
                 description={`${property.location} - ${propertyPayments.length} payment${propertyPayments.length === 1 ? '' : 's'} shown`}
                 downloadHref={`/api/reports/payment-history?${downloadParams.toString()}`}
               >
+                <TenantRentDemandList rows={demandRows} />
                 <div className="overflow-x-auto p-3 sm:p-5">
                   <table className="data-table">
                     <thead>
@@ -209,6 +238,34 @@ export default async function PaymentsPage({
                           <td data-label="Rent Coverage" className="text-sm text-slate-700">
                             {paymentBillingPeriods(payment).map((period) => monthLabel(period.month)).join(', ')}
                             <span className="mt-1 block text-xs text-slate-400">{payment.monthsCovered} month{payment.monthsCovered === 1 ? '' : 's'}</span>
+                            {(() => {
+                              const allocations = paymentAllocations(payment)
+                              const settledMonths = allocations.filter(
+                                (allocation) => allocation.month < dateKey(payment.paymentDate).slice(0, 7)
+                              )
+
+                              if (allocations.length < 2 && settledMonths.length === 0) {
+                                return null
+                              }
+
+                              return (
+                                <span className="mt-1.5 block space-y-0.5">
+                                  {allocations.map((allocation) => (
+                                    <span key={allocation.month} className="flex items-center justify-between gap-2 text-[11px]">
+                                      <span className="font-semibold text-slate-500">
+                                        {monthShortLabel(allocation.month)}
+                                        {allocation.month < dateKey(payment.paymentDate).slice(0, 7) && (
+                                          <span className="ml-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-black uppercase text-amber-700">
+                                            Arrears
+                                          </span>
+                                        )}
+                                      </span>
+                                      <span className="font-black text-slate-700">{currency(allocation.amount)}</span>
+                                    </span>
+                                  ))}
+                                </span>
+                              )
+                            })()}
                           </td>
                           <td data-label="Amount Paid" className="font-bold text-emerald-600">{currency(payment.amountPaid)}</td>
                           <td data-label="Remaining Balance" className={payment.balanceAfterPayment > 0 ? 'text-sm text-amber-700' : 'text-sm text-slate-500'}>

@@ -20,6 +20,13 @@ export type RentPeriod = {
   end: Date
 }
 
+export type OutstandingMonth = {
+  month: string
+  balance: number
+  amountPaid: number
+  dueDate: Date
+}
+
 export type PaymentLike = Pick<
   RentPayment,
   'amountPaid' | 'paymentMonth' | 'monthsCovered'
@@ -483,6 +490,23 @@ export function findOldestOutstandingRent(params: {
     cursor = nextMonth(cursor)
   }
 
+  let futureCursor = preferredMonth
+  for (let index = 0; index < 240; index += 1) {
+    const paid = totals.get(futureCursor) ?? 0
+    const balance = Math.max(params.rentAmount - paid, 0)
+
+    if (balance > 0) {
+      return {
+        month: futureCursor,
+        dueDate: rentDueDateForPeriod(moveInDate, parseMonth(futureCursor)),
+        amountPaid: paid,
+        balance
+      }
+    }
+
+    futureCursor = nextMonth(futureCursor)
+  }
+
   const paid = totals.get(preferredMonth) ?? 0
   return {
     month: preferredMonth,
@@ -683,9 +707,10 @@ export function calculateOutstandingRentThroughDate(
   let balance = 0
   let periods = 0
   let oldestDueDate: Date | null = null
+  const months: OutstandingMonth[] = []
 
   if (!row.tenant.active || billingStartDate > referenceDate) {
-    return { balance, periods, oldestDueDate }
+    return { balance, periods, oldestDueDate, months }
   }
 
   if (advanceCycleMonths > 1) {
@@ -715,10 +740,16 @@ export function calculateOutstandingRentThroughDate(
       balance += periodBalance.balance
       periods += 1
       oldestDueDate ??= periodBalance.dueDate
+      months.push({
+        month: cursor,
+        balance: periodBalance.balance,
+        amountPaid: periodBalance.amountPaid,
+        dueDate: periodBalance.dueDate
+      })
     }
 
     cursor = nextMonth(cursor)
   }
 
-  return { balance, periods, oldestDueDate }
+  return { balance, periods, oldestDueDate, months }
 }

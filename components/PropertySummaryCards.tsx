@@ -1,5 +1,6 @@
 'use client'
 
+import CarryForwardNote from '@/components/CarryForwardNote'
 import { currency } from '@/lib/format'
 import {
   ArrowUpRight,
@@ -53,6 +54,9 @@ type OutstandingDetail = {
   balance: number
   periods: number
   oldestDueDate: string
+  carriedForwardBalance: number
+  carriedForwardMonths: { month: string; balance: number }[]
+  currentMonthBalance: number
 }
 
 type ExpenseDetail = {
@@ -351,7 +355,14 @@ export default function PropertySummaryCards({
                   <td data-label="Unit" className="font-semibold text-slate-800">Unit {row.unitNumber}</td>
                   <td data-label="Oldest Due" className="text-sm text-slate-600">{row.oldestDueDate}</td>
                   <td data-label="Periods" className="text-sm font-semibold text-slate-700">{row.periods}</td>
-                  <td data-label="Balance" className="font-black text-amber-700">{currency(row.balance)}</td>
+                  <td data-label="Balance">
+                    <span className="block font-black text-amber-700">{currency(row.balance)}</span>
+                    <CarryForwardNote
+                      carriedForwardBalance={row.carriedForwardBalance}
+                      carriedForwardMonths={row.carriedForwardMonths}
+                      className="block"
+                    />
+                  </td>
                   <td data-label="Action">
                     <Link
                       href={`/payments/new?tenantId=${row.tenantId}`}

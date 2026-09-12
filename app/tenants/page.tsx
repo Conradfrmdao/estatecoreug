@@ -113,6 +113,10 @@ export default async function TenantsPage({
             targetBalance,
             targetScheduledBalance,
             totalOutstandingBalance,
+            outstandingMonths,
+            carriedForwardBalance,
+            carriedForwardMonths,
+            currentMonthBalance,
             displayPaymentStatus
           }) => ({
             id: tenant.id,
@@ -135,6 +139,10 @@ export default async function TenantsPage({
             targetBalance,
             targetScheduledBalance,
             totalOutstandingBalance,
+            outstandingMonths,
+            carriedForwardBalance,
+            carriedForwardMonths,
+            currentMonthBalance,
             displayPaymentStatus
           }))}
         />
@@ -177,6 +185,9 @@ export default async function TenantsPage({
                   unit,
                   nextPaymentDate,
                   totalOutstandingBalance,
+                  carriedForwardBalance,
+                  carriedForwardMonths,
+                  currentMonthBalance,
                   displayPaymentStatus
                 }) => ({
                   id: tenant.id,
@@ -187,6 +198,9 @@ export default async function TenantsPage({
                   moveInDate: tenant.moveInDate.toISOString(),
                   nextPaymentDate: nextPaymentDate.toISOString(),
                   totalOutstandingBalance,
+                  carriedForwardBalance,
+                  carriedForwardMonths,
+                  currentMonthBalance,
                   displayPaymentStatus,
                   active: tenant.active
                 }))}

@@ -11,6 +11,7 @@ import {
   calculateTenantPeriodBalance,
   dateKeyInTimeZone,
   daysUntilDate,
+  findOldestOutstandingRent,
   isOutstandingRentStatus,
   paymentCoverageDateForPeriod,
   paymentCoveragePeriods,
@@ -772,5 +773,94 @@ test('preserves a three-month arrears due date after partial and complete paymen
       terms
     ).toISOString().slice(0, 10),
     '2027-01-01'
+  )
+})
+
+test('targets the next unpaid month once a tenant is fully paid up', () => {
+  const moveInDate = new Date('2026-01-10T00:00:00.000Z')
+  const payments = [{
+    amountPaid: 1500000,
+    paymentMonth: '2026-01',
+    coverageStart: moveInDate,
+    coverageEnd: new Date('2026-04-10T00:00:00.000Z'),
+    monthsCovered: 3,
+    allocations: [
+      { month: '2026-01', amount: 500000, rentAmount: 500000, balanceAfterAllocation: 0 },
+      { month: '2026-02', amount: 500000, rentAmount: 500000, balanceAfterAllocation: 0 },
+      { month: '2026-03', amount: 500000, rentAmount: 500000, balanceAfterAllocation: 0 }
+    ]
+  }]
+
+  const target = findOldestOutstandingRent({
+    moveInDate,
+    billingStartDate: moveInDate,
+    rentAmount: 500000,
+    payments,
+    preferredStartDate: new Date('2026-02-10T00:00:00.000Z')
+  })
+
+  assert.equal(target.month, '2026-04')
+  assert.equal(target.balance, 500000)
+  assert.equal(target.amountPaid, 0)
+})
+
+test('allocates an advance payment to future months before any rent is due', () => {
+  const moveInDate = new Date('2026-01-10T00:00:00.000Z')
+  const payments = [{
+    amountPaid: 500000,
+    paymentMonth: '2026-01',
+    coverageStart: moveInDate,
+    coverageEnd: new Date('2026-02-10T00:00:00.000Z'),
+    monthsCovered: 1,
+    allocations: [
+      { month: '2026-01', amount: 500000, rentAmount: 500000, balanceAfterAllocation: 0 }
+    ]
+  }]
+
+  const plan = buildPaymentAllocationPlan({
+    amountPaid: 1000000,
+    moveInDate,
+    billingStartDate: moveInDate,
+    rentAmount: 500000,
+    payments,
+    preferredStartDate: new Date('2026-01-10T00:00:00.000Z')
+  })
+
+  assert.deepEqual(plan.allocations.map((allocation) => allocation.month), ['2026-02', '2026-03'])
+  assert.equal(plan.monthsCovered, 2)
+  assert.equal(plan.paymentMonth, '2026-02')
+})
+
+test('lists each unpaid month so carried forward rent can be shown', () => {
+  const moveInDate = new Date('2026-06-05T00:00:00.000Z')
+  const tenant = {
+    ...baseTenant,
+    moveInDate,
+    billingStartDate: moveInDate,
+    rentDueDate: new Date('2026-08-05T00:00:00.000Z'),
+    paymentTiming: 'advance'
+  }
+  const outstanding = calculateOutstandingRentThroughDate(
+    { tenant, unit: { ...baseUnit, rentAmount: 500000 } },
+    [{
+      amountPaid: 500000,
+      paymentMonth: '2026-06',
+      coverageStart: moveInDate,
+      coverageEnd: new Date('2026-07-05T00:00:00.000Z'),
+      monthsCovered: 1,
+      allocations: [
+        { month: '2026-06', amount: 500000, rentAmount: 500000, balanceAfterAllocation: 0 }
+      ]
+    }],
+    new Date('2026-08-20T12:00:00.000Z')
+  )
+
+  assert.equal(outstanding.balance, 1000000)
+  assert.deepEqual(
+    outstanding.months.map(({ month, balance }) => ({ month, balance })),
+    [
+      { month: '2026-07', balance: 500000 },
+      { month: '2026-08', balance: 500000 }
+    ]
   )
 })

@@ -150,13 +150,25 @@ export default async function PropertySummaryPage({
           paymentDate: formatDate(payment.paymentDate),
           paymentMethod: payment.paymentMethod
         }))}
-        outstanding={data.outstandingTenants.map(({ tenant, unit, balance, periods, oldestDueDate }) => ({
+        outstanding={data.outstandingTenants.map(({
+          tenant,
+          unit,
+          balance,
+          periods,
+          oldestDueDate,
+          carriedForwardBalance,
+          carriedForwardMonths,
+          currentMonthBalance
+        }) => ({
           tenantId: tenant.id,
           tenantName: tenant.fullName,
           unitNumber: unit.unitNumber,
           balance,
           periods,
-          oldestDueDate: formatDate(oldestDueDate)
+          oldestDueDate: formatDate(oldestDueDate),
+          carriedForwardBalance,
+          carriedForwardMonths,
+          currentMonthBalance
         }))}
         expenses={data.monthlyExpenses.map(({ expense, unit }) => ({
           id: expense.id,
