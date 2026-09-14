@@ -1,5 +1,6 @@
 import DesktopDashboard from '@/components/dashboard/DesktopDashboard'
 import MobileDashboard from '@/components/dashboard/MobileDashboard'
+import type { CalendarDayTone } from '@/components/dashboard/MiniCalendar'
 import type { ActivityRow, DashboardView, OwingRow } from '@/components/dashboard/types'
 import { rentStatusKind } from '@/components/ui/StatusPill'
 import { requireCurrentAppUser } from '@/lib/auth'
@@ -27,6 +28,23 @@ function initialsOf(fullName: string) {
 
 function sameMonth(value: Date, month: string) {
   return dateKey(value).slice(0, 7) === month
+}
+
+function dayOfMonth(value: Date) {
+  return Number(dateKey(value).slice(8, 10))
+}
+
+/** Monday-first grid for the month, padded with nulls before the 1st. */
+function monthDays(month: string) {
+  const [year, monthNumber] = month.split('-').map(Number)
+  const firstDay = new Date(Date.UTC(year, monthNumber - 1, 1))
+  const totalDays = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate()
+  const offset = (firstDay.getUTCDay() + 6) % 7
+
+  return [
+    ...Array.from({ length: offset }, () => null),
+    ...Array.from({ length: totalDays }, (_, index) => index + 1)
+  ]
 }
 
 export default async function DashboardPage({
@@ -127,6 +145,26 @@ export default async function DashboardPage({
     .slice(0, 4)
     .map(({ sortKey: _sortKey, ...row }) => row)
 
+  /* Calendar dots reuse the due dates, payments and expenses already loaded. */
+  const todayKey = dateKey()
+  const calendarEvents: Record<number, CalendarDayTone> = {}
+
+  for (const row of data.tenantBalances) {
+    if (!sameMonth(row.dueDate, month)) continue
+    const kind = rentStatusKind(row.paymentStatus)
+    calendarEvents[dayOfMonth(row.dueDate)] =
+      kind === 'overdue' ? 'overdue' : kind === 'paid' ? 'paid' : 'due'
+  }
+  for (const payment of data.monthlyPayments) {
+    if (sameMonth(payment.coverageDate, month)) {
+      calendarEvents[dayOfMonth(payment.coverageDate)] = 'paid'
+    }
+  }
+  for (const { expense } of monthlyExpenses) {
+    const day = dayOfMonth(expense.expenseDate)
+    if (!calendarEvents[day]) calendarEvents[day] = 'expense'
+  }
+
   const view: DashboardView = {
     month,
     monthLabel: monthLabel(month),
@@ -165,7 +203,12 @@ export default async function DashboardPage({
     statusCounts,
     owingRows,
     fullyPaidCount: statusCounts.paid,
-    activity
+    activity,
+    calendar: {
+      days: monthDays(month),
+      todayDay: todayKey.slice(0, 7) === month ? Number(todayKey.slice(8, 10)) : null,
+      events: calendarEvents
+    }
   }
 
   return (

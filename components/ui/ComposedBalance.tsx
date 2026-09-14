@@ -58,6 +58,40 @@ export function ComposedBalanceCell({
 }
 
 /**
+ * Horizontal density - amount, then the split bar, then the composition line.
+ * Used where the row is narrow (the two-column owing list on desktop).
+ */
+export function ComposedBalanceStack({
+  balance,
+  className = ''
+}: {
+  balance: ComposedBalanceData
+  className?: string
+}) {
+  const hasCarried = balance.carriedForwardBalance > 0
+
+  return (
+    <div className={className}>
+      <SplitBar orientation="horizontal" segments={segments(balance)} />
+      <p className="mt-1 text-[11px] leading-4 text-[var(--text-muted)]">
+        {hasCarried ? (
+          <>
+            <Money value={balance.currentMonthBalance} className="font-semibold" />{' '}
+            {monthShortLabel(balance.currentMonth).split(' ')[0]}
+            <span className="text-[var(--carried-fg)]">
+              {' '}
+              +<Money value={balance.carriedForwardBalance} className="font-semibold" /> carried
+            </span>
+          </>
+        ) : (
+          `${monthShortLabel(balance.currentMonth).split(' ')[0]} rent only`
+        )}
+      </p>
+    </div>
+  )
+}
+
+/**
  * Artboard 1b, density B - a card on mobile. Total, then one legend row per
  * month so the rollover is spelled out rather than implied.
  */

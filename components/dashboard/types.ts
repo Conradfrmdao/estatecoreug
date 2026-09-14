@@ -1,3 +1,4 @@
+import type { CalendarDayTone } from '@/components/dashboard/MiniCalendar'
 import type { ComposedBalanceData } from '@/components/ui/ComposedBalance'
 import type { RentStatusKind } from '@/components/ui/StatusPill'
 
@@ -44,4 +45,9 @@ export type DashboardView = {
   owingRows: OwingRow[]
   fullyPaidCount: number
   activity: ActivityRow[]
+  calendar: {
+    days: (number | null)[]
+    todayDay: number | null
+    events: Record<number, CalendarDayTone>
+  }
 }
