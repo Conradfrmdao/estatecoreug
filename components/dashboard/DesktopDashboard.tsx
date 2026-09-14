@@ -3,6 +3,7 @@ import Money from '@/components/ui/Money'
 import SplitBar from '@/components/ui/SplitBar'
 import StatusDonut from '@/components/ui/StatusDonut'
 import StatusPill from '@/components/ui/StatusPill'
+import MonthPicker from '@/components/ui/MonthPicker'
 import type { ActivityRow, DashboardView } from '@/components/dashboard/types'
 import type { SplitSegment } from '@/components/ui/SplitBar'
 import { ArrowDownLeft, ArrowUpRight, ChevronRight, Plus, ReceiptText } from 'lucide-react'
@@ -26,7 +27,7 @@ function KpiCard({
   return (
     <Link
       href={href}
-      className={`group flex min-h-[132px] gap-3.5 rounded-[var(--r-card)] p-5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 ${
+      className={`group flex min-h-[104px] gap-3 rounded-[var(--r-card)] p-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 ${
         inverted
           ? 'bg-[var(--brand-deep)] text-white shadow-[var(--elev-raised)]'
           : 'surface-card hover:border-[var(--brand-200)] hover:shadow-[var(--elev-raised)]'
@@ -38,7 +39,7 @@ function KpiCard({
           {label}
         </span>
         <span
-          className={`money mt-2.5 block text-[26px] leading-none ${
+          className={`money mt-2 block text-[23px] leading-none ${
             inverted ? 'text-white' : 'text-[var(--text-ink)]'
           }`}
         >
@@ -46,7 +47,7 @@ function KpiCard({
           <Money value={value} />
         </span>
         <span
-          className={`t-small mt-2.5 block ${inverted ? 'text-emerald-100/70' : 'text-[var(--text-muted)]'}`}
+          className={`mt-2 block text-[12.5px] leading-[17px] ${inverted ? 'text-emerald-100/70' : 'text-[var(--text-muted)]'}`}
         >
           {sub}
         </span>
@@ -94,7 +95,7 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
   const currentMonthOutstanding = Math.max(view.totalOutstanding - view.carriedForwardTotal, 0)
 
   return (
-    <div className="hidden space-y-4 lg:block">
+    <div className="hidden space-y-3 lg:block">
       <section className="flex items-end justify-between gap-6">
         <div className="min-w-0">
           <h1 className="t-display text-[var(--text-ink)]">Dashboard</h1>
@@ -107,25 +108,11 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
         </div>
 
         <div className="flex shrink-0 items-center gap-2.5">
-          <form method="get" className="flex items-center gap-2">
-            <label htmlFor="dashboard-month" className="sr-only">
-              Month
-            </label>
-            <input
-              id="dashboard-month"
-              name="month"
-              type="month"
-              defaultValue={view.month}
-              className="h-11 rounded-[var(--r-control)] border border-[var(--line)] bg-white px-3 text-[14px] font-medium text-[var(--text-body)] outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[rgba(0,165,80,0.12)]"
-            />
-            <button className="h-11 rounded-[var(--r-control)] border border-[var(--line)] bg-white px-4 text-[14px] font-semibold text-[var(--text-body)] transition hover:bg-[var(--surface-sunken)]">
-              View
-            </button>
-          </form>
+          <MonthPicker month={view.month} />
 
           <Link
             href="/payments/new"
-            className="inline-flex h-11 items-center gap-2 rounded-[var(--r-control)] bg-[var(--brand)] px-4 text-[14px] font-semibold text-white shadow-[var(--shadow-brand)] transition hover:bg-[var(--brand-hover)]"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--brand)] px-4 text-[13.5px] font-semibold text-white shadow-[var(--shadow-brand)] transition hover:bg-[var(--brand-hover)]"
           >
             <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
             Record payment
@@ -133,7 +120,7 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <KpiCard
           label={`Collected · ${view.monthName}`}
           value={view.collectedThisMonth}
@@ -184,16 +171,16 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
           <Link
             key={metric.label}
             href={metric.href}
-            className="min-w-0 px-4 py-3 transition hover:bg-[var(--surface-sunken)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
+            className="min-w-0 px-4 py-2.5 transition hover:bg-[var(--surface-sunken)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
           >
             <p className="t-label truncate text-[var(--text-soft)]">{metric.label}</p>
-            <p className="money mt-1.5 text-[24px] leading-none text-[var(--text-ink)]">{metric.value}</p>
+            <p className="money mt-1 text-[21px] leading-none text-[var(--text-ink)]">{metric.value}</p>
           </Link>
         ))}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <div className="surface-card p-5">
+      <section className="grid gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+        <div className="surface-card flex min-h-0 flex-col p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <h2 className="t-section text-[var(--text-ink)]">Who owes rent</h2>
@@ -212,9 +199,9 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
             </Link>
           </div>
 
-          <ul className="mt-4 divide-y divide-[var(--line)]">
+          <ul className="mt-3 divide-y divide-[var(--line)]">
             {view.owingRows.map((row) => (
-              <li key={row.tenantId} className="flex items-center gap-4 py-3 first:pt-0">
+              <li key={row.tenantId} className="flex items-center gap-3 py-2.5 first:pt-0">
                 <span className="money flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--paid-bg)] text-[13px] text-[var(--brand-text)]">
                   {row.initials}
                 </span>
@@ -258,10 +245,10 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
           )}
         </div>
 
-        <div className="space-y-4">
-          <div className="surface-card p-5">
+        <div className="space-y-3">
+          <div className="surface-card p-4">
             <h2 className="t-section text-[var(--text-ink)]">{view.monthName} collection</h2>
-            <div className="mt-4">
+            <div className="mt-3">
               <StatusDonut
                 total={view.statusCounts.total}
                 caption={view.statusCounts.total === 1 ? 'tenant' : 'tenants'}
@@ -275,7 +262,7 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
             </div>
           </div>
 
-          <div className="surface-card p-5">
+          <div className="surface-card p-4">
             <div className="flex items-center justify-between gap-3">
               <h2 className="t-section text-[var(--text-ink)]">Recent activity</h2>
               <Link
@@ -287,7 +274,7 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
               </Link>
             </div>
 
-            <ul className="mt-4 space-y-3.5">
+            <ul className="mt-3 space-y-3">
               {view.activity.map((row) => (
                 <ActivityItem key={row.id} row={row} />
               ))}

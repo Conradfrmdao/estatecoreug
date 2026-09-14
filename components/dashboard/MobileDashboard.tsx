@@ -42,8 +42,8 @@ export default function MobileDashboard({ view }: { view: DashboardView }) {
   const expectedRatio = view.totalExpected > 0 ? view.collectedThisMonth / view.totalExpected : 0
 
   return (
-    <div className="lg:hidden">
-      <header className="aurora rounded-b-[22px] px-4 pb-4 pt-[calc(0.75rem+env(safe-area-inset-top))] text-white">
+    <div className="immersive-ground lg:hidden">
+      <header className="aurora safe-top rounded-b-[22px] px-4 pb-4 text-white">
         <div className="flex items-center justify-between gap-3">
           <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[10px] bg-white/10 ring-1 ring-white/15">
             <Image
@@ -61,7 +61,9 @@ export default function MobileDashboard({ view }: { view: DashboardView }) {
         <div className="mt-5 flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <p className="t-label text-emerald-100/60">Kampala, Uganda</p>
-            <h1 className="t-display mt-0.5 truncate text-white">Hello, {view.greetingName}</h1>
+            <h1 className="mt-0.5 text-[clamp(1.375rem,6.4vw,1.75rem)] font-bold leading-[1.15] tracking-[-0.02em] text-white [overflow-wrap:anywhere]">
+              Hello, {view.greetingName}
+            </h1>
 
             <p className="t-label mt-5 text-emerald-100/60">
               Collected &middot; {view.monthName}
@@ -103,7 +105,7 @@ export default function MobileDashboard({ view }: { view: DashboardView }) {
         </nav>
       </header>
 
-      <div className="space-y-4 px-4 pt-4">
+      <div className="min-h-[58vh] space-y-3.5 rounded-t-[4px] bg-[var(--surface-sunken)] px-4 pb-6 pt-4">
         <div className="grid grid-cols-3 gap-2">
           <MiniStat
             label="Owed"

@@ -1,8 +1,10 @@
+import MobileTenants, { type MobileTenantRow } from '@/components/tenants/MobileTenants'
 import PropertyTenantsModal from '@/components/PropertyTenantsModal'
 import TenantSearchResults from '@/components/TenantSearchResults'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { listPropertiesForUser, listTenantPaymentTargets } from '@/lib/data'
-import { currentPaymentMonth, formatDate } from '@/lib/format'
+import type { RentStatusKind } from '@/components/ui/StatusPill'
+import { currentPaymentMonth, formatDate, shortDate } from '@/lib/format'
 import { Building2, Plus } from 'lucide-react'
 import Link from 'next/link'
 
@@ -44,6 +46,59 @@ export default async function TenantsPage({
     ].some((value) => value.toLowerCase().includes(q))
   })
 
+  const mobileRows: MobileTenantRow[] = filteredRows.map((row) => {
+    const outstanding = row.totalOutstandingBalance
+    const nextMonth = row.nextPaymentDate.toISOString().slice(0, 7)
+    const monthsAhead =
+      (Number(nextMonth.slice(0, 4)) - Number(month.slice(0, 4))) * 12 +
+      (Number(nextMonth.slice(5, 7)) - Number(month.slice(5, 7)))
+
+    let statusKind: RentStatusKind = 'due'
+    let statusDetail: string | undefined
+
+    if (!row.tenant.active) {
+      statusKind = 'inactive'
+    } else if (outstanding <= 0) {
+      if (monthsAhead > 0) {
+        statusKind = 'in_advance'
+        statusDetail = `${monthsAhead} mo`
+      } else {
+        statusKind = 'paid'
+      }
+    } else if (row.targetAmountPaid > 0) {
+      statusKind = 'part_paid'
+    } else if (row.totalOutstandingPeriods > 1) {
+      statusKind = 'overdue'
+      statusDetail = `${row.totalOutstandingPeriods} mo`
+    } else {
+      statusDetail = shortDate(row.targetDueDate)
+    }
+
+    const parts = row.tenant.fullName.trim().split(/\s+/).filter(Boolean)
+    const initials =
+      parts.length > 1
+        ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+        : (parts[0] ?? '?').slice(0, 2).toUpperCase()
+
+    return {
+      id: row.tenant.id,
+      name: row.tenant.fullName,
+      initials,
+      unitNumber: row.unit.unitNumber,
+      phone: row.tenant.phone,
+      email: row.tenant.email,
+      propertyId: row.property.id,
+      propertyName: row.property.name,
+      active: row.tenant.active,
+      balance: outstanding,
+      statusKind,
+      statusDetail,
+      carriedForwardBalance: row.carriedForwardBalance,
+      carriedForwardMonths: row.carriedForwardMonths,
+      isOwing: outstanding > 0
+    } satisfies MobileTenantRow
+  })
+
   const propertyCards = properties
     .map((property) => {
       const allTenants = tenantRows.filter(({ property: rowProperty }) => rowProperty.id === property.id)
@@ -64,7 +119,10 @@ export default async function TenantsPage({
     .filter(({ tenants, propertyMatches }) => !q || propertyMatches || tenants.length > 0)
 
   return (
-    <div className="space-y-6 animate-in">
+    <div className="animate-in">
+      <MobileTenants rows={mobileRows} />
+
+      <div className="hidden space-y-6 lg:block">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold sm:text-3xl" style={{ color: '#1a1a2e' }}>Tenants</h1>
@@ -216,6 +274,7 @@ export default async function TenantsPage({
         )}
       </section>
       )}
+      </div>
     </div>
   )
 }

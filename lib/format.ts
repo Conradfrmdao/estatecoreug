@@ -154,3 +154,19 @@ export function shortDate(value: Date | string | null | undefined) {
     day: 'numeric'
   }).format(new Date(value))
 }
+
+/**
+ * A greeting name from whatever the account holds. Clerk often gives us the
+ * email as the name, and "Hello, winnerconro@gmail.com" reads badly.
+ */
+export function firstNameFrom(nameOrEmail: string | null | undefined) {
+  const raw = (nameOrEmail ?? '').trim()
+  if (!raw) return 'there'
+
+  const base = raw.includes('@') ? raw.slice(0, raw.indexOf('@')) : raw
+  const first = base.split(/[\s._-]+/).filter(Boolean)[0] ?? base
+  const cleaned = first.replace(/\d+/g, '')
+  if (!cleaned) return 'there'
+
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1)
+}

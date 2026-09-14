@@ -12,8 +12,8 @@ export default function StatusDonut({
   segments,
   total,
   caption,
-  size = 132,
-  strokeWidth = 16
+  size = 112,
+  strokeWidth = 14
 }: {
   segments: DonutSegment[]
   total: number
@@ -27,7 +27,7 @@ export default function StatusDonut({
   let consumed = 0
 
   return (
-    <div className="flex items-center gap-5">
+    <div className="flex items-center gap-4">
       <div className="relative shrink-0" style={{ width: size, height: size }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
           <circle
@@ -60,7 +60,7 @@ export default function StatusDonut({
             })}
         </svg>
         <span className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="money text-[22px] leading-none text-[var(--text-ink)]">{total}</span>
+          <span className="money text-[20px] leading-none text-[var(--text-ink)]">{total}</span>
           <span className="mt-0.5 text-[11px] text-[var(--text-muted)]">{caption}</span>
         </span>
       </div>

@@ -5,7 +5,6 @@ import {
   BarChart3,
   Building2,
   CalendarDays,
-  ChevronRight,
   Grid3X3,
   LayoutDashboard,
   MapPin,
@@ -23,6 +22,7 @@ import { useState, type ReactNode } from 'react'
 
 import Image from 'next/image'
 import MoreSheet from '@/components/MoreSheet'
+import SidebarCollection from '@/components/SidebarCollection'
 import NotificationBell from '@/components/NotificationBell'
 import SupportChatWidget from '@/components/SupportChatWidget'
 
@@ -30,20 +30,13 @@ type NavItem = {
   href: string
   label: string
   icon: LucideIcon
-  children?: NavItem[]
 }
 
 const baseNavItems: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  {
-    href: '/properties',
-    label: 'Properties',
-    icon: Building2,
-    children: [
-      { href: '/units', label: 'Units', icon: Grid3X3 },
-      { href: '/tenants', label: 'Tenants', icon: UsersRound }
-    ]
-  },
+  { href: '/properties', label: 'Properties', icon: Building2 },
+  { href: '/units', label: 'Units', icon: Grid3X3 },
+  { href: '/tenants', label: 'Tenants', icon: UsersRound },
   { href: '/payments', label: 'Payments', icon: WalletCards },
   { href: '/expenses', label: 'Expenses', icon: ReceiptText },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
@@ -66,25 +59,11 @@ function isActivePath(pathname: string, href: string) {
 }
 
 function currentPageTitle(pathname: string, navItems: NavItem[]) {
-  for (const item of navItems) {
-    for (const child of item.children ?? []) {
-      if (isActivePath(pathname, child.href)) return child.label
-    }
-    if (isActivePath(pathname, item.href)) return item.label
-  }
-
-  return 'Dashboard'
+  const match = navItems.find((item) => isActivePath(pathname, item.href))
+  return match?.label ?? 'Dashboard'
 }
 
-function SidebarLink({
-  item,
-  pathname,
-  nested = false
-}: {
-  item: NavItem
-  pathname: string
-  nested?: boolean
-}) {
+function SidebarLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const active = isActivePath(pathname, item.href)
   const Icon = item.icon
 
@@ -92,23 +71,14 @@ function SidebarLink({
     <Link
       href={item.href}
       aria-current={active ? 'page' : undefined}
-      className={`flex min-h-[42px] items-center gap-3 rounded-[10px] px-3 text-[14px] transition-colors duration-150 ${
-        nested ? 'ml-3 pl-4' : ''
-      } ${
+      className={`flex h-[38px] items-center gap-3 rounded-[10px] px-3 text-[13.5px] transition-colors duration-150 ${
         active
-          ? 'bg-[#0a6b4f] font-semibold text-white shadow-[0_6px_16px_rgba(0,0,0,0.18)]'
+          ? 'bg-[var(--brand)] font-semibold text-white shadow-[0_6px_16px_rgba(0,0,0,0.20)]'
           : 'font-medium text-emerald-50/70 hover:bg-white/10 hover:text-white'
       }`}
     >
-      <Icon
-        aria-hidden="true"
-        className={`shrink-0 ${nested ? 'h-[18px] w-[18px]' : 'h-5 w-5'}`}
-        strokeWidth={1.75}
-      />
+      <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
-      {item.children && !nested && (
-        <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 opacity-45" strokeWidth={1.75} />
-      )}
     </Link>
   )
 }
@@ -145,7 +115,7 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
           aria-hidden="true"
         />
 
-        <div className="shrink-0 px-5 py-5">
+        <div className="shrink-0 px-4 py-4">
           <Link href="/dashboard" className="flex min-w-0 items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-[var(--brand-ink)] ring-1 ring-white/10">
               <Image
@@ -164,22 +134,16 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
           </Link>
         </div>
 
-        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-3">
+        <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 pb-3">
           {navItems.map((item) => (
-            <div key={item.href} className="space-y-1">
-              <SidebarLink item={item} pathname={pathname} />
-              {item.children?.map((child) => (
-                <SidebarLink key={child.href} item={child} pathname={pathname} nested />
-              ))}
-            </div>
+            <SidebarLink key={item.href} item={item} pathname={pathname} />
           ))}
         </nav>
 
-        {!isAdmin && (
-          <div className="shrink-0 border-t border-white/10 p-3">
-            <SupportChatWidget />
-          </div>
-        )}
+        <div className="shrink-0 space-y-2.5 border-t border-white/10 p-3">
+          <SidebarCollection />
+          {!isAdmin && <SupportChatWidget />}
+        </div>
       </aside>
 
       <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
@@ -240,7 +204,9 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
 
         <main
           className={`app-shell-main flex-1 overflow-y-auto overflow-x-hidden ${
-            immersive ? 'px-0 py-0 lg:px-6 lg:py-5' : 'px-4 py-4 sm:px-5 lg:px-6 lg:py-5'
+            immersive
+              ? 'immersive-ground px-0 py-0 lg:px-6 lg:py-4'
+              : 'px-4 py-4 sm:px-5 lg:px-6 lg:py-4'
           }`}
         >
           <div className="mx-auto w-full max-w-[1440px]">{children}</div>

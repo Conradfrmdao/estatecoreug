@@ -7,6 +7,7 @@ import { getDashboardData } from '@/lib/data'
 import {
   currentPaymentMonth,
   dateKey,
+  firstNameFrom,
   monthLabel,
   monthNameLabel,
   monthShortLabel,
@@ -138,7 +139,7 @@ export default async function DashboardPage({
         isCurrent: offset === 0
       }
     }),
-    greetingName: user.name.split(' ')[0] || 'Landlord',
+    greetingName: firstNameFrom(user.name || user.email),
     collectedThisMonth: data.summary.collectedThisMonth,
     totalExpected: data.summary.totalExpected,
     collectedPercent: data.summary.totalExpected

@@ -529,3 +529,19 @@ textarea.field-input {
     stroke-dashoffset: var(--ring-offset);
   }
 }
+
+/* Safe area / notch — the aurora header paints under the status bar on every
+   device that reports an inset, so nothing shows through white. */
+.safe-top {
+  padding-top: calc(var(--safe-top-gap, 0.75rem) + env(safe-area-inset-top, 0px));
+}
+
+/* Immersive routes keep a green ground so an overscroll bounce at the top of
+   the screen never flashes white behind the header. Mobile only - the desktop
+   dashboard sits on the normal light canvas. */
+@media (max-width: 1023px) {
+  .immersive-ground {
+    background-color: var(--brand-deep);
+    overscroll-behavior-y: none;
+  }
+}
