@@ -3,7 +3,10 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
-  '/sign-up(.*)'
+  '/sign-up(.*)',
+  /* Static PWA manifest - branding only, no user data. Without this the
+     auth middleware blocks it and the install prompt never appears. */
+  '/manifest.webmanifest'
 ])
 
 export default clerkMiddleware(async (auth, request) => {

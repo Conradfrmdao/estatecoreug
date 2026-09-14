@@ -95,8 +95,8 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
   const currentMonthOutstanding = Math.max(view.totalOutstanding - view.carriedForwardTotal, 0)
 
   return (
-    <div className="hidden space-y-3 lg:block">
-      <section className="flex items-end justify-between gap-6">
+    <div className="hidden h-full min-h-0 flex-col gap-3 px-6 py-4 lg:flex">
+      <section className="flex shrink-0 items-end justify-between gap-6">
         <div className="min-w-0">
           <h1 className="t-display text-[var(--text-ink)]">Dashboard</h1>
           <p className="t-body mt-1 text-[var(--text-muted)]">
@@ -120,7 +120,7 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <section className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
         <KpiCard
           label={`Collected · ${view.monthName}`}
           value={view.collectedThisMonth}
@@ -166,7 +166,7 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
         />
       </section>
 
-      <section className="surface-card grid grid-cols-5 divide-x divide-[var(--line)] px-2 py-1">
+      <section className="surface-card grid shrink-0 grid-cols-5 divide-x divide-[var(--line)] px-2 py-1">
         {view.portfolio.map((metric) => (
           <Link
             key={metric.label}
@@ -179,9 +179,9 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
         ))}
       </section>
 
-      <section className="grid gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+      <section className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
         <div className="surface-card flex min-h-0 flex-col p-4">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex shrink-0 items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <h2 className="t-section text-[var(--text-ink)]">Who owes rent</h2>
               {view.owingRows.length > 0 && (
@@ -199,7 +199,7 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
             </Link>
           </div>
 
-          <ul className="mt-3 divide-y divide-[var(--line)]">
+          <ul className="no-scrollbar mt-3 min-h-0 flex-1 divide-y divide-[var(--line)] overflow-y-auto">
             {view.owingRows.map((row) => (
               <li key={row.tenantId} className="flex items-center gap-3 py-2.5 first:pt-0">
                 <span className="money flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--paid-bg)] text-[13px] text-[var(--brand-text)]">
@@ -232,21 +232,21 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
           </ul>
 
           {view.owingRows.length === 0 && (
-            <p className="t-body py-10 text-center text-[var(--text-muted)]">
+            <p className="t-body flex min-h-0 flex-1 items-center justify-center text-center text-[var(--text-muted)]">
               No tenant owes rent for {view.monthName}.
             </p>
           )}
 
           {view.fullyPaidCount > 0 && (
-            <p className="t-small mt-3 border-t border-[var(--line)] pt-3 text-[var(--text-muted)]">
+            <p className="t-small mt-3 shrink-0 border-t border-[var(--line)] pt-3 text-[var(--text-muted)]">
               {view.fullyPaidCount} tenant{view.fullyPaidCount === 1 ? ' is' : 's are'} fully paid for{' '}
               {view.monthName}.
             </p>
           )}
         </div>
 
-        <div className="space-y-3">
-          <div className="surface-card p-4">
+        <div className="flex min-h-0 flex-col gap-3">
+          <div className="surface-card shrink-0 p-4">
             <h2 className="t-section text-[var(--text-ink)]">{view.monthName} collection</h2>
             <div className="mt-3">
               <StatusDonut
@@ -262,8 +262,8 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
             </div>
           </div>
 
-          <div className="surface-card p-4">
-            <div className="flex items-center justify-between gap-3">
+          <div className="surface-card flex min-h-0 flex-1 flex-col p-4">
+            <div className="flex shrink-0 items-center justify-between gap-3">
               <h2 className="t-section text-[var(--text-ink)]">Recent activity</h2>
               <Link
                 href="/payments"
@@ -274,14 +274,14 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
               </Link>
             </div>
 
-            <ul className="mt-3 space-y-3">
+            <ul className="no-scrollbar mt-3 min-h-0 flex-1 space-y-3 overflow-y-auto">
               {view.activity.map((row) => (
                 <ActivityItem key={row.id} row={row} />
               ))}
             </ul>
 
             {view.activity.length === 0 && (
-              <p className="t-small py-8 text-center text-[var(--text-muted)]">
+              <p className="t-small flex min-h-0 flex-1 items-center justify-center text-center text-[var(--text-muted)]">
                 Nothing recorded in {view.monthName} yet.
               </p>
             )}

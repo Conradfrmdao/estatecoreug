@@ -153,6 +153,14 @@ body {
   }
 }
 
+/* The dashboard sizes itself to the viewport, so any padding on the scroll
+   container sits outside that height and would force a scrollbar. */
+@media (min-width: 1024px) {
+  .app-shell-main.is-flush {
+    padding-bottom: 0;
+  }
+}
+
 /* ── Brand Utilities ── */
 .btn-brand {
   background-color: var(--brand);
@@ -536,12 +544,23 @@ textarea.field-input {
   padding-top: calc(var(--safe-top-gap, 0.75rem) + env(safe-area-inset-top, 0px));
 }
 
-/* Immersive routes keep a green ground so an overscroll bounce at the top of
-   the screen never flashes white behind the header. Mobile only - the desktop
-   dashboard sits on the normal light canvas. */
-@media (max-width: 1023px) {
-  .immersive-ground {
-    background-color: var(--brand-deep);
-    overscroll-behavior-y: none;
+/* Safe-area filler. In a normal browser tab env(safe-area-inset-top) is 0, so
+   this paints nothing and costs nothing. Installed to the home screen the page
+   owns that strip, and this keeps it brand green while the page scrolls. */
+.safe-top-fill::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background-color: #0a4b3a;
+  z-index: 60;
+  pointer-events: none;
+}
+
+@media (min-width: 1024px) {
+  .safe-top-fill::before {
+    display: none;
   }
 }

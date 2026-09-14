@@ -134,7 +134,7 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
           </Link>
         </div>
 
-        <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 pb-3">
+        <nav className="no-scrollbar min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 pb-3">
           {navItems.map((item) => (
             <SidebarLink key={item.href} item={item} pathname={pathname} />
           ))}
@@ -204,16 +204,14 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
 
         <main
           className={`app-shell-main flex-1 overflow-y-auto overflow-x-hidden ${
-            immersive
-              ? 'immersive-ground px-0 py-0 lg:px-6 lg:py-4'
-              : 'px-4 py-4 sm:px-5 lg:px-6 lg:py-4'
+            immersive ? 'is-flush p-0' : 'px-4 py-4 sm:px-5 lg:px-6 lg:py-4'
           }`}
         >
-          <div className="mx-auto w-full max-w-[1440px]">{children}</div>
+          <div className={`mx-auto w-full max-w-[1440px] ${immersive ? 'lg:h-full' : ''}`}>{children}</div>
         </main>
 
         <nav
-          className="mobile-bottom-nav fixed left-3 right-3 z-40 mx-auto max-w-[430px] rounded-[18px] border border-[var(--line)] bg-white/97 px-1.5 py-1.5 shadow-[0_16px_40px_rgba(6,63,53,0.18)] backdrop-blur-xl lg:hidden"
+          className="mobile-bottom-nav fixed left-3 right-3 z-40 mx-auto max-w-[430px] rounded-[18px] border border-[var(--line)] bg-white px-1.5 py-1.5 shadow-[0_16px_40px_rgba(6,63,53,0.18)] backdrop-blur-xl lg:hidden"
           aria-label="Primary"
         >
           <div className="flex items-stretch gap-0.5">

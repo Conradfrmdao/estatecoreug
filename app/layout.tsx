@@ -5,6 +5,14 @@ import { ClerkProvider } from '@clerk/nextjs'
 export const metadata: Metadata = {
   title: 'EstateCore UG',
   description: 'Property Management Solutions for Ugandan Landlords',
+  manifest: '/manifest.webmanifest',
+  /* Installed to the home screen the page owns the status-bar strip, so the
+     aurora header paints it instead of the OS drawing a white bar. */
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'EstateCore UG'
+  },
   icons: {
     icon: '/favicon.png',
     shortcut: '/favicon.ico',

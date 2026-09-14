@@ -42,7 +42,7 @@ export default function MobileDashboard({ view }: { view: DashboardView }) {
   const expectedRatio = view.totalExpected > 0 ? view.collectedThisMonth / view.totalExpected : 0
 
   return (
-    <div className="immersive-ground lg:hidden">
+    <div className="safe-top-fill bg-[var(--surface-sunken)] lg:hidden">
       <header className="aurora safe-top rounded-b-[22px] px-4 pb-4 text-white">
         <div className="flex items-center justify-between gap-3">
           <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[10px] bg-white/10 ring-1 ring-white/15">
@@ -105,7 +105,7 @@ export default function MobileDashboard({ view }: { view: DashboardView }) {
         </nav>
       </header>
 
-      <div className="min-h-[58vh] space-y-3.5 rounded-t-[4px] bg-[var(--surface-sunken)] px-4 pb-6 pt-4">
+      <div className="space-y-3.5 bg-[var(--surface-sunken)] px-4 pb-6 pt-4">
         <div className="grid grid-cols-3 gap-2">
           <MiniStat
             label="Owed"
