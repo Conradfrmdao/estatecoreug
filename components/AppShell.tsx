@@ -5,11 +5,11 @@ import {
   BarChart3,
   Building2,
   CalendarDays,
-  ChevronDown,
+  ChevronRight,
   Grid3X3,
   LayoutDashboard,
   MapPin,
-  Menu,
+  MoreHorizontal,
   ReceiptText,
   Settings,
   ShieldCheck,
@@ -19,9 +19,10 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import Image from 'next/image'
+import MoreSheet from '@/components/MoreSheet'
 import NotificationBell from '@/components/NotificationBell'
 import SupportChatWidget from '@/components/SupportChatWidget'
 
@@ -29,216 +30,106 @@ type NavItem = {
   href: string
   label: string
   icon: LucideIcon
+  children?: NavItem[]
 }
 
 const baseNavItems: NavItem[] = [
-  {
-    href: '/dashboard',
-    label: 'Dashboard',
-    icon: LayoutDashboard
-  },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   {
     href: '/properties',
     label: 'Properties',
-    icon: Building2
+    icon: Building2,
+    children: [
+      { href: '/units', label: 'Units', icon: Grid3X3 },
+      { href: '/tenants', label: 'Tenants', icon: UsersRound }
+    ]
   },
-  {
-    href: '/units',
-    label: 'Units',
-    icon: Grid3X3
-  },
-  {
-    href: '/tenants',
-    label: 'Tenants',
-    icon: UsersRound
-  },
-  {
-    href: '/payments',
-    label: 'Payments',
-    icon: WalletCards
-  },
-  {
-    href: '/expenses',
-    label: 'Expenses',
-    icon: ReceiptText
-  },
-  {
-    href: '/calendar',
-    label: 'Calendar',
-    icon: CalendarDays
-  },
-  {
-    href: '/reports',
-    label: 'Reports',
-    icon: BarChart3
-  },
-  {
-    href: '/settings',
-    label: 'Settings',
-    icon: Settings
-  }
+  { href: '/payments', label: 'Payments', icon: WalletCards },
+  { href: '/expenses', label: 'Expenses', icon: ReceiptText },
+  { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { href: '/reports', label: 'Reports', icon: BarChart3 },
+  { href: '/settings', label: 'Settings', icon: Settings }
 ]
 
+/* The bottom bar carries five destinations; everything else lives in More. */
 const mobileNavItems: NavItem[] = [
-  {
-    href: '/dashboard',
-    label: 'Dashboard',
-    icon: LayoutDashboard
-  },
-  {
-    href: '/properties',
-    label: 'Properties',
-    icon: Building2
-  },
-  {
-    href: '/units',
-    label: 'Units',
-    icon: Grid3X3
-  },
-  {
-    href: '/tenants',
-    label: 'Tenants',
-    icon: UsersRound
-  },
-  {
-    href: '/payments',
-    label: 'Payments',
-    icon: WalletCards
-  }
+  { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
+  { href: '/tenants', label: 'Tenants', icon: UsersRound },
+  { href: '/payments', label: 'Payments', icon: WalletCards },
+  { href: '/properties', label: 'Property', icon: Building2 }
 ]
 
-const secondaryNavItems: NavItem[] = [
-  {
-    href: '/expenses',
-    label: 'Expenses',
-    icon: ReceiptText
-  },
-  {
-    href: '/calendar',
-    label: 'Calendar',
-    icon: CalendarDays
-  },
-  {
-    href: '/reports',
-    label: 'Reports',
-    icon: BarChart3
-  },
-  {
-    href: '/settings',
-    label: 'Settings',
-    icon: Settings
-  }
-]
+const moreRoutes = ['/units', '/expenses', '/calendar', '/reports', '/settings']
 
 function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
 function currentPageTitle(pathname: string, navItems: NavItem[]) {
-  return navItems.find((item) => isActivePath(pathname, item.href))?.label ?? 'Dashboard'
-}
-
-function BrandLockup({ compact = false, inverse = false }: { compact?: boolean; inverse?: boolean }) {
-  return (
-    <div className="flex min-w-0 items-center gap-3">
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#071a0f] shadow-sm ring-1 ring-black/5">
-        <Image
-          src="/estatecore-mark.png"
-          alt="EstateCore UG mark"
-          width={96}
-          height={96}
-          className="h-12 w-12 object-contain"
-          priority
-        />
-      </span>
-      {!compact && (
-        <span className="min-w-0 leading-none">
-          <span className={`block text-[17px] font-extrabold ${inverse ? 'text-white' : ''}`} style={inverse ? undefined : { color: 'var(--foreground)' }}>
-            EstateCore UG
-          </span>
-          <span className={`mt-1 block text-[10px] font-semibold uppercase tracking-[0.12em] ${inverse ? 'text-emerald-100/65' : ''}`} style={inverse ? undefined : { color: 'var(--muted)' }}>
-            Property Management
-          </span>
-        </span>
-      )}
-    </div>
-  )
-}
-
-function SecondaryMobileMenu({ pathname }: { pathname: string }) {
-  const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const hasActiveSecondaryRoute = secondaryNavItems.some((item) => isActivePath(pathname, item.href))
-
-  useEffect(() => {
-    function closeOnOutsideClick(event: MouseEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setOpen(false)
-      }
+  for (const item of navItems) {
+    for (const child of item.children ?? []) {
+      if (isActivePath(pathname, child.href)) return child.label
     }
+    if (isActivePath(pathname, item.href)) return item.label
+  }
 
-    document.addEventListener('mousedown', closeOnOutsideClick)
-    return () => document.removeEventListener('mousedown', closeOnOutsideClick)
-  }, [])
+  return 'Dashboard'
+}
+
+function SidebarLink({
+  item,
+  pathname,
+  nested = false
+}: {
+  item: NavItem
+  pathname: string
+  nested?: boolean
+}) {
+  const active = isActivePath(pathname, item.href)
+  const Icon = item.icon
 
   return (
-    <div ref={containerRef} className="relative lg:hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        aria-label="Open secondary navigation"
-        className={`flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition ${
-          hasActiveSecondaryRoute
-            ? 'border-transparent bg-emerald-600 text-white'
-            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-        }`}
-      >
-        <Menu aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
-      </button>
-
-      {open && (
-        <div className="absolute right-0 top-11 z-50 w-48 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
-          {secondaryNavItems.map((item) => {
-            const active = isActivePath(pathname, item.href)
-            const Icon = item.icon
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                aria-current={active ? 'page' : undefined}
-                className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition ${
-                  active
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <Icon aria-hidden="true" className="h-4 w-4" strokeWidth={1.9} />
-                {item.label}
-              </Link>
-            )
-          })}
-        </div>
+    <Link
+      href={item.href}
+      aria-current={active ? 'page' : undefined}
+      className={`flex min-h-[42px] items-center gap-3 rounded-[10px] px-3 text-[14px] transition-colors duration-150 ${
+        nested ? 'ml-3 pl-4' : ''
+      } ${
+        active
+          ? 'bg-[#0a6b4f] font-semibold text-white shadow-[0_6px_16px_rgba(0,0,0,0.18)]'
+          : 'font-medium text-emerald-50/70 hover:bg-white/10 hover:text-white'
+      }`}
+    >
+      <Icon
+        aria-hidden="true"
+        className={`shrink-0 ${nested ? 'h-[18px] w-[18px]' : 'h-5 w-5'}`}
+        strokeWidth={1.75}
+      />
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      {item.children && !nested && (
+        <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 opacity-45" strokeWidth={1.75} />
       )}
-    </div>
+    </Link>
   )
 }
 
 export default function AppShell({ children, isAdmin = false }: { children: ReactNode; isAdmin?: boolean }) {
   const pathname = usePathname()
   const { user } = useUser()
+  const [moreOpen, setMoreOpen] = useState(false)
+
   const navItems = isAdmin
-    ? [
-        { href: '/admin', label: 'Admin', icon: ShieldCheck },
-        ...baseNavItems
-      ]
+    ? [{ href: '/admin', label: 'Admin', icon: ShieldCheck }, ...baseNavItems]
     : baseNavItems
   const pageTitle = currentPageTitle(pathname, navItems)
 
+  /* The dashboard paints its own full-bleed aurora header on mobile. */
+  const immersive = pathname === '/dashboard'
+  const moreActive = moreRoutes.some((route) => isActivePath(pathname, route))
+
   return (
-    <div className="flex h-screen h-dvh w-full overflow-hidden bg-[#f8fafb]">
-      <aside className="relative isolate hidden h-full w-[264px] flex-shrink-0 overflow-hidden bg-[#063f35] text-white shadow-[8px_0_32px_rgba(2,44,37,0.10)] lg:flex lg:flex-col">
+    <div className="flex h-screen h-dvh w-full overflow-hidden bg-[var(--surface-sunken)]">
+      <aside className="relative isolate hidden h-full w-[264px] flex-shrink-0 overflow-hidden text-white shadow-[8px_0_32px_rgba(2,44,37,0.10)] lg:flex lg:flex-col">
         <div className="absolute inset-0 -z-30 overflow-hidden" aria-hidden="true">
           <Image
             src="/estatecore-sidebar-bg.png"
@@ -248,35 +139,40 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
             className="object-cover object-bottom"
           />
         </div>
-        <div className="absolute inset-0 -z-20 bg-[#032f29]/[0.12]" aria-hidden="true" />
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(1,28,24,0.26)_0%,rgba(2,48,40,0.18)_62%,rgba(1,36,31,0.06)_100%)]" aria-hidden="true" />
+        <div className="absolute inset-0 -z-20 bg-[#04302a]/25" aria-hidden="true" />
+        <div
+          className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(4,40,34,0.82)_0%,rgba(6,63,53,0.72)_58%,rgba(4,48,42,0.58)_100%)]"
+          aria-hidden="true"
+        />
 
-        <div className="shrink-0 border-b border-white/10 px-5 py-4">
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <BrandLockup inverse />
+        <div className="shrink-0 px-5 py-5">
+          <Link href="/dashboard" className="flex min-w-0 items-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-[var(--brand-ink)] ring-1 ring-white/10">
+              <Image
+                src="/estatecore-mark.png"
+                alt="EstateCore UG"
+                width={88}
+                height={88}
+                className="h-11 w-11 object-contain"
+                priority
+              />
+            </span>
+            <span className="min-w-0">
+              <span className="t-section block truncate text-white">EstateCore UG</span>
+              <span className="t-label mt-0.5 block truncate text-emerald-100/55">Property management</span>
+            </span>
           </Link>
         </div>
 
-        <nav className="min-h-0 flex-1 space-y-1 overflow-hidden px-4 py-2">
-          {navItems.map((item) => {
-            const active = isActivePath(pathname, item.href)
-            const Icon = item.icon
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? 'page' : undefined}
-                className={`flex h-[clamp(2.25rem,5dvh,3rem)] min-h-0 items-center gap-3 rounded-xl px-4 text-sm font-semibold transition-all duration-150 ${
-                  active
-                    ? 'bg-[#087d5f] text-white shadow-[0_8px_20px_rgba(0,0,0,0.14)]'
-                    : 'text-emerald-50/75 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                <Icon aria-hidden="true" className="h-[19px] w-[19px] shrink-0" strokeWidth={1.8} />
-                {item.label}
-              </Link>
-            )
-          })}
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-3">
+          {navItems.map((item) => (
+            <div key={item.href} className="space-y-1">
+              <SidebarLink item={item} pathname={pathname} />
+              {item.children?.map((child) => (
+                <SidebarLink key={child.href} item={child} pathname={pathname} nested />
+              ))}
+            </div>
+          ))}
         </nav>
 
         {!isAdmin && (
@@ -284,94 +180,134 @@ export default function AppShell({ children, isAdmin = false }: { children: Reac
             <SupportChatWidget />
           </div>
         )}
-
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <header className="sticky top-0 z-30 flex-shrink-0 border-b bg-white/95 px-3 py-2.5 backdrop-blur lg:hidden"
-          style={{ borderColor: 'var(--border)' }}>
-          <div className="flex min-w-0 items-center justify-between gap-2">
-            <Link href="/dashboard" className="flex min-w-0 items-center gap-2" aria-label="Estate Core UG dashboard">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#071a0f] ring-1 ring-black/5">
-                <Image
-                  src="/estatecore-mark.png"
-                  alt="EstateCore UG mark"
-                  width={72}
-                  height={72}
-                  className="h-9 w-9 object-contain"
-                  priority
-                />
-              </span>
-              <span className="min-w-0 leading-tight">
-                <span className="block truncate text-sm font-black text-slate-950">Estate Core UG</span>
-                <span className="block truncate text-xs font-semibold text-slate-500">{pageTitle}</span>
-              </span>
-            </Link>
+      <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+        {!immersive && (
+          <header className="sticky top-0 z-30 flex-shrink-0 border-b border-[var(--line)] bg-white/95 px-4 py-2.5 backdrop-blur lg:hidden">
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <Link
+                href="/dashboard"
+                className="flex min-w-0 items-center gap-2.5"
+                aria-label="EstateCore UG dashboard"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-[var(--brand-ink)] ring-1 ring-black/5">
+                  <Image
+                    src="/estatecore-mark.png"
+                    alt=""
+                    width={72}
+                    height={72}
+                    className="h-9 w-9 object-contain"
+                    priority
+                  />
+                </span>
+                <span className="min-w-0 leading-tight">
+                  <span className="t-section block truncate text-[var(--text-ink)]">{pageTitle}</span>
+                  <span className="block truncate text-[12px] text-[var(--text-muted)]">EstateCore UG</span>
+                </span>
+              </Link>
 
-            <div className="flex shrink-0 items-center gap-1.5">
-              {!isAdmin && <SupportChatWidget variant="icon" />}
-              <NotificationBell />
-              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm">
-                <UserButton />
+              <div className="flex shrink-0 items-center gap-1.5">
+                <NotificationBell />
+                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-white">
+                  <UserButton />
+                </div>
               </div>
-              <SecondaryMobileMenu pathname={pathname} />
             </div>
-          </div>
-        </header>
+          </header>
+        )}
 
-        <header className="hidden flex-shrink-0 border-b bg-white px-6 py-3 lg:block"
-          style={{ borderColor: 'var(--border)' }}>
+        <header className="hidden flex-shrink-0 border-b border-[var(--line)] bg-white px-6 py-3 lg:block">
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--muted)' }}>
-              <MapPin aria-hidden="true" className="h-4 w-4" strokeWidth={1.9} />
+            <div className="t-small flex items-center gap-2 text-[var(--text-muted)]">
+              <MapPin aria-hidden="true" className="h-4 w-4" strokeWidth={1.75} />
               Kampala, Uganda
             </div>
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell />
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 <UserButton />
                 <div className="hidden leading-tight sm:block">
-                  <p className="max-w-[140px] truncate text-sm font-bold text-slate-900">
-                    {user?.fullName || user?.primaryEmailAddress?.emailAddress || 'My Account'}
+                  <p className="max-w-[160px] truncate text-[14px] font-semibold text-[var(--text-ink)]">
+                    {user?.fullName || user?.primaryEmailAddress?.emailAddress || 'My account'}
                   </p>
-                  <p className="text-xs text-slate-500">{isAdmin ? 'Admin' : 'Landlord'}</p>
+                  <p className="text-[12px] text-[var(--text-muted)]">{isAdmin ? 'Admin' : 'Landlord'}</p>
                 </div>
-                <ChevronDown aria-hidden="true" className="hidden h-4 w-4 text-slate-400 sm:block" strokeWidth={1.9} />
               </div>
             </div>
           </div>
         </header>
 
-        <main className="app-shell-main flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-5 lg:px-6">
-          <div className="mx-auto w-full max-w-[1440px]">
-            {children}
-          </div>
+        <main
+          className={`app-shell-main flex-1 overflow-y-auto overflow-x-hidden ${
+            immersive ? 'px-0 py-0 lg:px-6 lg:py-5' : 'px-4 py-4 sm:px-5 lg:px-6 lg:py-5'
+          }`}
+        >
+          <div className="mx-auto w-full max-w-[1440px]">{children}</div>
         </main>
 
-        <nav className="mobile-bottom-nav fixed left-2 right-2 z-40 mx-auto max-w-[430px] overflow-hidden rounded-2xl border border-slate-200/90 bg-white/95 p-1.5 shadow-[0_18px_48px_rgba(15,23,42,0.22)] backdrop-blur-xl lg:hidden" aria-label="Primary mobile navigation">
-          <div className="mobile-bottom-nav-scroll flex gap-1 overflow-x-auto overscroll-x-contain">
+        <nav
+          className="mobile-bottom-nav fixed left-3 right-3 z-40 mx-auto max-w-[430px] rounded-[18px] border border-[var(--line)] bg-white/97 px-1.5 py-1.5 shadow-[0_16px_40px_rgba(6,63,53,0.18)] backdrop-blur-xl lg:hidden"
+          aria-label="Primary"
+        >
+          <div className="flex items-stretch gap-0.5">
             {mobileNavItems.map((item) => {
-              const active = isActivePath(pathname, item.href)
+              const active = isActivePath(pathname, item.href) && !moreOpen
               const Icon = item.icon
+
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   aria-current={active ? 'page' : undefined}
-                  className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[9.5px] font-black leading-none transition ${
-                    active
-                      ? 'text-white shadow-sm'
-                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                  }`}
-                  style={active ? { backgroundColor: 'var(--brand)' } : undefined}
+                  className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-[12px] px-1 py-1.5"
                 >
-                  <Icon aria-hidden="true" className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9} />
-                  <span className="block max-w-full truncate">{item.label}</span>
+                  <span
+                    className={`flex h-9 w-full max-w-[52px] items-center justify-center rounded-[11px] transition-colors ${
+                      active ? 'bg-[var(--brand)] text-white' : 'text-[var(--text-muted)]'
+                    }`}
+                  >
+                    <Icon aria-hidden="true" className="h-5 w-5" strokeWidth={1.75} />
+                  </span>
+                  <span
+                    className={`block max-w-full truncate text-[10px] leading-none ${
+                      active ? 'font-semibold text-[var(--brand-text)]' : 'font-medium text-[var(--text-muted)]'
+                    }`}
+                  >
+                    {item.label}
+                  </span>
                 </Link>
               )
             })}
+
+            <button
+              type="button"
+              onClick={() => setMoreOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={moreOpen}
+              className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-[12px] px-1 py-1.5"
+            >
+              <span
+                className={`flex h-9 w-full max-w-[52px] items-center justify-center rounded-[11px] transition-colors ${
+                  moreOpen || moreActive ? 'bg-[var(--brand)] text-white' : 'text-[var(--text-muted)]'
+                }`}
+              >
+                <MoreHorizontal aria-hidden="true" className="h-5 w-5" strokeWidth={1.75} />
+              </span>
+              <span
+                className={`block max-w-full truncate text-[10px] leading-none ${
+                  moreOpen || moreActive
+                    ? 'font-semibold text-[var(--brand-text)]'
+                    : 'font-medium text-[var(--text-muted)]'
+                }`}
+              >
+                More
+              </span>
+            </button>
           </div>
         </nav>
+
+        <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} isAdmin={isAdmin} />
       </div>
     </div>
   )

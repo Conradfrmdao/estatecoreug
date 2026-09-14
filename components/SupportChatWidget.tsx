@@ -28,7 +28,7 @@ function messageTime(value: string) {
 export default function SupportChatWidget({
   variant = 'sidebar'
 }: {
-  variant?: 'sidebar' | 'icon'
+  variant?: 'sidebar' | 'icon' | 'row'
 }) {
   const [open, setOpen] = useState(false)
   const [conversation, setConversation] = useState<SupportConversation | null>(null)
@@ -160,11 +160,32 @@ export default function SupportChatWidget({
             </span>
           )}
         </button>
+      ) : variant === 'row' ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="surface-card flex min-h-14 w-full items-center gap-3 px-3.5 py-3 text-left transition active:scale-[0.99]"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[var(--paid-bg)] text-[var(--brand-text)]">
+            <Headphones className="h-5 w-5" strokeWidth={1.75} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="t-section block truncate text-[var(--text-ink)]">Chat with admin</span>
+            <span className="block truncate text-[12px] leading-4 text-[var(--text-muted)]">
+              Support - usually replies same day
+            </span>
+          </span>
+          {unreadCount > 0 && (
+            <span className="money flex min-h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand)] px-1.5 text-[10px] text-white">
+              {badge}
+            </span>
+          )}
+        </button>
       ) : (
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="relative flex w-full items-center gap-3 rounded-xl border border-white/15 bg-white/10 px-3 py-3 text-left text-sm font-black text-white transition hover:bg-white/15"
+          className="relative flex w-full items-center gap-3 rounded-xl border border-white/15 bg-white/10 px-3 py-3 text-left text-sm font-bold text-white transition hover:bg-white/15"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-300/15 text-emerald-100">
             <Headphones className="h-4 w-4" strokeWidth={2} />

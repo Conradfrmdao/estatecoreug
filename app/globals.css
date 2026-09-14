@@ -44,6 +44,52 @@
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
   --shadow-lg: 0 10px 30px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
   --shadow-brand: 0 4px 14px rgba(0,165,80,0.25);
+
+  /* ══ Design refresh · artboard 1a ══════════════════════════════════
+     Components reference these tokens, never raw hex.
+     Rule: --brand is a FILL colour only. Green text uses --brand-text. */
+
+  /* Brand ramp — unchanged core, extended */
+  --brand-100: #c8efdb;
+  --brand-200: #93e0bb;
+  --brand-300: #4fcb93;
+  --brand-text: #007038;
+  --brand-deep: #063f35;
+  --brand-ink: #071a0f;
+
+  /* Neutral ramp — warm-cool, replaces bare slate */
+  --surface: #ffffff;
+  --surface-sunken: #f7faf8;
+  --line: #e6ece9;
+  --line-strong: #d3ddd8;
+  --text-muted: #5f6d68;
+  --text-soft: #8b9a94;
+  --text-body: #35443e;
+  --text-ink: #0f1a17;
+
+  /* Semantic set — one meaning, one colour, everywhere */
+  --paid-fg: #0f6b3f;
+  --paid-bg: #e6f7ef;
+  --advance-fg: #0c4a6e;
+  --advance-bg: #e0f2fe;
+  --carried-fg: #92400e;
+  --carried-bg: #fef3c7;
+  --due-fg: #9a3412;
+  --due-bg: #ffedd5;
+  --overdue-fg: #b42318;
+  --overdue-bg: #fee4e2;
+  --neutral-fg: #5f6d68;
+  --neutral-bg: #eef2f0;
+
+  /* Radius — 8 controls · 12 cards · 16 sheets */
+  --r-control: 8px;
+  --r-card: 12px;
+  --r-sheet: 16px;
+
+  /* Elevation — three levels, green-tinted */
+  --elev-flat: 0 1px 2px rgba(6,63,53,0.06), 0 1px 3px rgba(6,63,53,0.04);
+  --elev-raised: 0 4px 12px rgba(6,63,53,0.08), 0 2px 4px rgba(6,63,53,0.05);
+  --elev-overlay: 0 16px 40px rgba(6,63,53,0.16), 0 4px 12px rgba(6,63,53,0.08);
 }
 
 * {
@@ -73,16 +119,10 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-@media (min-width: 640px) {
-  body {
-    font-size: 14px;
-  }
 }
 
 *:focus-visible {
@@ -361,4 +401,131 @@ textarea.field-input {
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Design refresh · artboard 1a — type scale, money, surfaces
+   Inter, max weight 700. font-black (900) is retired.
+   ══════════════════════════════════════════════════════════════════ */
+
+.t-display {
+  font-size: 28px;
+  line-height: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.t-title {
+  font-size: 21px;
+  line-height: 26px;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+}
+.t-section {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: -0.006em;
+}
+.t-body {
+  font-size: 15px;
+  line-height: 23px;
+  font-weight: 400;
+}
+.t-small {
+  font-size: 13px;
+  line-height: 19px;
+  font-weight: 400;
+}
+.t-label {
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Money — tabular figures, right-aligned in columns, never truncated (§6.13) */
+.money {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.money-prefix {
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-soft);
+}
+.money-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Surfaces */
+.surface-card {
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--elev-flat);
+}
+.surface-sheet {
+  background-color: var(--surface);
+  border-radius: var(--r-sheet);
+  box-shadow: var(--elev-overlay);
+}
+
+/* Aurora header — mobile dashboard (artboard 1d) */
+.aurora {
+  background-color: var(--brand-deep);
+  background-image:
+    radial-gradient(120% 90% at 88% 6%, rgba(0, 165, 80, 0.42) 0%, rgba(0, 165, 80, 0) 62%),
+    radial-gradient(90% 70% at 4% 0%, rgba(79, 203, 147, 0.26) 0%, rgba(79, 203, 147, 0) 58%),
+    linear-gradient(168deg, #07533f 0%, #063f35 52%, #04302a 100%);
+}
+
+/* Collection ring / donut — draws on load, respects reduced motion */
+@keyframes ringDraw {
+  from { stroke-dashoffset: var(--ring-circumference); }
+  to { stroke-dashoffset: var(--ring-offset); }
+}
+.ring-draw {
+  animation: ringDraw 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Split bar — green for this month, amber for what rolled over (artboard 1b) */
+.split-track {
+  background-color: var(--neutral-bg);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+/* Horizontal scrollers (month scrubber, segmented filters) */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Skeletons — mirror the real row, no spinner (artboard 4c) */
+.skeleton {
+  background-image: linear-gradient(90deg, #eef2f0 25%, #f7faf8 37%, #eef2f0 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring-draw,
+  .skeleton,
+  .animate-in {
+    animation: none;
+  }
+  .ring-draw {
+    stroke-dashoffset: var(--ring-offset);
+  }
 }

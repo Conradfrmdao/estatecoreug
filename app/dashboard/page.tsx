@@ -1,173 +1,31 @@
-import Link from 'next/link'
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  BarChart3,
-  Building2,
-  CalendarDays,
-  CheckCircle2,
-  CircleAlert,
-  DoorOpen,
-  Filter,
-  KeyRound,
-  Plus,
-  ReceiptText,
-  UsersRound,
-  WalletCards
-} from 'lucide-react'
-
+import DesktopDashboard from '@/components/dashboard/DesktopDashboard'
+import MobileDashboard from '@/components/dashboard/MobileDashboard'
+import type { ActivityRow, DashboardView, OwingRow } from '@/components/dashboard/types'
+import { rentStatusKind } from '@/components/ui/StatusPill'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getDashboardData } from '@/lib/data'
-import { currency, currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
+import {
+  currentPaymentMonth,
+  dateKey,
+  monthLabel,
+  monthNameLabel,
+  monthShortLabel,
+  shiftMonth,
+  shortDate
+} from '@/lib/format'
 import { paymentCoveragePeriods } from '@/lib/rent-cycle'
 
 export const dynamic = 'force-dynamic'
 
-const weekDays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-
-const toneStyles = {
-  green: {
-    icon: 'bg-emerald-100 text-emerald-700',
-    value: 'text-emerald-700',
-    trend: 'text-emerald-700',
-    spark: '#008a45'
-  },
-  amber: {
-    icon: 'bg-orange-100 text-orange-600',
-    value: 'text-orange-600',
-    trend: 'text-orange-600',
-    spark: '#f97316'
-  },
-  blue: {
-    icon: 'bg-blue-100 text-blue-700',
-    value: 'text-slate-950',
-    trend: 'text-emerald-700',
-    spark: '#2563eb'
-  },
-  dark: {
-    icon: 'bg-emerald-950 text-white',
-    value: 'text-slate-950',
-    trend: 'text-emerald-700',
-    spark: '#047857'
-  }
+function initialsOf(fullName: string) {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
 }
 
 function sameMonth(value: Date, month: string) {
   return dateKey(value).slice(0, 7) === month
-}
-
-function dayOfMonth(value: Date) {
-  return Number(dateKey(value).slice(8, 10))
-}
-
-function monthDays(month: string) {
-  const [year, monthNumber] = month.split('-').map(Number)
-  const firstDay = new Date(Date.UTC(year, monthNumber - 1, 1))
-  const totalDays = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate()
-  const offset = (firstDay.getUTCDay() + 6) % 7
-
-  return [
-    ...Array.from({ length: offset }, () => null),
-    ...Array.from({ length: totalDays }, (_, index) => index + 1)
-  ]
-}
-
-function Sparkline({ color }: { color: string }) {
-  return (
-    <svg viewBox="0 0 84 28" className="h-6 w-16" aria-hidden="true">
-      <polyline
-        points="2,22 14,18 25,20 36,13 48,15 59,8 72,11 82,3"
-        fill="none"
-        stroke={color}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-function KpiCard({
-  title,
-  value,
-  sub,
-  tone,
-  icon: Icon,
-  href,
-  direction = 'up'
-}: {
-  title: string
-  value: string
-  sub: string
-  tone: keyof typeof toneStyles
-  icon: typeof WalletCards
-  href: string
-  direction?: 'up' | 'down'
-}) {
-  const style = toneStyles[tone]
-  const DirectionIcon = direction === 'up' ? ArrowUpRight : ArrowDownRight
-
-  return (
-    <Link
-      href={href}
-      aria-label={`View ${title}`}
-      className="flex min-h-[106px] flex-col justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 sm:min-h-[108px] sm:p-4"
-    >
-      <div className="min-w-0 space-y-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full sm:h-9 sm:w-9 ${style.icon}`}>
-            <Icon className="h-4 w-4" strokeWidth={1.9} />
-          </div>
-          <p className="min-w-0 text-[10.5px] font-bold leading-tight text-slate-600 sm:text-[11px]">{title}</p>
-        </div>
-        <p className={`text-base font-black leading-tight tracking-normal [overflow-wrap:anywhere] min-[390px]:text-lg sm:text-xl xl:text-2xl ${style.value}`}>{value}</p>
-        <p className={`inline-flex max-w-full items-center gap-1 text-[11px] font-bold leading-tight ${style.trend}`}>
-          <DirectionIcon className="h-3 w-3 shrink-0" strokeWidth={2} />
-          <span className="truncate">{sub}</span>
-        </p>
-      </div>
-      <div className="hidden shrink-0 2xl:block">
-        <Sparkline color={style.spark} />
-      </div>
-    </Link>
-  )
-}
-
-function PortfolioMetric({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  href
-}: {
-  label: string
-  value: number
-  sub: string
-  icon: typeof Building2
-  href: string
-}) {
-  return (
-    <Link
-      href={href}
-      aria-label={`View ${label}`}
-      className="flex min-w-0 items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 md:rounded-none md:bg-transparent md:px-2 md:py-1.5"
-    >
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200 md:h-9 md:w-9 md:bg-slate-100 md:ring-0">
-        <Icon className="h-4 w-4" strokeWidth={1.8} />
-      </div>
-      <div className="min-w-0">
-        <p className="truncate text-[10.5px] font-bold text-slate-600 md:text-[11px]">{label}</p>
-        <p className="text-lg font-black leading-tight text-slate-950">{value}</p>
-        <p className="truncate text-[10.5px] text-slate-500 md:text-[11px]">{sub}</p>
-      </div>
-    </Link>
-  )
-}
-
-function statusBadge(amountPaid: number, balance: number) {
-  if (balance > 0) return 'Outstanding'
-  if (amountPaid > 0) return 'Paid'
-  return 'Cleared'
 }
 
 export default async function DashboardPage({
@@ -180,325 +38,139 @@ export default async function DashboardPage({
   const month = params?.month || currentPaymentMonth()
   const data = await getDashboardData(user.id, month)
 
-  const activeCount = data.tenantBalances.length
-  const paidCount = data.tenantBalances.filter((row) => row.balance <= 0 && row.amountPaid > 0).length
-  const clearedCount = data.tenantBalances.filter((row) => row.balance <= 0 && row.amountPaid <= 0).length
-  const outstandingCount = data.tenantBalances.filter((row) => row.balance > 0).length
-  const paidDeg = activeCount ? (paidCount / activeCount) * 360 : 0
-  const clearedDeg = activeCount ? (clearedCount / activeCount) * 360 : 0
-  const selectedMonthDays = monthDays(month)
-  const today = new Date()
-  const todayKey = dateKey(today)
-  const todayDay = todayKey.slice(0, 7) === month ? Number(todayKey.slice(8, 10)) : null
-  const eventDays = new Map<number, 'green' | 'amber' | 'red'>()
+  /* Status counts come from the rent status the app already computed per tenant. */
+  const statusCounts = data.tenantBalances.reduce(
+    (running, row) => {
+      const kind = rentStatusKind(row.paymentStatus)
+      if (kind === 'paid') running.paid += 1
+      else if (kind === 'part_paid') running.partPaid += 1
+      else if (kind === 'overdue') running.overdue += 1
+      else running.due += 1
+      running.total += 1
+      return running
+    },
+    { paid: 0, partPaid: 0, due: 0, overdue: 0, total: 0 }
+  )
 
-  for (const row of data.tenantBalances) {
-    if (sameMonth(row.dueDate, month)) {
-      eventDays.set(
-        dayOfMonth(row.dueDate),
-        row.paymentStatus === 'overdue' ? 'red' : row.paymentStatus === 'paid' ? 'green' : 'amber'
-      )
-    }
-  }
-  for (const payment of data.monthlyPayments) {
-    if (sameMonth(payment.coverageDate, month)) eventDays.set(dayOfMonth(payment.coverageDate), 'green')
-  }
-  for (const { expense } of data.expenses) {
-    if (sameMonth(expense.expenseDate, month)) eventDays.set(dayOfMonth(expense.expenseDate), 'amber')
-  }
+  const balanceByTenant = new Map(data.tenantBalances.map((row) => [row.tenant.id, row]))
 
-  const upcomingPayments = data.tenantBalances
-    .filter((row) => row.balance > 0)
-    .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
-    .slice(0, 3)
+  const owingRows: OwingRow[] = data.outstandingTenants
+    .slice()
+    .sort((a, b) => b.balance - a.balance)
+    .map((row) => {
+      const periodBalance = balanceByTenant.get(row.tenant.id)
+      const kind = periodBalance ? rentStatusKind(periodBalance.paymentStatus) : 'overdue'
+      const statusDetail =
+        kind === 'overdue'
+          ? row.periods > 1
+            ? `${row.periods} mo`
+            : undefined
+          : kind === 'due'
+            ? shortDate(periodBalance?.dueDate ?? row.oldestDueDate)
+            : undefined
 
-  const recentActivity = [
+      return {
+        tenantId: row.tenant.id,
+        name: row.tenant.fullName,
+        initials: initialsOf(row.tenant.fullName),
+        propertyName: row.property.name,
+        unitNumber: row.unit.unitNumber,
+        dueLabel: `due ${shortDate(periodBalance?.dueDate ?? row.oldestDueDate)}`,
+        balance: {
+          total: row.balance,
+          currentMonthBalance: row.currentMonthBalance,
+          carriedForwardBalance: row.carriedForwardBalance,
+          outstandingMonths: row.outstandingMonths,
+          currentMonth: month
+        },
+        statusKind: kind,
+        statusDetail
+      }
+    })
+
+  const monthlyExpenses = data.expenses.filter(({ expense }) => sameMonth(expense.expenseDate, month))
+  const expenseByCategory = new Map<string, number>()
+  for (const { expense } of monthlyExpenses) {
+    expenseByCategory.set(expense.category, (expenseByCategory.get(expense.category) ?? 0) + expense.amount)
+  }
+  const largestExpense = Array.from(expenseByCategory.entries()).sort((a, b) => b[1] - a[1])[0]
+
+  const activity: ActivityRow[] = [
     ...data.recentPayments
       .filter(({ payment }) => sameMonth(payment.paymentDate, month))
-      .map(({ payment, tenant, property }) => ({
-      id: `payment-${payment.id}`,
-      type: 'payment' as const,
-      title: `Payment received from ${tenant.fullName}`,
-      detail: `${property.name} - ${paymentCoveragePeriods(payment).map((period) => monthLabel(period.month)).join(', ')}`,
-      amount: payment.amountPaid,
-      date: payment.paymentDate
-    })),
-    ...data.expenses
-      .filter(({ expense }) => sameMonth(expense.expenseDate, month))
-      .slice(0, 5)
-      .map(({ expense, property }) => ({
+      .map(({ payment, tenant, unit, property }) => {
+        const coverage = paymentCoveragePeriods(payment)
+        const paidInMonth = dateKey(payment.paymentDate).slice(0, 7)
+        const isAdvance = coverage.length > 0 && coverage.every((period) => period.month > paidInMonth)
+        const coverageLabel = coverage.map((period) => monthShortLabel(period.month)).join(', ')
+
+        return {
+          id: `payment-${payment.id}`,
+          kind: (isAdvance ? 'advance' : 'payment') as ActivityRow['kind'],
+          title: `${isAdvance ? 'Payment in advance' : 'Payment'} · ${tenant.fullName}`,
+          detail: `${property.name} ${unit.unitNumber} · ${coverageLabel} · ${shortDate(payment.paymentDate)}`,
+          amount: payment.amountPaid,
+          sortKey: payment.paymentDate.getTime()
+        }
+      }),
+    ...monthlyExpenses.slice(0, 5).map(({ expense, property }) => ({
       id: `expense-${expense.id}`,
-      type: 'expense' as const,
-      title: `Expense - ${expense.title}`,
-      detail: property.name,
+      kind: 'expense' as ActivityRow['kind'],
+      title: `Expense · ${expense.title}`,
+      detail: `${property.name} · ${expense.category} · ${shortDate(expense.expenseDate)}`,
       amount: expense.amount,
-      date: expense.expenseDate
+      sortKey: expense.expenseDate.getTime()
     }))
   ]
-    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .sort((a, b) => b.sortKey - a.sortKey)
     .slice(0, 4)
+    .map(({ sortKey: _sortKey, ...row }) => row)
 
-  const todayEvents = recentActivity
-    .filter((item) => dateKey(item.date) === todayKey)
-    .slice(0, 2)
+  const view: DashboardView = {
+    month,
+    monthLabel: monthLabel(month),
+    monthName: monthNameLabel(month),
+    scrubberMonths: [-2, -1, 0, 1, 2].map((offset) => {
+      const target = shiftMonth(month, offset)
+      return {
+        month: target,
+        label: offset === 0 ? monthNameLabel(target) : monthShortLabel(target).split(' ')[0],
+        isCurrent: offset === 0
+      }
+    }),
+    greetingName: user.name.split(' ')[0] || 'Landlord',
+    collectedThisMonth: data.summary.collectedThisMonth,
+    totalExpected: data.summary.totalExpected,
+    collectedPercent: data.summary.totalExpected
+      ? Math.round((data.summary.collectedThisMonth / data.summary.totalExpected) * 100)
+      : 0,
+    totalOutstanding: data.summary.totalOutstanding,
+    carriedForwardTotal: data.outstandingTenants.reduce(
+      (running, row) => running + row.carriedForwardBalance,
+      0
+    ),
+    expensesThisMonth: data.summary.expensesThisMonth,
+    largestExpenseCategory: largestExpense
+      ? { category: largestExpense[0], amount: largestExpense[1] }
+      : null,
+    netThisMonth: data.summary.netThisMonth,
+    portfolio: [
+      { label: 'Properties', value: data.summary.totalProperties, href: '/properties' },
+      { label: 'Units', value: data.summary.totalUnits, href: '/units' },
+      { label: 'Occupied', value: data.summary.occupiedUnits, href: '/units?status=occupied' },
+      { label: 'Vacant', value: data.summary.vacantUnits, href: '/units?status=vacant' },
+      { label: 'Tenants', value: data.summary.activeTenants, href: '/tenants' }
+    ],
+    statusCounts,
+    owingRows,
+    fullyPaidCount: statusCounts.paid,
+    activity
+  }
 
   return (
-    <div className="space-y-3 pb-2 animate-in">
-      <section className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Dashboard</h1>
-          <p className="mt-0.5 text-xs text-slate-600">
-            Welcome back, {user.name.split(' ')[0] || 'Landlord'}. Here is what is happening with your properties.
-          </p>
-        </div>
-        <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
-          <Link
-            href="/payments/new"
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-xs font-bold text-white shadow-sm sm:h-9 sm:min-h-0"
-            style={{ backgroundColor: '#00A550' }}
-          >
-            <Plus className="h-4 w-4" strokeWidth={2} />
-            <span className="hidden min-[360px]:inline">Record Payment</span>
-            <span className="min-[360px]:hidden">Record</span>
-          </Link>
-          <form className="grid gap-2 min-[390px]:grid-cols-[minmax(0,1fr)_auto]" method="get">
-            <input
-              name="month"
-              type="month"
-              defaultValue={month}
-              className="min-h-11 min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 sm:h-9 sm:min-h-0 sm:text-xs"
-            />
-            <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50 sm:h-9 sm:min-h-0">
-              <Filter className="h-4 w-4" strokeWidth={1.9} />
-              Filter
-            </button>
-          </form>
-        </div>
-      </section>
-
-      <section className="grid grid-cols-2 gap-2 md:gap-3 xl:grid-cols-4">
-        <KpiCard
-          title="Collected This Month"
-          value={currency(data.summary.collectedThisMonth)}
-          sub={`${data.summary.totalExpected ? Math.round((data.summary.collectedThisMonth / data.summary.totalExpected) * 100) : 0}% of expected`}
-          tone="green"
-          icon={WalletCards}
-          href={`/payments?month=${month}`}
-        />
-        <KpiCard
-          title="Outstanding Rent"
-          value={currency(data.summary.totalOutstanding)}
-          sub={`${data.summary.unpaidTenants} tenants unpaid`}
-          tone="amber"
-          icon={CircleAlert}
-          href={`/reports?month=${month}&status=outstanding#tenant-rent-report`}
-          direction="down"
-        />
-        <KpiCard
-          title="Monthly Expenses"
-          value={currency(data.summary.expensesThisMonth)}
-          sub={`${data.recentExpenses.length} recent expenses`}
-          tone="blue"
-          icon={ReceiptText}
-          href={`/expenses?month=${month}`}
-          direction="down"
-        />
-        <KpiCard
-          title="Monthly Net Profit"
-          value={currency(data.summary.netThisMonth)}
-          sub={`${monthLabel(month)} result`}
-          tone="dark"
-          icon={BarChart3}
-          href={`/reports?month=${month}#property-performance`}
-        />
-      </section>
-
-      <section className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm min-[390px]:grid-cols-3 md:grid-cols-5 md:gap-0 md:divide-x md:divide-slate-200 [&>*:last-child]:col-span-2 min-[390px]:[&>*:last-child]:col-span-1">
-        <PortfolioMetric label="Properties" value={data.summary.totalProperties} sub="Total properties" icon={Building2} href="/properties" />
-        <PortfolioMetric label="Units" value={data.summary.totalUnits} sub="Total units" icon={DoorOpen} href="/units" />
-        <PortfolioMetric label="Occupied" value={data.summary.occupiedUnits} sub="Units occupied" icon={UsersRound} href="/units?status=occupied" />
-        <PortfolioMetric label="Vacant" value={data.summary.vacantUnits} sub="Units vacant" icon={KeyRound} href="/units?status=vacant" />
-        <PortfolioMetric label="Tenants" value={data.summary.activeTenants} sub="Active tenants" icon={UsersRound} href="/tenants" />
-      </section>
-
-      <section className="grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-black text-slate-950">Payment Status</h2>
-            <Link href="/tenants" className="text-xs font-bold text-emerald-700">View all</Link>
-          </div>
-
-          <div className="mt-3 flex items-center gap-4">
-            <div
-              className="relative flex h-[5.5rem] w-[5.5rem] shrink-0 items-center justify-center rounded-full"
-              style={{
-                background: activeCount
-                  ? `conic-gradient(#007a3d 0deg ${paidDeg}deg, #94a3b8 ${paidDeg}deg ${paidDeg + clearedDeg}deg, #ef4444 ${paidDeg + clearedDeg}deg 360deg)`
-                  : '#e5e7eb'
-              }}
-            >
-              <div className="flex h-12 w-12 flex-col items-center justify-center rounded-full bg-white">
-                <span className="text-base font-black leading-none text-slate-950">{activeCount}</span>
-                <span className="text-[10px] text-slate-500">tenants</span>
-              </div>
-            </div>
-            <div className="flex-1 space-y-1.5 text-xs">
-              <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-emerald-700" />Paid</span>
-                <span className="font-bold text-slate-950">{paidCount}</span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-slate-400" />Cleared</span>
-                <span className="font-bold text-slate-950">{clearedCount}</span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-red-500" />Outstanding</span>
-                <span className="font-bold text-slate-950">{outstandingCount}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-black text-slate-950">Outstanding Rent</h2>
-            <Link href={`/tenants?month=${month}&status=unpaid`} className="text-xs font-bold text-emerald-700">View all</Link>
-          </div>
-          <div className="space-y-2">
-            {upcomingPayments.map((row) => (
-              <div key={row.tenant.id} className="flex items-start justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 text-xs">
-                <div className="min-w-0">
-                  <p className="truncate font-bold text-slate-800">{row.tenant.fullName}</p>
-                  <p className="truncate text-xs text-slate-500">{row.property.name} - Unit {row.unit.unitNumber}</p>
-                </div>
-                <div className="max-w-[8rem] shrink-0 text-right">
-                  <p className="truncate font-bold text-slate-950">{currency(row.balance)}</p>
-                  <span className="rounded-md bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-600">
-                    {statusBadge(row.amountPaid, row.balance)}
-                  </span>
-                </div>
-              </div>
-            ))}
-            {upcomingPayments.length === 0 && (
-              <p className="rounded-lg bg-emerald-50 px-3 py-4 text-xs font-semibold text-emerald-700">No unpaid tenants for this period.</p>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-black text-slate-950">Recent Activity</h2>
-            <Link href="/payments" className="text-xs font-bold text-emerald-700">View all</Link>
-          </div>
-          <div className="space-y-2.5">
-            {recentActivity.map((item) => (
-              <div key={item.id} className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${item.type === 'payment' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
-                    {item.type === 'payment' ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-bold text-slate-800">{item.title}</p>
-                    <p className="truncate text-xs text-slate-500">{item.detail} - {formatDate(item.date)}</p>
-                  </div>
-                </div>
-                <p className={`max-w-[7rem] shrink-0 truncate text-right text-xs font-black ${item.type === 'payment' ? 'text-emerald-700' : 'text-red-600'}`}>
-                  {item.type === 'payment' ? '+' : '-'} {currency(item.amount)}
-                </p>
-              </div>
-            ))}
-            {recentActivity.length === 0 && (
-              <p className="rounded-lg bg-slate-50 px-3 py-6 text-center text-xs font-semibold text-slate-500">No recent activity yet.</p>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-black text-slate-950">Live Calendar</h2>
-            <Link href="/calendar" className="text-xs font-bold text-emerald-700">View calendar</Link>
-          </div>
-          <div className="flex items-center justify-center gap-2 text-xs font-black text-slate-950">
-            <CalendarDays className="h-4 w-4 text-slate-500" strokeWidth={1.9} />
-            {monthLabel(month)}
-          </div>
-          <p className="mt-1 text-center text-[11px] font-semibold text-slate-500">Today: {formatDate(today)}</p>
-          <div className="mt-2 grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400">
-            {weekDays.map((day) => <span key={day}>{day}</span>)}
-          </div>
-          <div className="mt-1.5 grid grid-cols-7 gap-1 text-center text-xs">
-            {selectedMonthDays.map((day, index) => {
-              const eventTone = day ? eventDays.get(day) : null
-              return (
-                <div
-                  key={`${day ?? 'blank'}-${index}`}
-                  className={`relative flex h-6 items-center justify-center rounded-full font-semibold ${
-                    day === todayDay ? 'bg-emerald-700 text-white' : day ? 'text-slate-700' : 'text-transparent'
-                  }`}
-                >
-                  {day ?? '-'}
-                  {eventTone && day !== todayDay && (
-                    <span
-                      className={`absolute bottom-0.5 h-1 w-1 rounded-full ${
-                        eventTone === 'green' ? 'bg-emerald-600' : eventTone === 'red' ? 'bg-red-500' : 'bg-amber-500'
-                      }`}
-                    />
-                  )}
-                </div>
-              )
-            })}
-          </div>
-          <div className="mt-3 border-t border-slate-100 pt-2">
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-xs font-black text-slate-950">Today&apos;s Events</h3>
-              <Link href="/calendar" className="text-xs font-bold text-emerald-700">View all</Link>
-            </div>
-            <div className="space-y-2">
-              {todayEvents.map((item) => (
-                <div key={item.id} className="flex items-start justify-between gap-3 text-xs">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${item.type === 'payment' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
-                      {item.type === 'payment' ? <CheckCircle2 className="h-4 w-4" /> : <ReceiptText className="h-4 w-4" />}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate font-bold text-slate-800">{item.title}</p>
-                      <p className="truncate text-xs text-slate-500">{item.detail}</p>
-                    </div>
-                  </div>
-                  <span className="max-w-[7rem] shrink-0 truncate text-right text-xs font-semibold text-slate-500">{currency(item.amount)}</span>
-                </div>
-              ))}
-              {todayEvents.length === 0 && (
-                <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">No events recorded today.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-xl border border-amber-200 bg-amber-50 p-2">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-          <div className="flex items-center gap-2 px-1">
-            <CircleAlert className="h-4 w-4 text-amber-600" strokeWidth={1.9} />
-            <h2 className="text-sm font-black text-slate-950">Alerts</h2>
-          </div>
-          <div className="grid flex-1 gap-2 md:grid-cols-3">
-            {data.alerts.slice(0, 3).map((alert) => (
-              <div key={alert.id} className="rounded-lg border border-amber-100 bg-white/70 px-3 py-1.5">
-                <p className="truncate text-xs font-black text-slate-800">{alert.title}</p>
-                <p className="truncate text-xs text-slate-600">{alert.body}</p>
-              </div>
-            ))}
-            {data.alerts.length === 0 && (
-              <div className="rounded-lg border border-emerald-100 bg-white/70 px-3 py-1.5 md:col-span-3">
-                <p className="text-xs font-black text-emerald-700">No urgent alerts right now.</p>
-                <p className="text-xs text-slate-600">Payments, expenses, and due dates are quiet for this view.</p>
-              </div>
-            )}
-          </div>
-          <Link href="/calendar" className="shrink-0 text-xs font-bold text-emerald-800">View calendar</Link>
-        </div>
-      </section>
+    <div className="animate-in">
+      <MobileDashboard view={view} />
+      <DesktopDashboard view={view} />
     </div>
   )
 }
