@@ -48,7 +48,8 @@ export default async function PaymentsPage({
     period: params?.period,
     date: params?.date,
     month: params?.month,
-    year: params?.year
+    year: params?.year,
+    fallbackPeriod: 'month'
   }, today)
   const availableYears = Array.from(new Set([
     today.slice(0, 4),
@@ -117,7 +118,7 @@ export default async function PaymentsPage({
         <div>
           <h1 className="text-2xl font-bold sm:text-3xl" style={{ color: '#1a1a2e' }}>Rent Payments</h1>
           <p className="mt-1.5 text-sm" style={{ color: '#64748b' }}>
-            Open a property to review only the payments collected there.
+            Showing {periodLabel}. Use the period filter to widen the range.
           </p>
         </div>
         <Link
@@ -150,10 +151,12 @@ export default async function PaymentsPage({
         <div className="min-w-0 border-l border-slate-200 pl-4">
           <div className="flex items-center gap-2 text-emerald-700">
             <WalletCards className="h-4 w-4 shrink-0" strokeWidth={1.9} />
-            <p className="text-xs font-black uppercase">Filtered total</p>
+            <p className="text-xs font-black uppercase">
+              {period === 'all' ? 'All-time total' : 'Collected'}
+            </p>
           </div>
           <p className="mt-1 break-words text-xl font-black text-emerald-700 sm:text-2xl">{currency(filteredTotal)}</p>
-          <p className="mt-1 truncate text-xs text-slate-500">Payments received</p>
+          <p className="mt-1 truncate text-xs text-slate-500">{periodLabel}</p>
         </div>
       </section>
 
@@ -188,7 +191,9 @@ export default async function PaymentsPage({
                 </div>
                 <div className="rounded-lg bg-emerald-50 px-2 py-2">
                   <p className="truncate text-base font-black text-emerald-700">{currency(q ? matchingPaid : totalPaid)}</p>
-                  <p className="text-[10px] font-bold uppercase text-emerald-700">{q ? 'Matching paid' : 'Total paid'}</p>
+                  <p className="text-[10px] font-bold uppercase text-emerald-700">
+                    {q ? 'Matching paid' : period === 'all' ? 'Total paid' : 'Paid'}
+                  </p>
                 </div>
               </div>
               {demandRows.length > 0 && (

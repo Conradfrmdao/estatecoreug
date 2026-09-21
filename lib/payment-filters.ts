@@ -8,6 +8,12 @@ export type PaymentFilterInput = {
   date?: string | null
   month?: string | null
   year?: string | null
+  /**
+   * Period to use when the request names none. The payments screen opens on
+   * the current month so a landlord with several properties is not met with
+   * an all-time total; report downloads keep the historic 'all' default.
+   */
+  fallbackPeriod?: PaymentPeriod
 }
 
 export type PaymentSearchRow = {
@@ -25,7 +31,13 @@ export function normalizePaymentFilters(input: PaymentFilterInput, today = dateK
   const requestedPeriod = input.period
   const period: PaymentPeriod = ['all', 'day', 'month', 'year'].includes(requestedPeriod ?? '')
     ? requestedPeriod as PaymentPeriod
-    : input.date ? 'day' : input.month ? 'month' : input.year ? 'year' : 'all'
+    : input.date
+      ? 'day'
+      : input.month
+        ? 'month'
+        : input.year
+          ? 'year'
+          : (input.fallbackPeriod ?? 'all')
   const day = /^\d{4}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/.test(input.date ?? '')
     ? input.date!
     : today

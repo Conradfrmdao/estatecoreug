@@ -56,3 +56,21 @@ test('matches payment report searches against tenant, property, unit, and amount
   assert.equal(paymentMatchesSearch(row, '650,000'), true)
   assert.equal(paymentMatchesSearch(row, 'not present'), false)
 })
+
+test('opens on the requested fallback period when the request names none', () => {
+  // The payments screen asks for the current month so a landlord with several
+  // properties is not met with an all-time total.
+  assert.deepEqual(
+    normalizePaymentFilters({ fallbackPeriod: 'month' }, '2026-09-21'),
+    { period: 'month', day: '2026-09-21', month: '2026-09', year: '2026' }
+  )
+
+  // An explicit choice still wins, so "All time" stays available.
+  assert.equal(
+    normalizePaymentFilters({ period: 'all', fallbackPeriod: 'month' }, '2026-09-21').period,
+    'all'
+  )
+
+  // Report downloads pass no fallback and keep the historic all-time default.
+  assert.equal(normalizePaymentFilters({}, '2026-09-21').period, 'all')
+})
