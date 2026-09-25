@@ -36,37 +36,41 @@ export default function ReportScopeDownload({
   ]
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-end">
+    <section
+      aria-label="Download reports"
+      className="flex flex-col gap-4 rounded-[24px] bg-white p-5 sm:px-6 sm:py-[22px] lg:rounded-card"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
         <div className="min-w-0">
-          <h2 className="text-sm font-black text-slate-950">Download reports</h2>
-          <p className="mt-1 text-xs text-slate-500">Every download below follows the selected property scope.</p>
+          <h2 className="text-[17px] font-extrabold leading-[22px] text-ink">Download reports</h2>
+          <p className="mt-0.5 text-[13px] font-medium leading-[18px] text-muted">
+            Every download below follows the selected property scope.
+          </p>
         </div>
-        <div>
-          <label htmlFor="report-scope" className="field-label">Report scope</label>
+        <label className="flex items-center gap-2.5">
+          <span className="shrink-0 text-[12.5px] font-bold text-muted">Report scope</span>
           <select
-            id="report-scope"
             value={scope}
             onChange={(event) => setScope(event.target.value)}
-            className="field-input"
+            className="field-input !min-h-12 min-w-0 sm:w-[240px]"
           >
             <option value="overall">Overall portfolio</option>
             {properties.map((property) => (
               <option key={property.id} value={property.id}>{property.name}</option>
             ))}
           </select>
-        </div>
+        </label>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
         {downloads.map((download) => (
           <a
             key={download.type}
             href={scopedReportUrl(download.type, month, propertyId, period)}
             download
-            className="inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-center text-xs font-bold text-emerald-800 transition hover:bg-emerald-100 sm:text-sm"
+            className="btn btn-mint h-auto min-h-14 min-w-0 whitespace-normal px-4 py-2 text-[13.5px] leading-[17px] sm:h-14 sm:whitespace-nowrap sm:py-0 sm:text-[14px]"
           >
-            <Download aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={2} />
-            <span className="min-w-0">{download.label}</span>
+            <Download aria-hidden="true" className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+            <span className="min-w-0 sm:truncate">{download.label}</span>
           </a>
         ))}
       </div>

@@ -257,235 +257,271 @@ export default function AdminSupportInbox({ users }: { users: AdminSupportUser[]
           setOpen(true)
           setMobileThreadOpen(false)
         }}
-        className="relative inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 text-sm font-black text-emerald-700 shadow-sm transition hover:bg-emerald-50"
+        aria-label={unreadCount > 0 ? `Messages, ${unreadCount} unread` : 'Messages'}
+        className="btn btn-lg btn-white relative w-full px-6 sm:w-auto"
       >
-        <MessageCircle className="h-4 w-4" strokeWidth={2} />
+        <MessageCircle aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
         Messages
         {unreadCount > 0 && (
-          <span className="flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-black text-white">
+          <span className="flex min-h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[10.5px] font-extrabold text-white">
             {badge}
           </span>
         )}
       </button>
 
       {open && typeof document !== 'undefined' && createPortal(
-        <div
-          className="fixed inset-x-0 top-[var(--admin-inbox-top)] z-[100] flex h-[var(--admin-inbox-height)] max-h-[var(--admin-inbox-height)] min-h-0 flex-col overflow-hidden bg-white sm:inset-5 sm:h-auto sm:max-h-none sm:rounded-2xl sm:border sm:border-slate-200 sm:shadow-2xl lg:inset-auto lg:right-6 lg:top-20 lg:h-[min(44rem,calc(100dvh-6rem))] lg:w-[58rem]"
-          style={mobileViewportStyle}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Support inbox"
-        >
-          <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-4 sm:px-5">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                <Headphones className="h-5 w-5" strokeWidth={2} />
-              </span>
-              <div className="min-w-0">
-                <h2 className="truncate text-base font-black text-slate-950">Support inbox</h2>
-                <p className="truncate text-xs text-slate-500">{unreadCount > 0 ? `${unreadCount} unread message${unreadCount === 1 ? '' : 's'}` : 'All messages read'}</p>
+        <>
+          <div
+            aria-hidden="true"
+            onClick={() => setOpen(false)}
+            className="overlay-enter fixed inset-0 z-[99] hidden bg-ink/35 sm:block"
+          />
+          <div
+            className="dialog-enter fixed inset-x-0 top-[var(--admin-inbox-top)] z-[100] flex h-[var(--admin-inbox-height)] max-h-[var(--admin-inbox-height)] min-h-0 flex-col overflow-hidden bg-white sm:inset-5 sm:h-auto sm:max-h-none sm:rounded-[28px] sm:shadow-overlay lg:inset-auto lg:right-6 lg:top-20 lg:h-[min(44rem,calc(100dvh-6rem))] lg:w-[58rem]"
+            style={mobileViewportStyle}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Support inbox"
+          >
+            <header className="flex h-[72px] shrink-0 items-center justify-between gap-3 border-b border-line px-4 sm:px-5">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-hi text-ink">
+                  <Headphones aria-hidden="true" className="h-5 w-5" strokeWidth={1.9} />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="truncate text-[16px] font-extrabold text-ink">Support inbox</h2>
+                  <p className="truncate text-[12.5px] font-semibold text-muted">
+                    {unreadCount > 0 ? `${unreadCount} unread message${unreadCount === 1 ? '' : 's'}` : 'All messages read'}
+                  </p>
+                </div>
               </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100"
-              aria-label="Close support inbox"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </header>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="btn btn-soft btn-icon"
+                aria-label="Close support inbox"
+              >
+                <X aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
+              </button>
+            </header>
 
-          <div className="grid min-h-0 flex-1 overflow-hidden sm:grid-cols-[19rem_minmax(0,1fr)]">
-            <aside className={`${mobileThreadOpen ? 'hidden' : 'flex'} h-full min-h-0 flex-col overflow-hidden border-r border-slate-200 bg-white sm:flex`}>
-              <div className="shrink-0 space-y-3 border-b border-slate-100 p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-black text-slate-950">Messages</h3>
-                  <button
-                    type="button"
-                    onClick={() => setStartOpen((value) => !value)}
-                    aria-label="Start new conversation"
-                    title="New conversation"
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white transition hover:bg-emerald-700"
-                  >
-                    <Plus className="h-4 w-4" strokeWidth={2} />
-                  </button>
-                </div>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={1.9} />
-                  <input
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search conversations"
-                    className="h-10 w-full rounded-xl bg-slate-100 pl-9 pr-3 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-emerald-100"
-                  />
-                </div>
-                {startOpen && (
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <select
-                      value={startUserId}
-                      onChange={(event) => setStartUserId(event.target.value)}
-                      className="h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 outline-none"
+            <div className="grid min-h-0 flex-1 overflow-hidden sm:grid-cols-[19rem_minmax(0,1fr)]">
+              <aside className={`${mobileThreadOpen ? 'hidden' : 'flex'} h-full min-h-0 flex-col overflow-hidden border-r border-line bg-white sm:flex`}>
+                <div className="shrink-0 space-y-3 border-b border-line p-3.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-[14px] font-extrabold text-ink">Messages</h3>
+                    <button
+                      type="button"
+                      onClick={() => setStartOpen((value) => !value)}
+                      aria-label="Start new conversation"
+                      aria-expanded={startOpen}
+                      title="New conversation"
+                      className="btn btn-ink btn-icon btn-sm"
                     >
-                      {users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
-                    </select>
-                    <textarea
-                      value={startMessage}
-                      onChange={(event) => setStartMessage(event.target.value)}
-                      rows={2}
-                      placeholder="Write a message..."
-                      className="mt-2 w-full resize-none rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs outline-none"
+                      <Plus aria-hidden="true" className={`h-4 w-4 transition-transform duration-300 ${startOpen ? 'rotate-45' : ''}`} strokeWidth={2.2} />
+                    </button>
+                  </div>
+                  <label className="relative block">
+                    <span className="sr-only">Search conversations</span>
+                    <Search aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" strokeWidth={2} />
+                    <input
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder="Search conversations"
+                      className="field-input field-compact !pl-10 font-medium"
                     />
-                    <button
-                      type="button"
-                      onClick={startChat}
-                      disabled={busy || !startUserId || !startMessage.trim()}
-                      className="mt-2 min-h-9 w-full rounded-lg bg-emerald-600 px-3 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Send message
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-                {loading && conversations.length === 0 && <p className="p-6 text-center text-xs font-semibold text-slate-500">Loading messages...</p>}
-                {!loading && visibleConversations.length === 0 && <p className="p-6 text-center text-xs font-semibold text-slate-500">No conversations found.</p>}
-                {visibleConversations.map((conversation) => {
-                  const unread = Number(conversation.unreadCount ?? 0)
-                  return (
-                    <button
-                      key={conversation.id}
-                      type="button"
-                      onClick={() => selectConversation(conversation)}
-                      className={`flex w-full items-center gap-3 border-b border-slate-100 px-3 py-3 text-left transition hover:bg-slate-50 ${
-                        activeConversation?.id === conversation.id ? 'bg-emerald-50/70' : ''
-                      }`}
-                    >
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-black text-emerald-700">
-                        {initials(conversation.user?.name)}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-center justify-between gap-2">
-                          <span className={`truncate text-sm ${unread > 0 ? 'font-black text-slate-950' : 'font-bold text-slate-800'}`}>
-                            {conversation.user?.name ?? 'User'}
-                          </span>
-                          <span className={`shrink-0 text-[10px] ${unread > 0 ? 'font-bold text-emerald-700' : 'text-slate-400'}`}>
-                            {shortTime(conversation.lastMessageAt)}
-                          </span>
-                        </span>
-                        <span className="mt-0.5 flex items-center gap-2">
-                          <span className={`min-w-0 flex-1 truncate text-xs ${unread > 0 ? 'font-bold text-slate-700' : 'text-slate-500'}`}>
-                            {conversation.lastMessage?.body ?? conversation.subject}
-                          </span>
-                          {unread > 0 && (
-                            <span className="flex min-h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-black text-white">
-                              {unread > 9 ? '9+' : unread}
-                            </span>
-                          )}
-                        </span>
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </aside>
-
-            <section className={`${mobileThreadOpen ? 'flex' : 'hidden'} h-full min-h-0 flex-col overflow-hidden bg-slate-50 sm:flex`}>
-              {activeConversation ? (
-                <>
-                  <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-3 sm:px-4">
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <button
-                        type="button"
-                        onClick={() => setMobileThreadOpen(false)}
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 sm:hidden"
-                        aria-label="Back to conversations"
+                  </label>
+                  {startOpen && (
+                    <div className="fade-in space-y-2 rounded-tile bg-canvas p-3">
+                      <select
+                        value={startUserId}
+                        onChange={(event) => setStartUserId(event.target.value)}
+                        aria-label="Send to"
+                        className="field-input field-compact bg-white"
                       >
-                        <ArrowLeft className="h-5 w-5" strokeWidth={2} />
-                      </button>
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-black text-emerald-700">
-                        {initials(activeConversation.user?.name)}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-slate-950">{activeConversation.user?.name ?? 'User'}</p>
-                        <p className="truncate text-xs text-slate-500">{activeConversation.status === 'open' ? 'Active conversation' : 'Conversation ended'}</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={endChat}
-                      disabled={busy || activeConversation.status !== 'open'}
-                      className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      End chat
-                    </button>
-                  </div>
-
-                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5">
-                    <div className="space-y-2.5">
-                      {messages.map((item) => {
-                        const mine = item.senderRole === 'admin'
-                        return (
-                          <div key={item.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[78%] px-3 py-2 text-sm leading-5 ${
-                              mine
-                                ? 'rounded-2xl rounded-br-md bg-emerald-600 text-white'
-                                : 'rounded-2xl rounded-bl-md border border-slate-200 bg-white text-slate-800 shadow-sm'
-                            }`}>
-                              <p className="whitespace-pre-wrap break-words">{item.body}</p>
-                              <p className={`mt-1 text-right text-[10px] ${mine ? 'text-emerald-100' : 'text-slate-400'}`}>{shortTime(item.createdAt)}</p>
-                            </div>
-                          </div>
-                        )
-                      })}
-                      <div ref={messageEndRef} />
-                    </div>
-                  </div>
-
-                  {error && <p className="shrink-0 border-t border-red-100 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700">{error}</p>}
-                  <div className="shrink-0 border-t border-slate-200 bg-white px-3 pt-3" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-                    <div className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1.5 focus-within:border-emerald-300 focus-within:ring-2 focus-within:ring-emerald-100">
+                        {users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
+                      </select>
                       <textarea
-                        value={message}
-                        onChange={(event) => setMessage(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' && !event.shiftKey) {
-                            event.preventDefault()
-                            sendReply()
-                          }
-                        }}
-                        rows={1}
-                        placeholder={activeConversation.status === 'open' ? 'Message...' : 'Conversation ended'}
-                        disabled={activeConversation.status !== 'open'}
-                        className="max-h-28 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-slate-900 outline-none disabled:text-slate-400"
+                        value={startMessage}
+                        onChange={(event) => setStartMessage(event.target.value)}
+                        rows={2}
+                        aria-label="First message"
+                        placeholder="Write a message..."
+                        className="field-input !min-h-[76px] !rounded-[16px] bg-white !px-3.5 !py-2.5 font-medium"
                       />
                       <button
                         type="button"
-                        onClick={sendReply}
-                        disabled={busy || activeConversation.status !== 'open' || !message.trim()}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
-                        aria-label="Send reply"
+                        onClick={startChat}
+                        disabled={busy || !startUserId || !startMessage.trim()}
+                        className="btn btn-sm btn-ink w-full"
                       >
-                        <Send className="h-4 w-4" strokeWidth={2} />
+                        Send message
                       </button>
                     </div>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-1 items-center justify-center p-8 text-center">
-                  <div>
-                    <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400">
-                      <MessageCircle className="h-6 w-6" strokeWidth={1.8} />
-                    </span>
-                    <p className="mt-4 text-sm font-black text-slate-700">Your messages</p>
-                    <p className="mt-1 text-xs text-slate-500">Select a conversation to start replying.</p>
-                  </div>
+                  )}
                 </div>
-              )}
-            </section>
+
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                  {loading && conversations.length === 0 && (
+                    <div className="space-y-1 p-3" aria-label="Loading messages">
+                      {[0, 1, 2, 3].map((row) => (
+                        <div key={row} className="flex items-center gap-3 px-1 py-2">
+                          <span className="skeleton h-11 w-11 shrink-0 rounded-full" />
+                          <span className="flex-1 space-y-2">
+                            <span className="skeleton block h-3.5 w-2/3" />
+                            <span className="skeleton block h-3 w-5/6" />
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!loading && visibleConversations.length === 0 && (
+                    <p className="p-6 text-center text-[13px] font-semibold text-muted">No conversations found.</p>
+                  )}
+                  {visibleConversations.map((conversation) => {
+                    const unread = Number(conversation.unreadCount ?? 0)
+                    const active = activeConversation?.id === conversation.id
+                    return (
+                      <button
+                        key={conversation.id}
+                        type="button"
+                        onClick={() => selectConversation(conversation)}
+                        aria-current={active ? 'true' : undefined}
+                        className={`flex w-full items-center gap-3 border-b border-line px-3.5 py-3 text-left transition-colors ${
+                          active ? 'bg-mint-soft' : 'hover:bg-canvas'
+                        }`}
+                      >
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-mint text-[13.5px] font-extrabold text-forest">
+                          {initials(conversation.user?.name)}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center justify-between gap-2">
+                            <span className={`truncate text-[14px] ${unread > 0 ? 'font-extrabold text-ink' : 'font-bold text-ink-soft'}`}>
+                              {conversation.user?.name ?? 'User'}
+                            </span>
+                            <span className={`shrink-0 text-[11px] ${unread > 0 ? 'font-bold text-brand-text' : 'font-medium text-muted'}`}>
+                              {shortTime(conversation.lastMessageAt)}
+                            </span>
+                          </span>
+                          <span className="mt-0.5 flex items-center gap-2">
+                            <span className={`min-w-0 flex-1 truncate text-[12.5px] ${unread > 0 ? 'font-bold text-ink-soft' : 'font-medium text-muted'}`}>
+                              {conversation.lastMessage?.body ?? conversation.subject}
+                            </span>
+                            {unread > 0 && (
+                              <span className="flex min-h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-ink px-1 text-[10.5px] font-extrabold text-white">
+                                {unread > 9 ? '9+' : unread}
+                              </span>
+                            )}
+                          </span>
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </aside>
+
+              <section className={`${mobileThreadOpen ? 'flex' : 'hidden'} h-full min-h-0 flex-col overflow-hidden bg-canvas sm:flex`}>
+                {activeConversation ? (
+                  <>
+                    <div className="flex h-[68px] shrink-0 items-center justify-between gap-3 border-b border-line bg-white px-3 sm:px-4">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setMobileThreadOpen(false)}
+                          className="btn btn-soft btn-icon btn-sm shrink-0 sm:hidden"
+                          aria-label="Back to conversations"
+                        >
+                          <ArrowLeft aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
+                        </button>
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-mint text-[13.5px] font-extrabold text-forest">
+                          {initials(activeConversation.user?.name)}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-[14px] font-extrabold text-ink">{activeConversation.user?.name ?? 'User'}</p>
+                          <p className="truncate text-[12px] font-semibold text-muted">
+                            {activeConversation.status === 'open' ? 'Active conversation' : 'Conversation ended'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={endChat}
+                        disabled={busy || activeConversation.status !== 'open'}
+                        className="btn btn-xs btn-outline shrink-0"
+                      >
+                        End chat
+                      </button>
+                    </div>
+
+                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5">
+                      <div className="space-y-2.5">
+                        {messages.map((item) => {
+                          const mine = item.senderRole === 'admin'
+                          return (
+                            <div key={item.id} className={`fade-in flex ${mine ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`max-w-[78%] px-3.5 py-2.5 text-[14px] leading-5 ${
+                                mine
+                                  ? 'rounded-[20px] rounded-br-md bg-ink text-white'
+                                  : 'rounded-[20px] rounded-bl-md bg-white text-ink'
+                              }`}>
+                                <p className="whitespace-pre-wrap break-words">{item.body}</p>
+                                <p className={`mt-1 text-right text-[10.5px] font-semibold ${mine ? 'text-white/60' : 'text-muted'}`}>{shortTime(item.createdAt)}</p>
+                              </div>
+                            </div>
+                          )
+                        })}
+                        <div ref={messageEndRef} />
+                      </div>
+                    </div>
+
+                    {error && (
+                      <p className="shrink-0 bg-overdue-bg px-4 py-2.5 text-[12.5px] font-semibold text-overdue-fg">{error}</p>
+                    )}
+                    <div className="shrink-0 border-t border-line bg-white px-3 pt-3" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+                      <div className="flex items-end gap-2 rounded-[26px] bg-canvas p-1.5 ring-brand/30 transition focus-within:ring-4">
+                        <textarea
+                          value={message}
+                          onChange={(event) => setMessage(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' && !event.shiftKey) {
+                              event.preventDefault()
+                              sendReply()
+                            }
+                          }}
+                          rows={1}
+                          aria-label="Reply"
+                          placeholder={activeConversation.status === 'open' ? 'Message...' : 'Conversation ended'}
+                          disabled={activeConversation.status !== 'open'}
+                          className="max-h-28 min-h-11 flex-1 resize-none bg-transparent px-3 py-2.5 text-[15px] font-medium text-ink outline-none disabled:text-faint"
+                        />
+                        <button
+                          type="button"
+                          onClick={sendReply}
+                          disabled={busy || activeConversation.status !== 'open' || !message.trim()}
+                          className="btn btn-ink btn-icon shrink-0"
+                          aria-label="Send reply"
+                        >
+                          <Send aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-1 items-center justify-center p-8 text-center">
+                    <div className="fade-in">
+                      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-brand-text">
+                        <MessageCircle aria-hidden="true" className="h-6 w-6" strokeWidth={1.8} />
+                      </span>
+                      <p className="mt-4 text-[15px] font-extrabold text-ink">Your messages</p>
+                      <p className="mt-1 text-[13px] font-medium text-muted">Select a conversation to start replying.</p>
+                      {error && <p className="mt-3 text-[12.5px] font-semibold text-overdue-fg">{error}</p>}
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
           </div>
-        </div>,
+        </>,
         document.body
       )}
     </div>

@@ -40,7 +40,7 @@ export default function CarryForwardNote({
 
   return (
     <span
-      className={`mt-1 inline-flex items-start gap-1 text-[11px] font-semibold leading-snug text-amber-700 ${className}`}
+      className={`mt-1 inline-flex items-start gap-1 text-[11.5px] font-semibold leading-snug text-carried-fg ${className}`}
       title={carriedForwardMonths
         .map((entry) => `${monthShortLabel(entry.month)}: ${currency(entry.balance)}`)
         .join(' | ')}
@@ -69,16 +69,16 @@ export function CarryForwardBreakdown({
   return (
     <ul className={`space-y-1 ${className}`}>
       {owing.map((entry) => (
-        <li key={entry.month} className="flex items-center justify-between gap-3 text-xs">
-          <span className="flex items-center gap-1.5 font-semibold text-slate-600">
+        <li key={entry.month} className="flex items-center justify-between gap-3 text-[12.5px]">
+          <span className="flex items-center gap-1.5 font-semibold text-ink-soft">
             {monthShortLabel(entry.month)}
             {entry.month < currentMonth && (
-              <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-amber-700">
+              <span className="rounded-full bg-carried-bg px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-carried-fg">
                 Carried
               </span>
             )}
           </span>
-          <span className="font-black text-slate-800">{currency(entry.balance)}</span>
+          <span className="font-extrabold tabular-nums text-ink">{currency(entry.balance)}</span>
         </li>
       ))}
     </ul>

@@ -3,6 +3,7 @@
 import DeleteButton from '@/components/DeleteButton'
 import CarryForwardNote from '@/components/CarryForwardNote'
 import PropertyRecordsModal from '@/components/PropertyRecordsModal'
+import Avatar, { initialsOf, toneFor } from '@/components/ui/Avatar'
 import { currency, currentPaymentMonth, formatDate, monthShortLabel } from '@/lib/format'
 import type { RentDisplayStatus } from '@/lib/rent-display'
 import { Search } from 'lucide-react'
@@ -26,10 +27,10 @@ type TenantRecord = {
 }
 
 function rentAccountState(status: RentDisplayStatus, active: boolean) {
-  if (!active) return { badge: 'Inactive', className: 'bg-slate-100 text-slate-500' }
-  if (status === 'outstanding') return { badge: 'Outstanding', className: 'bg-rose-50 text-rose-700' }
-  if (status === 'paid') return { badge: 'Paid', className: 'bg-emerald-50 text-emerald-700' }
-  return { badge: 'Cleared', className: 'bg-slate-100 text-slate-600' }
+  if (!active) return { badge: 'Inactive', className: 'bg-line text-muted' }
+  if (status === 'outstanding') return { badge: 'Outstanding', className: 'bg-overdue-bg text-overdue-fg' }
+  if (status === 'paid') return { badge: 'Paid', className: 'bg-paid-bg text-paid-fg' }
+  return { badge: 'Cleared', className: 'bg-line text-ink-soft' }
 }
 
 export default function PropertyTenantsModal({
@@ -70,24 +71,22 @@ export default function PropertyTenantsModal({
       description={`${propertyLocation} - ${tenants.length} tenant${tenants.length === 1 ? '' : 's'}`}
       downloadHref={downloadHref}
     >
-      <div className="sticky top-0 z-10 border-b border-slate-100 bg-white p-3 sm:px-5 sm:py-4">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={1.9} />
+      <div className="sticky top-0 z-10 bg-white px-4 pb-3 pt-4 sm:px-6">
+        <label className="search-field">
+          <Search aria-hidden="true" className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+          <span className="sr-only">Search tenants in {propertyName}</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="field-input"
-            style={{ paddingLeft: '2.5rem' }}
             placeholder="Search tenant, unit, phone, email, or status..."
-            aria-label={`Search tenants in ${propertyName}`}
           />
-        </div>
-        <p className="mt-2 text-xs font-semibold text-slate-500">
+        </label>
+        <p className="mt-2 px-1 text-[12.5px] font-semibold text-muted">
           {filteredTenants.length} of {tenants.length} tenants
         </p>
       </div>
 
-      <div className="overflow-x-auto p-3 sm:p-5">
+      <div className="overflow-x-auto px-4 pb-5 sm:px-6">
         <table className="data-table">
           <thead>
             <tr>
@@ -107,21 +106,23 @@ export default function PropertyTenantsModal({
                 <tr key={tenant.id}>
                   <td data-label="Tenant">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white" style={{ backgroundColor: tenant.active ? '#00A550' : '#94a3b8' }}>
-                        {tenant.fullName.charAt(0).toUpperCase()}
-                      </div>
+                      <Avatar
+                        initials={initialsOf(tenant.fullName)}
+                        tone={tenant.active ? toneFor(tenant.id) : 'muted'}
+                        size={36}
+                      />
                       <div className="min-w-0">
-                        <span className="block font-semibold text-slate-950">{tenant.fullName}</span>
-                        {tenant.email && <span className="block truncate text-xs text-slate-400">{tenant.email}</span>}
+                        <span className="block font-bold text-ink">{tenant.fullName}</span>
+                        {tenant.email && <span className="block truncate text-[12px] font-medium text-muted">{tenant.email}</span>}
                       </div>
                     </div>
                   </td>
-                  <td data-label="Unit"><span className="block font-semibold text-slate-950">Unit {tenant.unitNumber}</span></td>
-                  <td data-label="Contact" className="text-sm text-slate-700">{tenant.phone}</td>
-                  <td data-label="Move In Date" className="text-sm text-slate-500">{formatDate(tenant.moveInDate)}</td>
+                  <td data-label="Unit"><span className="block font-bold text-ink">Unit {tenant.unitNumber}</span></td>
+                  <td data-label="Contact" className="font-medium text-ink-soft">{tenant.phone}</td>
+                  <td data-label="Move In Date" className="font-medium text-muted">{formatDate(tenant.moveInDate)}</td>
                   <td data-label="Next Scheduled">
-                    <span className="block text-sm font-semibold text-slate-800">{formatDate(tenant.nextPaymentDate)}</span>
-                    <span className={`mt-1 inline-flex rounded-full px-2 py-1 text-[11px] font-black ${rentAccount.className}`}>
+                    <span className="block font-bold text-ink">{formatDate(tenant.nextPaymentDate)}</span>
+                    <span className={`pill mt-1 ${rentAccount.className}`}>
                       {tenant.displayPaymentStatus === 'outstanding'
                         ? `${currency(tenant.totalOutstandingBalance)} outstanding`
                         : rentAccount.badge}
@@ -132,27 +133,27 @@ export default function PropertyTenantsModal({
                       className="block"
                     />
                     {tenant.carriedForwardBalance > 0 && (
-                      <span className="mt-0.5 block text-[11px] font-semibold text-slate-500">
+                      <span className="mt-0.5 block text-[11.5px] font-semibold text-muted">
                         {currency(tenant.currentMonthBalance)} for {currentMonthName}
                       </span>
                     )}
                   </td>
                   <td data-label="Status">
-                    <span className={tenant.active ? 'badge badge-green' : 'badge bg-slate-100 text-slate-500'}>
+                    <span className={tenant.active ? 'badge badge-green' : 'badge badge-slate'}>
                       {tenant.active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td data-label="Actions">
                     <div className="flex items-center justify-end gap-2">
                       {tenant.active && (
-                        <Link href={`/payments/new?tenantId=${tenant.id}`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-slate-50">
+                        <Link href={`/payments/new?tenantId=${tenant.id}`} className="btn btn-xs btn-mint">
                           Record Payment
                         </Link>
                       )}
-                      <Link href={`/tenants/${tenant.id}/edit`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50">
+                      <Link href={`/tenants/${tenant.id}/edit`} className="btn btn-xs btn-outline">
                         Edit
                       </Link>
-                      <DeleteButton endpoint={`/api/tenants/${tenant.id}`} />
+                      <DeleteButton endpoint={`/api/tenants/${tenant.id}`} className="btn btn-xs btn-danger" />
                     </div>
                   </td>
                 </tr>
@@ -161,7 +162,7 @@ export default function PropertyTenantsModal({
           </tbody>
         </table>
         {filteredTenants.length === 0 && (
-          <p className="py-12 text-center text-sm font-semibold text-slate-500">No tenants match that search.</p>
+          <p className="py-12 text-center text-[14px] font-semibold text-muted">No tenants match that search.</p>
         )}
       </div>
     </PropertyRecordsModal>

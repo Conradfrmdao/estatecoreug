@@ -1,6 +1,7 @@
 'use client'
 
 import CarryForwardNote from '@/components/CarryForwardNote'
+import Avatar, { toneFor } from '@/components/ui/Avatar'
 import Money from '@/components/ui/Money'
 import StatusPill, { type RentStatusKind } from '@/components/ui/StatusPill'
 import { Plus, Search, X } from 'lucide-react'
@@ -28,13 +29,13 @@ export type MobileTenantRow = {
 type Segment = 'all' | 'owing' | 'paid'
 
 const balanceTone: Record<RentStatusKind, string> = {
-  paid: 'text-[var(--paid-fg)]',
-  in_advance: 'text-[var(--advance-fg)]',
-  part_paid: 'text-[var(--carried-fg)]',
-  due: 'text-[var(--text-ink)]',
-  overdue: 'text-[var(--overdue-fg)]',
-  vacant: 'text-[var(--text-muted)]',
-  inactive: 'text-[var(--text-muted)]'
+  paid: 'text-paid-fg',
+  in_advance: 'text-advance-fg',
+  part_paid: 'text-carried-fg',
+  due: 'text-ink',
+  overdue: 'text-overdue-fg',
+  vacant: 'text-muted',
+  inactive: 'text-muted'
 }
 
 export default function MobileTenants({ rows }: { rows: MobileTenantRow[] }) {
@@ -84,16 +85,19 @@ export default function MobileTenants({ rows }: { rows: MobileTenantRow[] }) {
   ]
 
   return (
-    <div className="lg:hidden">
+    <div className="stagger lg:hidden">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="t-title text-[var(--text-ink)]">Tenants</h1>
+        <div className="min-w-0">
+          <h1 className="text-[26px] font-extrabold leading-8 tracking-[-0.02em] text-ink">Tenants</h1>
+          <p className="text-[13px] font-medium text-muted">Everyone renting from you, by property.</p>
+        </div>
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={() => setSearchOpen((open) => !open)}
             aria-label={searchOpen ? 'Close search' : 'Search tenants'}
             aria-expanded={searchOpen}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--line)] bg-white text-[var(--text-muted)]"
+            className="btn btn-white btn-icon"
           >
             {searchOpen ? (
               <X aria-hidden="true" className="h-5 w-5" strokeWidth={1.75} />
@@ -104,7 +108,7 @@ export default function MobileTenants({ rows }: { rows: MobileTenantRow[] }) {
           <Link
             href="/tenants/new"
             aria-label="Add tenant"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand)] text-white shadow-[var(--shadow-brand)]"
+            className="btn btn-ink btn-icon"
           >
             <Plus aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
           </Link>
@@ -112,21 +116,16 @@ export default function MobileTenants({ rows }: { rows: MobileTenantRow[] }) {
       </div>
 
       {searchOpen && (
-        <div className="relative mt-3">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-soft)]"
-            strokeWidth={1.75}
-          />
+        <label className="search-field fade-in mt-3 bg-white">
+          <Search aria-hidden="true" className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+          <span className="sr-only">Search tenants</span>
           <input
             autoFocus
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search name, unit, or phone"
-            className="field-input"
-            style={{ paddingLeft: '2.5rem' }}
           />
-        </div>
+        </label>
       )}
 
       <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4">
@@ -138,10 +137,8 @@ export default function MobileTenants({ rows }: { rows: MobileTenantRow[] }) {
               type="button"
               onClick={() => setSegment(item.key)}
               aria-pressed={active}
-              className={`flex min-h-9 shrink-0 items-center rounded-full px-4 text-[13px] transition ${
-                active
-                  ? 'bg-[var(--text-ink)] font-semibold text-white'
-                  : 'border border-[var(--line)] bg-white font-medium text-[var(--text-muted)]'
+              className={`flex min-h-10 shrink-0 items-center rounded-full px-4 text-[13.5px] transition-colors duration-300 ${
+                active ? 'bg-ink font-bold text-white' : 'bg-white font-semibold text-muted'
               }`}
             >
               {item.label}
@@ -153,7 +150,7 @@ export default function MobileTenants({ rows }: { rows: MobileTenantRow[] }) {
       <div className="mt-4 space-y-5">
         {grouped.map((group) => (
           <section key={group.propertyName}>
-            <h2 className="t-label px-0.5 text-[var(--text-soft)]">
+            <h2 className="px-1 text-[11.5px] font-bold uppercase tracking-[0.08em] text-muted">
               {group.propertyName} &middot; {group.tenants.length} tenant
               {group.tenants.length === 1 ? '' : 's'}
             </h2>
@@ -163,15 +160,13 @@ export default function MobileTenants({ rows }: { rows: MobileTenantRow[] }) {
                 <li key={row.id}>
                   <Link
                     href={`/tenants/${row.id}/edit`}
-                    className="surface-card flex items-center gap-3 p-3.5 transition active:scale-[0.99]"
+                    className="flex items-center gap-3 rounded-[22px] bg-white p-3.5 transition active:scale-[0.99]"
                   >
-                    <span className="money flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--paid-bg)] text-[12.5px] text-[var(--brand-text)]">
-                      {row.initials}
-                    </span>
+                    <Avatar initials={row.initials} tone={row.active ? toneFor(row.id) : 'muted'} size={42} />
 
                     <span className="min-w-0 flex-1">
-                      <span className="t-section block truncate text-[var(--text-ink)]">{row.name}</span>
-                      <span className="mt-0.5 block truncate text-[12px] leading-4 text-[var(--text-muted)]">
+                      <span className="block truncate text-[15px] font-bold text-ink">{row.name}</span>
+                      <span className="mt-0.5 block truncate text-[12.5px] font-medium leading-4 text-muted">
                         {row.unitNumber} &middot; {row.phone}
                       </span>
                       <CarryForwardNote
@@ -183,7 +178,7 @@ export default function MobileTenants({ rows }: { rows: MobileTenantRow[] }) {
                     </span>
 
                     <span className="shrink-0 text-right">
-                      <span className={`money block text-[15px] ${balanceTone[row.statusKind]}`}>
+                      <span className={`money block text-[15px] font-extrabold ${balanceTone[row.statusKind]}`}>
                         <Money value={row.balance} />
                       </span>
                       <StatusPill
@@ -200,11 +195,11 @@ export default function MobileTenants({ rows }: { rows: MobileTenantRow[] }) {
         ))}
 
         {grouped.length === 0 && (
-          <div className="surface-card px-4 py-10 text-center">
-            <p className="t-section text-[var(--text-ink)]">
+          <div className="rounded-[22px] bg-white px-4 py-10 text-center">
+            <p className="text-[16px] font-extrabold text-ink">
               {rows.length === 0 ? 'No tenants yet' : 'Nothing matches'}
             </p>
-            <p className="t-small mt-1 text-[var(--text-muted)]">
+            <p className="mt-1 text-[13px] font-medium text-muted">
               {rows.length === 0
                 ? 'Add a tenant to an available unit to start tracking rent.'
                 : 'Try another name, unit, or filter.'}
@@ -212,7 +207,7 @@ export default function MobileTenants({ rows }: { rows: MobileTenantRow[] }) {
             {rows.length === 0 && (
               <Link
                 href="/tenants/new"
-                className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-[var(--brand)] px-4 text-[14px] font-semibold text-white"
+                className="btn btn-lg btn-ink mt-4"
               >
                 <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
                 Add a tenant

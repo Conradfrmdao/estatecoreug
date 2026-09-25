@@ -9,9 +9,10 @@ type Summary = {
 }
 
 /**
- * The collection ring at the foot of the sidebar (artboard 1c). It reads the
+ * This month's collection, at the foot of the open menu. It reads the
  * existing /api/summary endpoint on the client so no page pays for an extra
- * query just to render chrome.
+ * query just to render chrome - and, because the shell is shared, it asks
+ * once per visit rather than once per page.
  */
 export default function SidebarCollection() {
   const [summary, setSummary] = useState<Summary | null>(null)
@@ -31,8 +32,8 @@ export default function SidebarCollection() {
     }
   }, [])
 
-  const size = 56
-  const strokeWidth = 6
+  const size = 46
+  const strokeWidth = 5
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const ratio =
@@ -44,48 +45,45 @@ export default function SidebarCollection() {
   const expected = abbreviatedAmount(summary?.totalExpected ?? 0)
 
   return (
-    <div className="rounded-[12px] border border-white/10 bg-white/[0.06] p-3">
-      <p className="t-label text-emerald-100/55">{monthNameLabel(currentPaymentMonth())} collection</p>
-      <div className="mt-2.5 flex items-center gap-3">
-        <div className="relative shrink-0" style={{ width: size, height: size }}>
-          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={strokeWidth}
-              className="text-white/12"
-            />
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={strokeWidth}
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={circumference * (1 - ratio)}
-              className="text-[var(--brand-300)] transition-[stroke-dashoffset] duration-700 ease-out"
-            />
-          </svg>
-        </div>
-        <div className="min-w-0">
-          <p className="money text-[18px] leading-none text-white">{summary ? `${percent}%` : '--'}</p>
-          <p className="mt-1 truncate text-[11.5px] text-emerald-100/60">
-            {summary ? (
-              <>
-                {collected.figure}
-                {collected.unit} of {expected.figure}
-                {expected.unit}
-              </>
-            ) : (
-              'Loading'
-            )}
+    <div className="flex items-center gap-3 rounded-[22px] border border-white/10 px-3.5 py-3">
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        className="shrink-0 -rotate-90"
+        role="img"
+        aria-label={summary ? `${percent}% of expected rent collected` : 'Loading collection'}
+      >
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" strokeWidth={strokeWidth} className="stroke-white/10" />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - ratio)}
+          className="stroke-hi transition-[stroke-dashoffset] duration-700 ease-out"
+        />
+      </svg>
+      <div className="min-w-0">
+        <p className="truncate text-[11px] font-semibold leading-4 text-forest-muted">
+          {monthNameLabel(currentPaymentMonth())} collection
+        </p>
+        {summary ? (
+          <p className="truncate text-[13px] font-bold leading-5 text-white">
+            <span className="money">{percent}%</span>
+            <span className="font-semibold text-forest-muted">
+              {' '}
+              &middot; {collected.figure}
+              {collected.unit} of {expected.figure}
+              {expected.unit}
+            </span>
           </p>
-        </div>
+        ) : (
+          <span className="skeleton-dark mt-1 block h-3.5 w-24" aria-hidden="true" />
+        )}
       </div>
     </div>
   )

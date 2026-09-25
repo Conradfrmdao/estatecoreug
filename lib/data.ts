@@ -165,6 +165,10 @@ export type CalendarEvent = {
   type: 'move_in' | 'due' | 'overdue' | 'payment' | 'expense'
   detail: string
   severity: 'info' | 'success' | 'warning' | 'danger'
+  /** Who or what the event is about - the tenant, or the expense title. */
+  subject: string
+  /** Money the event moved: the amount allocated to that month, or the expense. */
+  amount?: number
 }
 
 export type AppAlert = {
@@ -277,7 +281,8 @@ function buildCalendarEvents(
       title: `${tenant.fullName} moved in`,
       type: 'move_in',
       detail: `${property.name}, Unit ${unit.unitNumber}`,
-      severity: 'info'
+      severity: 'info',
+      subject: tenant.fullName
     })
 
     if (tenant.active) {
@@ -288,7 +293,8 @@ function buildCalendarEvents(
         title: overdue ? `${tenant.fullName} rent overdue` : `${tenant.fullName} rent due`,
         type: overdue ? 'overdue' : 'due',
         detail: `${property.name}, Unit ${unit.unitNumber}`,
-        severity: overdue ? 'danger' : 'warning'
+        severity: overdue ? 'danger' : 'warning',
+        subject: tenant.fullName
       })
     }
   }
@@ -303,7 +309,9 @@ function buildCalendarEvents(
         title: `${tenant.fullName} rent paid`,
         type: 'payment',
         detail: `${property.name}, Unit ${unit.unitNumber}, ${allocatedAmount.toLocaleString('en-UG')} UGX allocated for ${period.month} from ${coverage.monthsCovered} month${coverage.monthsCovered === 1 ? '' : 's'} covered`,
-        severity: 'success'
+        severity: 'success',
+        subject: tenant.fullName,
+        amount: allocatedAmount
       })
     }
   }
@@ -315,7 +323,9 @@ function buildCalendarEvents(
       title: expense.title,
       type: 'expense',
       detail: `${property.name}${unit ? `, Unit ${unit.unitNumber}` : ''}`,
-      severity: 'info'
+      severity: 'info',
+      subject: expense.title,
+      amount: expense.amount
     })
   }
 
@@ -668,13 +678,17 @@ export async function recalculateTenantRentDueDate(
   return nextRentDueDate
 }
 
-export async function getDashboardData(userId: number, month = currentPaymentMonth()) {
+export async function getDashboardData(
+  userId: number,
+  month = currentPaymentMonth(),
+  propertyId: number | null = null
+) {
   const [
-    propertyRows,
-    unitRows,
-    tenantRows,
-    paymentRows,
-    expenseRows,
+    allPropertyRows,
+    allUnitRows,
+    allTenantRows,
+    allPaymentRows,
+    allExpenseRows,
   ] = await Promise.all([
     listPropertiesForUser(userId),
     listUnitsForUser(userId),
@@ -682,6 +696,15 @@ export async function getDashboardData(userId: number, month = currentPaymentMon
     listPaymentsForUser(userId),
     listExpensesForUser(userId)
   ])
+
+  /* Scoping to one property filters the rows before anything is summed, so a
+     property's figures come from the same calculations as the portfolio's. */
+  const inScope = (id: number) => propertyId === null || id === propertyId
+  const propertyRows = allPropertyRows.filter((property) => inScope(property.id))
+  const unitRows = allUnitRows.filter(({ property }) => inScope(property.id))
+  const tenantRows = allTenantRows.filter(({ property }) => inScope(property.id))
+  const paymentRows = allPaymentRows.filter(({ property }) => inScope(property.id))
+  const expenseRows = allExpenseRows.filter(({ property }) => inScope(property.id))
 
   const tenantBalances = buildTenantBalances(tenantRows, paymentRows, month)
   const outstandingTenants = buildOutstandingTenantBalances(tenantRows, paymentRows)
@@ -714,6 +737,8 @@ export async function getDashboardData(userId: number, month = currentPaymentMon
       netProfit: totalCollected - totalExpenses,
       netThisMonth: collectedThisMonth - expensesThisMonth
     },
+    /** Every property the landlord owns, whatever the scope - for choosing one. */
+    allProperties: allPropertyRows,
     properties: propertyRows,
     units: unitRows,
     tenants: tenantRows,

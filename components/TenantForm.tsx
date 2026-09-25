@@ -223,48 +223,48 @@ export default function TenantForm({ initialData }: TenantFormProps) {
         <button
           type="button"
           onClick={openUnitPicker}
-          className="field-input flex min-h-[52px] items-center justify-between gap-3 text-left transition hover:border-emerald-300 hover:bg-emerald-50/30"
+          className="field-input flex !min-h-[60px] items-center justify-between gap-3 !rounded-[22px] text-left"
         >
           <span className="min-w-0">
             {selectedUnit ? (
               <>
-                <span className="block truncate text-sm font-black text-slate-950">
+                <span className="block truncate text-[14.5px] font-extrabold text-ink">
                   Unit {selectedUnit.unitNumber}
                 </span>
-                <span className="mt-0.5 block truncate text-xs text-slate-500">
+                <span className="mt-0.5 block truncate text-[12.5px] font-medium text-muted">
                   {selectedProperty?.name ?? selectedUnit.propertyName} {selectedUnit.rentAmount ? `- UGX ${selectedUnit.rentAmount.toLocaleString()}/mo` : ''}
                 </span>
               </>
             ) : (
               <>
-                <span className="block text-sm font-black text-slate-700">Select unit</span>
-                <span className="mt-0.5 block text-xs text-slate-500">Choose property, then unit</span>
+                <span className="block text-[14.5px] font-bold text-ink-soft">Select unit</span>
+                <span className="mt-0.5 block text-[12.5px] font-medium text-muted">Choose property, then unit</span>
               </>
             )}
           </span>
-          <Home className="h-5 w-5 shrink-0 text-emerald-700" strokeWidth={1.9} />
+          <Home className="h-5 w-5 shrink-0 text-brand-text" strokeWidth={1.9} />
         </button>
       </div>
 
       {unitPickerOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 px-3 py-4 sm:items-center" role="dialog" aria-modal="true">
-          <div className="max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+        <div className="overlay-enter fixed inset-0 z-50 flex items-end justify-center bg-ink/45 px-3 py-4 backdrop-blur-[2px] sm:items-center" role="dialog" aria-modal="true" aria-label="Choose unit">
+          <div className="dialog-enter max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-overlay">
+            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
               <div className="min-w-0">
-                <p className="text-sm font-black text-slate-950">Choose unit</p>
-                <p className="text-xs text-slate-500">Select a property first, then choose an available unit.</p>
+                <p className="text-[16px] font-extrabold text-ink">Choose unit</p>
+                <p className="text-[12.5px] font-medium text-muted">Select a property first, then choose an available unit.</p>
               </div>
               <button
                 type="button"
                 onClick={closeUnitPicker}
                 aria-label="Close unit picker"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-50"
+                className="btn btn-soft btn-icon btn-sm shrink-0"
               >
                 <X className="h-4 w-4" strokeWidth={2} />
               </button>
             </div>
 
-            <div className="max-h-[72vh] overflow-y-auto p-4">
+            <div className="max-h-[72vh] overflow-y-auto p-5">
               <div className="space-y-4">
                 <div>
                   <label className="field-label">Property</label>
@@ -289,20 +289,20 @@ export default function TenantForm({ initialData }: TenantFormProps) {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-black text-slate-950">Available units</p>
-                        <p className="truncate text-xs text-slate-500">{pickerProperty.name}</p>
+                        <p className="text-[15px] font-extrabold text-ink">Available units</p>
+                        <p className="truncate text-[12.5px] font-medium text-muted">{pickerProperty.name}</p>
                       </div>
-                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                      <span className="pill bg-mint text-forest">
                         {unitOptions.length} unit{unitOptions.length === 1 ? '' : 's'}
                       </span>
                     </div>
 
                     <div className="relative">
-                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={1.9} />
+                      <Search className="pointer-events-none absolute left-[18px] top-1/2 h-4 w-4 -translate-y-1/2 text-muted" strokeWidth={2} />
                       <input
                         value={unitSearch}
                         onChange={(e) => setUnitSearch(e.target.value)}
-                        className="field-input pl-9"
+                        className="field-input !pl-11"
                         placeholder="Search unit number, rent, or status..."
                       />
                     </div>
@@ -318,35 +318,35 @@ export default function TenantForm({ initialData }: TenantFormProps) {
                               if (!disabled) chooseUnit(unit)
                             }}
                             disabled={disabled}
-                            className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-60"
+                            className="flex min-h-14 items-center justify-between gap-3 rounded-[18px] bg-canvas px-4 py-2.5 text-left transition hover:bg-mint disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <span className="min-w-0">
-                              <span className="block truncate text-sm font-black text-slate-950">Unit {unit.unitNumber}</span>
-                              <span className="block text-xs text-slate-500">
+                              <span className="block truncate text-[14.5px] font-extrabold text-ink">Unit {unit.unitNumber}</span>
+                              <span className="block text-[12.5px] font-medium text-muted">
                                 {unit.rentAmount ? `UGX ${unit.rentAmount.toLocaleString()}/mo` : 'Rent not set'} {unit.status === 'occupied' ? '- Occupied' : '- Vacant'}
                               </span>
                             </span>
-                            {unit.id === unitId && <Check className="h-4 w-4 shrink-0 text-emerald-700" strokeWidth={2} />}
+                            {unit.id === unitId && <Check className="h-4 w-4 shrink-0 text-brand-text" strokeWidth={2.4} />}
                           </button>
                         )
                       })}
                       {unitOptions.length === 0 && (
-                        <p className="rounded-xl bg-slate-50 px-3 py-6 text-center text-sm font-semibold text-slate-500">
+                        <p className="rounded-[18px] bg-canvas px-3 py-6 text-center text-[13.5px] font-semibold text-muted">
                           No available units found for this property.
                         </p>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
-                    <Home className="mx-auto h-8 w-8 text-slate-300" strokeWidth={1.8} />
-                    <p className="mt-3 text-sm font-black text-slate-700">Select a property</p>
-                    <p className="mt-1 text-xs text-slate-500">Available units will appear here after you choose a property.</p>
+                  <div className="rounded-[22px] border-2 border-dashed border-line-strong px-4 py-8 text-center">
+                    <Home className="mx-auto h-8 w-8 text-faint" strokeWidth={1.8} />
+                    <p className="mt-3 text-[14.5px] font-extrabold text-ink">Select a property</p>
+                    <p className="mt-1 text-[12.5px] font-medium text-muted">Available units will appear here after you choose a property.</p>
                   </div>
                 )}
 
                 {properties.length === 0 && (
-                  <p className="rounded-xl bg-amber-50 px-3 py-4 text-center text-sm font-semibold text-amber-800">
+                  <p className="rounded-[18px] bg-carried-bg px-3 py-4 text-center text-[13.5px] font-semibold text-carried-fg">
                     No available units found. Add a vacant unit before creating a tenant.
                   </p>
                 )}
@@ -403,7 +403,7 @@ export default function TenantForm({ initialData }: TenantFormProps) {
 
         <div>
           <label className="field-label">{!initialData && paysAtEnd ? 'First rent due' : 'Next rent due'}</label>
-          <div className="field-input bg-slate-50 text-slate-700">
+          <div className="field-input text-ink-soft">
             {rentDueDate || 'Choose a move-in date'}
           </div>
         </div>
@@ -435,29 +435,27 @@ export default function TenantForm({ initialData }: TenantFormProps) {
                 type="button"
                 onClick={() => setPaymentTiming(option.value)}
                 aria-pressed={selected}
-                className="flex min-h-[64px] flex-col items-start justify-center rounded-xl border px-3.5 py-2.5 text-left transition"
-                style={{
-                  borderColor: selected ? '#00A550' : '#e2e8f0',
-                  backgroundColor: selected ? '#e6f7ef' : '#fff'
-                }}
+                className={`flex min-h-[68px] flex-col items-start justify-center rounded-[20px] border-[1.5px] px-4 py-3 text-left transition duration-200 ${
+                  selected ? 'border-ink bg-hi' : 'border-transparent bg-canvas hover:bg-mint-soft'
+                }`}
               >
-                <span className="text-sm font-semibold" style={{ color: selected ? '#007038' : '#1a1a2e' }}>
+                <span className="text-[14px] font-bold text-ink">
                   {option.title}
                 </span>
-                <span className="mt-0.5 text-xs text-slate-500">{option.detail}</span>
+                <span className={`mt-0.5 text-[12.5px] font-medium ${selected ? 'text-forest-ink' : 'text-muted'}`}>{option.detail}</span>
               </button>
             )
           })}
         </div>
         {initialData && (initialData.paymentTiming ?? 'advance') !== paymentTiming && (
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-[12.5px] font-medium text-muted">
             Saving recalculates when the next rent is due. Recorded payments are not changed.
           </p>
         )}
       </fieldset>
 
       {!initialData && paysAtEnd && (
-        <div className="flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+        <div className="flex gap-3 rounded-[20px] bg-mint px-4 py-3.5 text-[13.5px] font-medium leading-5 text-forest">
           <WalletCards className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
           <p>
             Nothing is paid at move-in.{' '}
@@ -470,13 +468,13 @@ export default function TenantForm({ initialData }: TenantFormProps) {
       )}
 
       {!initialData && !paysAtEnd && (
-        <section className="border-y border-slate-200 py-5">
-          <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-semibold text-slate-800">
+        <section className="rounded-[22px] border border-line p-4 sm:p-5">
+          <label className="flex cursor-pointer items-center gap-3 rounded-[18px] bg-canvas px-4 py-3.5 text-[14px] font-bold text-ink">
             <input
               type="checkbox"
               checked={recordFirstPayment}
               onChange={(event) => setRecordFirstPayment(event.target.checked)}
-              className="h-[18px] w-[18px] rounded border-slate-300 text-green-600 focus:ring-green-500"
+              className="h-[18px] w-[18px]"
             />
             Record first payment now
           </label>
@@ -484,8 +482,8 @@ export default function TenantForm({ initialData }: TenantFormProps) {
           {recordFirstPayment ? (
             <>
               <div className="mt-4">
-                <p className="text-sm font-semibold text-slate-950">How many months is this payment for?</p>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="text-[14px] font-bold text-ink">How many months is this payment for?</p>
+                <p className="mt-0.5 text-[12.5px] font-medium text-muted">
                   Rent is still due every month afterwards. This only covers the first payment.
                 </p>
               </div>
@@ -496,17 +494,15 @@ export default function TenantForm({ initialData }: TenantFormProps) {
                     key={months}
                     type="button"
                     onClick={() => setMonthsCovered(months)}
-                    className="rounded-lg border px-3 py-2 text-sm font-semibold transition"
-                    style={{
-                      borderColor: monthsCovered === months ? '#00A550' : '#e2e8f0',
-                      backgroundColor: monthsCovered === months ? '#e6f7ef' : '#fff',
-                      color: monthsCovered === months ? '#007038' : '#374151'
-                    }}
+                    aria-pressed={monthsCovered === months}
+                    className={`h-11 rounded-full text-[14px] font-bold transition duration-200 ${
+                      monthsCovered === months ? 'bg-ink text-white' : 'bg-canvas text-ink hover:bg-mint-soft'
+                    }`}
                   >
                     {months} mo
                   </button>
                 ))}
-                <label className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: '#e2e8f0' }}>
+                <label className="flex h-11 items-center rounded-full bg-canvas px-3 text-[14px] focus-within:ring-2 focus-within:ring-brand">
                   <span className="sr-only">Custom months</span>
                   <input
                     type="number"
@@ -549,7 +545,7 @@ export default function TenantForm({ initialData }: TenantFormProps) {
               </div>
             </>
           ) : (
-            <div className="mt-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <div className="mt-4 flex gap-3 rounded-[20px] bg-carried-bg px-4 py-3.5 text-[13.5px] font-medium leading-5 text-carried-fg">
               <WalletCards className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
               <p>
                 No payment recorded yet.{' '}
@@ -562,12 +558,12 @@ export default function TenantForm({ initialData }: TenantFormProps) {
         </section>
       )}
 
-      <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 text-sm font-medium text-slate-700 cursor-pointer hover:bg-slate-50 transition">
+      <label className="flex cursor-pointer items-center gap-3 rounded-[18px] bg-canvas px-4 py-3.5 text-[14px] font-bold text-ink transition hover:bg-mint-soft">
         <input
           type="checkbox"
           checked={active}
           onChange={(e) => setActive(e.target.checked)}
-          className="h-[18px] w-[18px] rounded border-slate-300 text-green-600 focus:ring-green-500"
+          className="h-[18px] w-[18px]"
         />
         Active tenant
       </label>
@@ -575,16 +571,14 @@ export default function TenantForm({ initialData }: TenantFormProps) {
       <div className="form-actions">
         <button
           disabled={isSaving}
-          className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
-          style={{ backgroundColor: '#00A550', boxShadow: '0 4px 14px rgba(0,165,80,0.3)' }}
+          className="btn btn-lg btn-ink px-7"
         >
           {isSaving ? 'Saving...' : initialData ? 'Save Tenant' : 'Create Tenant'}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded-xl px-4 py-2.5 text-sm font-medium transition"
-          style={{ border: '1.5px solid #e2e8f0', color: '#64748b' }}
+          className="btn btn-lg btn-outline"
         >
           Cancel
         </button>

@@ -1,10 +1,14 @@
 import { getCurrentAppUser } from '@/lib/auth'
 import { SignOutButton } from '@clerk/nextjs'
-import Image from 'next/image'
+import HouseMark from '@/components/shell/HouseMark'
+import { Mail, Phone } from 'lucide-react'
+import type { Viewport } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
+
+export const viewport: Viewport = { themeColor: '#E6EBE6' }
 
 const statusCopy = {
   pending: {
@@ -46,63 +50,58 @@ export default async function PendingApprovalPage() {
   const copy = statusCopy[user.accountStatus as keyof typeof statusCopy] ?? statusCopy.pending
 
   return (
-    <main className="min-h-dvh overflow-y-auto bg-slate-50 px-4 py-6 sm:px-6 sm:py-10">
+    <main className="min-h-dvh overflow-y-auto bg-ground px-4 py-6 sm:px-6 sm:py-10">
       <section
         className="mx-auto flex min-h-[calc(100dvh-3rem)] w-full max-w-xl items-center justify-center sm:min-h-[calc(100dvh-5rem)]"
         aria-labelledby="approval-title"
       >
-        <div className="w-full rounded-2xl border bg-white px-4 py-6 text-center shadow-sm sm:px-8 sm:py-8" style={{ borderColor: '#e2e8f0' }}>
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:h-24 sm:w-24">
-            <Image
-              src="/estatecore-mark.png"
-              alt="Estate Core UG logo"
-              width={96}
-              height={96}
-              priority
-              className="h-full w-full rounded-xl object-contain"
-              sizes="96px"
-            />
-          </div>
-          <p className="mt-5 text-xs font-black uppercase tracking-[0.18em]" style={{ color: '#00A550' }}>
-            {copy.eyebrow}
-          </p>
-          <p className="mt-2 text-lg font-black leading-tight text-slate-950 sm:text-xl">
-            Estate Core UG
-          </p>
-          <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">
-            Property Management
-          </p>
-          <h1 id="approval-title" className="mt-5 text-2xl font-black leading-tight text-slate-950 sm:text-3xl">
+        <div className="page-enter w-full rounded-[28px] bg-white px-5 py-7 text-center shadow-soft sm:px-9 sm:py-9">
+          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-hi text-ink">
+            <HouseMark size={32} />
+          </span>
+          <p className="eyebrow mt-5">{copy.eyebrow}</p>
+          <p className="mt-2 text-[17px] font-extrabold leading-tight text-ink">EstateCore UG</p>
+          <p className="mt-0.5 text-[12px] font-semibold text-muted">Property management</p>
+          <h1 id="approval-title" className="mt-5 text-[26px] font-extrabold leading-8 tracking-[-0.02em] text-ink sm:text-[28px] sm:leading-[34px]">
             {copy.title}
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-600 sm:text-base">
+          <p className="mx-auto mt-3 max-w-md text-[15px] font-medium leading-6 text-ink-soft">
             {copy.body}
           </p>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+          <p className="mx-auto mt-2 max-w-md text-[14px] font-medium leading-6 text-muted">
             {copy.note}
           </p>
-          <div className="mt-6 rounded-xl border bg-slate-50 p-4 text-left text-sm text-slate-600" style={{ borderColor: '#e2e8f0' }}>
-            <p className="truncate font-bold text-slate-950">{user.name}</p>
-            <p className="mt-1 truncate">{user.email}</p>
-            <div className="mt-3 inline-flex rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">
-              Status: {user.accountStatus}
+          <div className="mt-6 grid gap-2.5 text-left sm:grid-cols-2">
+            <div className="min-w-0 rounded-tile bg-canvas px-4 py-3.5">
+              <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-muted">Your account</p>
+              <p className="mt-1 truncate text-[15px] font-bold text-ink">{user.name}</p>
+              <p className="truncate text-[13px] font-medium text-muted">{user.email}</p>
+              <span className="mt-2.5 inline-flex rounded-full bg-carried-bg px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.08em] text-carried-fg">
+                Status: {user.accountStatus}
+              </span>
+            </div>
+            <div className="min-w-0 rounded-tile bg-mint px-4 py-3.5">
+              <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-forest-ink">Support contact</p>
+              <p className="mt-1 flex items-center gap-2 text-[14px] font-semibold text-ink">
+                <Phone aria-hidden="true" className="h-4 w-4 shrink-0 text-forest" strokeWidth={2} />
+                <a href={`tel:${supportContact.phone.replace(/\s+/g, '')}`} className="text-ink hover:text-brand-text">
+                  {supportContact.phone}
+                </a>
+              </p>
+              <p className="mt-1.5 flex min-w-0 items-center gap-2 text-[14px] font-semibold text-ink">
+                <Mail aria-hidden="true" className="h-4 w-4 shrink-0 text-forest" strokeWidth={2} />
+                <a href={`mailto:${supportContact.email}`} className="min-w-0 text-ink [overflow-wrap:anywhere] hover:text-brand-text">
+                  {supportContact.email}
+                </a>
+              </p>
             </div>
           </div>
-          <div className="mt-4 rounded-xl border bg-white p-4 text-left text-sm" style={{ borderColor: '#e2e8f0' }}>
-            <p className="font-black text-slate-950">Support contact</p>
-            <p className="mt-2 text-slate-600">Phone: {supportContact.phone}</p>
-            <p className="mt-1 text-slate-600">Email: {supportContact.email}</p>
-          </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <Link
-              href="/"
-              className="inline-flex min-h-11 items-center justify-center rounded-xl border px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-              style={{ borderColor: '#e2e8f0' }}
-            >
+            <Link href="/" className="btn btn-lg btn-outline">
               Back to home
             </Link>
             <SignOutButton>
-              <button className="inline-flex min-h-11 w-full items-center justify-center rounded-xl px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-95" style={{ backgroundColor: '#00A550' }}>
+              <button type="button" className="btn btn-lg btn-ink w-full">
                 Sign out
               </button>
             </SignOutButton>

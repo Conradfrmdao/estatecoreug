@@ -1,8 +1,10 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useId, useRef, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import FormNotice from '@/components/FormNotice'
+import Dialog from '@/components/ui/Dialog'
 
 type Props = {
   userId: number
@@ -16,6 +18,8 @@ export default function AdminUserActions({ userId, status, currentUserId }: Prop
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const isSelf = userId === currentUserId
+  const titleId = useId()
+  const cancelRef = useRef<HTMLButtonElement>(null)
 
   async function run(action: string, method = 'PATCH') {
     setError('')
@@ -39,66 +43,93 @@ export default function AdminUserActions({ userId, status, currentUserId }: Prop
 
   return (
     <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
-      {error && (
+      {error && !confirmDelete && (
         <div className="basis-full">
           <FormNotice message={error} />
         </div>
       )}
       {status !== 'approved' && (
-        <button disabled={busy !== null} onClick={() => run('approve')} className="min-h-10 rounded-lg px-3 py-1.5 text-xs font-semibold text-white" style={{ backgroundColor: '#00A550' }}>
+        <button type="button" disabled={busy !== null} onClick={() => run('approve')} className="btn btn-xs btn-ink">
           {busy === 'approve' ? '...' : 'Approve'}
         </button>
       )}
       {status !== 'rejected' && !isSelf && (
-        <button disabled={busy !== null} onClick={() => run('reject')} className="min-h-10 rounded-lg border px-3 py-1.5 text-xs font-semibold text-slate-700" style={{ borderColor: '#e2e8f0' }}>
+        <button type="button" disabled={busy !== null} onClick={() => run('reject')} className="btn btn-xs btn-outline">
           Reject
         </button>
       )}
       {status !== 'suspended' && !isSelf && (
-        <button disabled={busy !== null} onClick={() => run('suspend')} className="min-h-10 rounded-lg border px-3 py-1.5 text-xs font-semibold text-amber-700" style={{ borderColor: '#fde68a', backgroundColor: '#fffbeb' }}>
+        <button
+          type="button"
+          disabled={busy !== null}
+          onClick={() => run('suspend')}
+          className="btn btn-xs bg-carried-bg text-carried-fg hover:bg-carried-bg/70"
+        >
           Suspend
         </button>
       )}
       {status === 'suspended' && (
-        <button disabled={busy !== null} onClick={() => run('activate')} className="min-h-10 rounded-lg border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: '#bbf7d0', color: '#007038' }}>
+        <button type="button" disabled={busy !== null} onClick={() => run('activate')} className="btn btn-xs btn-mint">
           Activate
         </button>
       )}
       {!isSelf && (
-        <button disabled={busy !== null} onClick={() => setConfirmDelete(true)} className="min-h-10 rounded-lg px-3 py-1.5 text-xs font-semibold text-white" style={{ backgroundColor: '#dc2626' }}>
+        <button
+          type="button"
+          disabled={busy !== null}
+          onClick={() => {
+            setError('')
+            setConfirmDelete(true)
+          }}
+          className="btn btn-xs btn-danger"
+        >
           Delete data
         </button>
       )}
-      {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/35 px-4 py-[calc(1rem+env(safe-area-inset-bottom))]">
-          <div className="w-full max-w-sm rounded-xl border bg-white p-5 text-left shadow-xl" style={{ borderColor: '#e2e8f0' }}>
-            <p className="text-base font-bold" style={{ color: '#1a1a2e' }}>Delete local user data?</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              This deletes the local app user and linked properties, units, tenants, payments, and expenses. Clerk login is left untouched.
-            </p>
-            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(false)}
-                disabled={busy !== null}
-                className="min-h-11 w-full rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700 sm:w-auto"
-                style={{ borderColor: '#e2e8f0' }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => run('delete', 'DELETE')}
-                disabled={busy !== null}
-                className="min-h-11 w-full rounded-lg px-4 py-2 text-sm font-semibold text-white sm:w-auto"
-                style={{ backgroundColor: '#dc2626' }}
-              >
-                {busy === 'delete' ? 'Deleting...' : 'Delete data'}
-              </button>
-            </div>
-          </div>
+
+      <Dialog
+        open={confirmDelete}
+        onClose={() => {
+          if (busy === null) setConfirmDelete(false)
+        }}
+        labelledBy={titleId}
+        variant="dialog"
+        zIndex={110}
+        initialFocusRef={cancelRef}
+        className="w-full max-w-sm rounded-[28px] bg-white p-6 text-left shadow-overlay"
+      >
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
+          <Trash2 aria-hidden="true" className="h-5 w-5" strokeWidth={1.9} />
+        </span>
+        <h2 id={titleId} className="mt-4 text-[18px] font-extrabold text-ink">
+          Delete local user data?
+        </h2>
+        <p className="mt-1.5 text-[14px] font-medium leading-6 text-muted">
+          This deletes the local app user and linked properties, units, tenants, payments, and expenses. Clerk login is left untouched.
+        </p>
+        {error && (
+          <p className="mt-4 rounded-2xl bg-overdue-bg px-4 py-2.5 text-[13.5px] font-semibold text-overdue-fg">{error}</p>
+        )}
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            ref={cancelRef}
+            type="button"
+            onClick={() => setConfirmDelete(false)}
+            disabled={busy !== null}
+            className="btn btn-outline w-full sm:w-auto"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => run('delete', 'DELETE')}
+            disabled={busy !== null}
+            className="btn btn-danger-solid w-full sm:w-auto"
+          >
+            {busy === 'delete' ? 'Deleting...' : 'Delete data'}
+          </button>
         </div>
-      )}
+      </Dialog>
     </div>
   )
 }
