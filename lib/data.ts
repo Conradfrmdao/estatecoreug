@@ -15,31 +15,31 @@ import {
 import { db } from '@/lib/db'
 import { currentPaymentMonth, dateKey } from '@/lib/format'
 import {
-  getRentDisplayStatus,
-  summarizeCarryForward,
   type OutstandingMonthSummary,
   type RentDisplayStatus
 } from '@/lib/rent-display'
 import {
   addMonths,
   allocatedPaymentForBillingPeriod,
-  billingMonthForCoverage,
   buildPaymentAllocationPlan,
   calculateOutstandingRentThroughDate,
   calculateNextScheduledRentDate,
-  calculateTenantPeriodBalance,
   calculateNextRentDueDate,
   daysUntilDate,
-  findOldestOutstandingRent,
   getPaymentCoverage,
   inferTenantPaymentTerms,
-  outstandingRentForPeriods,
   paymentBillingPeriods,
   parseMonth,
   scheduledRentDueDateForPeriod,
   type TenantPaymentTerms,
   type TenantRentStatus
 } from '@/lib/rent-cycle'
+import {
+  buildOutstandingTenantBalances,
+  buildTenantBalances,
+  buildTenantPaymentTarget,
+  groupPaymentsByTenant
+} from '@/lib/tenant-balances'
 import { and, desc, eq } from 'drizzle-orm'
 
 export type UnitWithProperty = {
@@ -180,80 +180,6 @@ function sum(values: number[]) {
 
 function getExpenseMonth(expense: Expense) {
   return dateKey(expense.expenseDate).slice(0, 7)
-}
-
-function buildTenantBalances(
-  tenantRows: TenantWithUnit[],
-  paymentRows: PaymentWithTenant[],
-  month: string
-) {
-  const period = parseMonth(month)
-  const activeTenants = tenantRows.filter(({ tenant }) => tenant.active)
-  const paymentsByTenant = new Map<number, RentPayment[]>()
-
-  for (const { payment } of paymentRows) {
-    const rows = paymentsByTenant.get(payment.tenantId) ?? []
-    rows.push(payment)
-    paymentsByTenant.set(payment.tenantId, rows)
-  }
-
-  return activeTenants.flatMap((row) => {
-    const balance = calculateTenantPeriodBalance(
-      row,
-      paymentsByTenant.get(row.tenant.id) ?? [],
-      period
-    )
-
-    if (!balance) {
-      return []
-    }
-
-    return [{
-      ...row,
-      ...balance
-    } satisfies TenantBalance]
-  })
-}
-
-function buildOutstandingTenantBalances(
-  tenantRows: TenantWithUnit[],
-  paymentRows: PaymentWithTenant[],
-  referenceDate = new Date()
-) {
-  const currentMonth = dateKey(referenceDate).slice(0, 7)
-  const paymentsByTenant = new Map<number, RentPayment[]>()
-
-  for (const { payment } of paymentRows) {
-    const rows = paymentsByTenant.get(payment.tenantId) ?? []
-    rows.push(payment)
-    paymentsByTenant.set(payment.tenantId, rows)
-  }
-
-  return tenantRows.flatMap((row) => {
-    const outstanding = calculateOutstandingRentThroughDate(
-      row,
-      paymentsByTenant.get(row.tenant.id) ?? [],
-      referenceDate
-    )
-
-    if (outstanding.balance <= 0 || !outstanding.oldestDueDate) {
-      return []
-    }
-
-    const outstandingMonths = outstanding.months.map(({ month, balance }) => ({ month, balance }))
-    const carryForward = summarizeCarryForward(outstandingMonths, currentMonth)
-
-    return [{
-      ...row,
-      balance: outstanding.balance,
-      periods: outstanding.periods,
-      oldestDueDate: outstanding.oldestDueDate,
-      outstandingMonths,
-      carriedForwardBalance: carryForward.carriedForwardBalance,
-      carriedForwardMonths: carryForward.carriedForwardMonths,
-      currentMonthBalance: carryForward.currentMonthBalance
-    } satisfies TenantOutstandingBalance]
-  })
 }
 
 function buildMonthlyPaymentAllocations(paymentRows: PaymentWithTenant[], month: string): MonthlyPaymentAllocation[] {
@@ -583,80 +509,12 @@ export async function listTenantBalances(userId: number, month = currentPaymentM
 export async function listTenantPaymentTargets(userId: number) {
   const tenantRows = await listTenantsForUser(userId)
   const paymentRows = await listPaymentsForUser(userId)
-  const paymentsByTenant = new Map<number, RentPayment[]>()
+  const paymentsByTenant = groupPaymentsByTenant(paymentRows)
   const referenceDate = new Date()
-  const currentMonth = dateKey(referenceDate).slice(0, 7)
 
-  for (const { payment } of paymentRows) {
-    const rows = paymentsByTenant.get(payment.tenantId) ?? []
-    rows.push(payment)
-    paymentsByTenant.set(payment.tenantId, rows)
-  }
-
-  return tenantRows.map((row) => {
-    const tenantPayments = paymentsByTenant.get(row.tenant.id) ?? []
-    const target = findOldestOutstandingRent({
-      moveInDate: row.tenant.moveInDate,
-      billingStartDate: row.tenant.billingStartDate,
-      rentAmount: row.unit.rentAmount,
-      payments: tenantPayments,
-      preferredStartDate: row.tenant.rentDueDate
-    })
-    const terms = inferTenantPaymentTerms({
-      moveInDate: row.tenant.moveInDate,
-      billingStartDate: row.tenant.billingStartDate,
-      rentDueDate: row.tenant.rentDueDate,
-      rentAmount: row.unit.rentAmount,
-      payments: tenantPayments,
-      paymentTiming: row.tenant.paymentTiming,
-      billingCycleMonths: row.tenant.billingCycleMonths
-    })
-    const outstanding = calculateOutstandingRentThroughDate(row, tenantPayments)
-    const targetPeriodBalance = calculateTenantPeriodBalance(
-      row,
-      tenantPayments,
-      parseMonth(target.month)
-    )
-    const hasRecordedPayment = tenantPayments.some((payment) => payment.amountPaid > 0)
-    const outstandingMonths = outstanding.months.map(({ month, balance }) => ({ month, balance }))
-    const carryForward = summarizeCarryForward(outstandingMonths, currentMonth)
-
-    return {
-      ...row,
-      targetMonth: billingMonthForCoverage(target.dueDate, addMonths(target.dueDate, 1)),
-      targetDueDate: targetPeriodBalance?.dueDate ?? terms.dueDate,
-      targetCoverageStart: target.dueDate,
-      nextPaymentDate: calculateNextScheduledRentDate({
-        moveInDate: row.tenant.moveInDate,
-        billingStartDate: row.tenant.billingStartDate,
-        billingCycleMonths: terms.billingCycleMonths,
-        rentAmount: row.unit.rentAmount,
-        payments: tenantPayments,
-        referenceDate
-      }),
-      targetAmountPaid: target.amountPaid,
-      targetBalance: target.balance,
-      targetScheduledBalance: outstanding.balance > 0
-        ? outstanding.balance
-        : outstandingRentForPeriods({
-            startMonth: target.month,
-            months: terms.billingCycleMonths,
-            rentAmount: row.unit.rentAmount,
-            payments: tenantPayments
-          }),
-      totalOutstandingBalance: outstanding.balance,
-      totalOutstandingPeriods: outstanding.periods,
-      outstandingMonths,
-      carriedForwardBalance: carryForward.carriedForwardBalance,
-      carriedForwardMonths: carryForward.carriedForwardMonths,
-      currentMonthBalance: carryForward.currentMonthBalance,
-      displayPaymentStatus: getRentDisplayStatus({
-        outstandingBalance: outstanding.balance,
-        amountPaid: target.amountPaid,
-        hasRecordedPayment
-      })
-    } satisfies TenantPaymentTarget
-  })
+  return tenantRows.map((row) =>
+    buildTenantPaymentTarget(row, paymentsByTenant.get(row.tenant.id) ?? [], referenceDate)
+  )
 }
 
 export async function buildRentPaymentPlanForTenant(params: {

@@ -142,20 +142,58 @@ test('keeps the selected period end after a partial first payment', () => {
   assert.equal(firstPayment.nextRentDueDate.toISOString().slice(0, 10), '2026-07-30')
 })
 
-test('ignores legacy end-of-period input and uses the standard payment flow', () => {
+test('registers a tenant who pays at the end of each month', () => {
   const plan = planTenantCreation({
     unitId: 7,
-    fullName: 'Deferred Tenant',
+    fullName: 'End Of Month Tenant',
     phone: '+256700000002',
-    moveInDate: '2026-07-01',
+    moveInDate: '2026-06-30',
     monthsCovered: 3,
     paymentTiming: 'arrears',
     recordFirstPayment: true,
     paymentAmount: '900000'
   })
 
+  assert.equal(plan.paymentTiming, 'arrears')
+  // Nothing is owed at move-in, so no first payment is taken...
+  assert.equal(plan.recordFirstPayment, false)
+  assert.equal(plan.paymentAmount, 0)
+  // ...and the first rent falls due at the end of the first month.
+  assert.equal(plan.monthsCovered, 1)
+  assert.equal(plan.rentDueDate.toISOString().slice(0, 10), '2026-07-30')
+  assert.equal(plan.billingCycleMonths, 1)
+})
+
+test('keeps start-of-month registration as the default', () => {
+  const plan = planTenantCreation({
+    unitId: 7,
+    fullName: 'Start Of Month Tenant',
+    phone: '+256700000003',
+    moveInDate: '2026-07-04',
+    monthsCovered: 1,
+    recordFirstPayment: true,
+    paymentAmount: '300000'
+  })
+
   assert.equal(plan.paymentTiming, 'advance')
   assert.equal(plan.recordFirstPayment, true)
-  assert.equal(plan.paymentAmount, 900000)
+  assert.equal(plan.rentDueDate.toISOString().slice(0, 10), '2026-08-04')
+})
+
+test('a first payment covering several months does not make the tenant quarterly', () => {
+  const plan = planTenantCreation({
+    unitId: 7,
+    fullName: 'Prepaying Tenant',
+    phone: '+256700000004',
+    moveInDate: '2026-07-01',
+    monthsCovered: 3,
+    paymentTiming: 'advance',
+    recordFirstPayment: true,
+    paymentAmount: '900000'
+  })
+
+  // Three months are paid for, so the next rent is three months away...
   assert.equal(plan.rentDueDate.toISOString().slice(0, 10), '2026-10-01')
+  // ...but rent is still billed monthly after that.
+  assert.equal(plan.billingCycleMonths, 1)
 })

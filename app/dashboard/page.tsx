@@ -15,7 +15,7 @@ import {
   shiftMonth,
   shortDate
 } from '@/lib/format'
-import { paymentCoveragePeriods } from '@/lib/rent-cycle'
+import { paymentBillingPeriods } from '@/lib/rent-cycle'
 
 export const dynamic = 'force-dynamic'
 
@@ -118,7 +118,7 @@ export default async function DashboardPage({
     ...data.recentPayments
       .filter(({ payment }) => sameMonth(payment.paymentDate, month))
       .map(({ payment, tenant, unit, property }) => {
-        const coverage = paymentCoveragePeriods(payment)
+        const coverage = paymentBillingPeriods(payment)
         const paidInMonth = dateKey(payment.paymentDate).slice(0, 7)
         const isAdvance = coverage.length > 0 && coverage.every((period) => period.month > paidInMonth)
         const coverageLabel = coverage.map((period) => monthShortLabel(period.month)).join(', ')

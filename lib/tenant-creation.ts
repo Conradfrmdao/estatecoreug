@@ -1,4 +1,11 @@
-import { buildPaymentAllocationPlan, calculateDueDate, type PaymentTiming } from './rent-cycle.ts'
+import {
+  buildPaymentAllocationPlan,
+  calculateDueDate,
+  monthFromDate,
+  parseMonth,
+  scheduledRentDueDateForPeriod,
+  type PaymentTiming
+} from './rent-cycle.ts'
 import { parseMoneyAmount } from './money.ts'
 
 export type TenantCreationPlan = {
@@ -11,6 +18,13 @@ export type TenantCreationPlan = {
   rentDueDate: Date
   active: boolean
   paymentTiming: PaymentTiming
+  /**
+   * How often rent falls due. Always monthly: how many months a first payment
+   * covers is a fact about that payment, not the tenant's billing cycle.
+   * Coupling the two silently turned tenants who prepaid three months into
+   * quarterly tenants.
+   */
+  billingCycleMonths: number
   recordFirstPayment: boolean
   paymentAmount: number
   paymentDate: Date
@@ -57,11 +71,14 @@ export function planTenantCreation(body: Record<string, unknown>, now = new Date
   const phone = String(body.phone ?? '').trim()
   const email = body.email ? String(body.email).trim() : null
   const moveInDate = parseDate(body.moveInDate)
-  const monthsCovered = parsePositiveInteger(body.monthsCovered, 1)
+  /* Tenants who pay at the end of each month owe nothing at move-in: their first
+     rent falls due a month later, so there is no first payment to record. */
+  const paymentTiming: PaymentTiming = body.paymentTiming === 'arrears' ? 'arrears' : 'advance'
+  const paysAtEnd = paymentTiming === 'arrears'
+  const monthsCovered = paysAtEnd ? 1 : parsePositiveInteger(body.monthsCovered, 1)
   const active = parseBoolean(body.active, true)
   const requestedFirstPayment = parseBoolean(body.recordFirstPayment, false)
-  const paymentTiming: PaymentTiming = 'advance'
-  const recordFirstPayment = requestedFirstPayment
+  const recordFirstPayment = paysAtEnd ? false : requestedFirstPayment
   const paymentAmount = recordFirstPayment
     ? parseMoneyAmount(body.paymentAmount, 'First payment amount')
     : 0
@@ -79,9 +96,17 @@ export function planTenantCreation(body: Record<string, unknown>, now = new Date
     email,
     moveInDate,
     monthsCovered,
-    rentDueDate: calculateDueDate(moveInDate, monthsCovered),
+    rentDueDate: paysAtEnd
+      ? scheduledRentDueDateForPeriod(
+          moveInDate,
+          parseMonth(monthFromDate(moveInDate)),
+          { paymentTiming, billingCycleMonths: 1 },
+          moveInDate
+        )
+      : calculateDueDate(moveInDate, monthsCovered),
     active,
     paymentTiming,
+    billingCycleMonths: 1,
     recordFirstPayment,
     paymentAmount,
     paymentDate,

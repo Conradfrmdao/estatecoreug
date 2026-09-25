@@ -69,6 +69,10 @@ function nextMonth(month: string) {
   return monthFromDate(addMonths(parseMonth(month).start, 1))
 }
 
+function previousMonth(month: string) {
+  return monthFromDate(addMonths(parseMonth(month).start, -1))
+}
+
 function sortedUniqueMonths(months: string[]) {
   return Array.from(new Set(months)).sort(compareMonths)
 }
@@ -176,6 +180,35 @@ export function billingMonthForCoverage(start: Date, end: Date) {
     coverageStart.getTime() + Math.floor((coverageEnd.getTime() - coverageStart.getTime()) / 2)
   )
   return monthFromDate(midpoint)
+}
+
+/**
+ * The month a tenant's rent period is *for*. The period covering 30 Aug - 30 Sep
+ * is September's rent. Receipts, the payments table and "Collected this month"
+ * already label money this way.
+ *
+ * Rent periods are stored under the month they start in. That agrees with this
+ * label only when rent falls due in the first half of the month, so for a tenant
+ * due on the 1st-15th this returns `periodMonth` unchanged.
+ */
+export function billingMonthForTenantPeriod(moveInDate: Date, periodMonth: string) {
+  const start = rentDueDateForPeriod(new Date(moveInDate), parseMonth(periodMonth))
+  return billingMonthForCoverage(start, addMonths(start, 1))
+}
+
+/**
+ * The stored rent period holding a tenant's rent *for* `billingMonth`, so that
+ * "this month" means the same period on every screen. The inverse of
+ * billingMonthForTenantPeriod.
+ */
+export function tenantPeriodForBillingMonth(moveInDate: Date, billingMonth: string): RentPeriod {
+  for (const candidate of [billingMonth, previousMonth(billingMonth), nextMonth(billingMonth)]) {
+    if (billingMonthForTenantPeriod(moveInDate, candidate) === billingMonth) {
+      return parseMonth(candidate)
+    }
+  }
+
+  return parseMonth(billingMonth)
 }
 
 export function parseMonth(month: string): RentPeriod {

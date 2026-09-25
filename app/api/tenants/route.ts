@@ -122,7 +122,7 @@ export async function POST(req: Request) {
         billingStartDate: plan.moveInDate,
         rentDueDate: plan.rentDueDate,
         paymentTiming: plan.paymentTiming,
-        billingCycleMonths: plan.monthsCovered,
+        billingCycleMonths: plan.billingCycleMonths,
         active: plan.active
       })
       .returning()

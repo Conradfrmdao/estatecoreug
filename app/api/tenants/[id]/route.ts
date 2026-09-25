@@ -1,7 +1,8 @@
 import { rentPayments, tenants, units } from '@/drizzle/schema'
 import { requireCurrentAppUser } from '@/lib/auth'
-import { getTenantForUser, getUnitForUser, listTenantsForUser } from '@/lib/data'
+import { getTenantForUser, getUnitForUser, listTenantsForUser, recalculateTenantRentDueDate } from '@/lib/data'
 import { db } from '@/lib/db'
+import type { PaymentTiming } from '@/lib/rent-cycle'
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 
@@ -93,6 +94,13 @@ export async function PATCH(req: Request, { params }: TenantRouteContext) {
   const moveInDate = body.moveInDate ? new Date(body.moveInDate) : new Date()
   const rentDueDate = body.rentDueDate ? new Date(body.rentDueDate) : new Date()
   const active = Boolean(body.active)
+  /* Only a request that names a timing changes it; anything else keeps the
+     tenant's current setting, exactly as before. */
+  const currentTiming: PaymentTiming = existing.tenant.paymentTiming === 'arrears' ? 'arrears' : 'advance'
+  const paymentTiming: PaymentTiming = body.paymentTiming === 'arrears' || body.paymentTiming === 'advance'
+    ? body.paymentTiming
+    : currentTiming
+  const timingChanged = paymentTiming !== currentTiming
   const billingStartDate = existing.tenant.billingStartDate.getTime() === existing.tenant.moveInDate.getTime()
     ? moveInDate
     : existing.tenant.billingStartDate
@@ -129,6 +137,7 @@ export async function PATCH(req: Request, { params }: TenantRouteContext) {
         moveInDate,
         billingStartDate,
         rentDueDate,
+        paymentTiming,
         active
       })
       .where(eq(tenants.id, id))
@@ -142,6 +151,18 @@ export async function PATCH(req: Request, { params }: TenantRouteContext) {
   }
 
   await refreshUnitStatuses(user.id, [existing.tenant.unitId, unitId])
+
+  /* Paying at the start or the end moves when rent falls due, so the next due
+     date is recalculated from the tenant's payments. Payments are not touched. */
+  if (timingChanged) {
+    const nextRentDueDate = await recalculateTenantRentDueDate(user.id, id, {
+      paymentTiming,
+      billingCycleMonths: existing.tenant.billingCycleMonths
+    })
+    if (nextRentDueDate) {
+      updated = { ...updated, rentDueDate: nextRentDueDate }
+    }
+  }
 
   return NextResponse.json(updated)
 }

@@ -30,8 +30,16 @@ type TenantFormProps = {
     email: string | null
     moveInDate: string
     rentDueDate: string
+    paymentTiming?: PaymentTiming
     active: boolean
   }
+}
+
+type PaymentTiming = 'advance' | 'arrears'
+
+function dayWithSuffix(day: number) {
+  const suffix = day % 10 === 1 && day !== 11 ? 'st' : day % 10 === 2 && day !== 12 ? 'nd' : day % 10 === 3 && day !== 13 ? 'rd' : 'th'
+  return `${day}${suffix}`
 }
 
 const durationOptions = [1, 3, 6, 12]
@@ -67,6 +75,12 @@ export default function TenantForm({ initialData }: TenantFormProps) {
   const [monthsCovered, setMonthsCovered] = useState(1)
   const [customMonths, setCustomMonths] = useState('2')
   const [recordFirstPayment, setRecordFirstPayment] = useState(!initialData)
+  const [paymentTiming, setPaymentTiming] = useState<PaymentTiming>(initialData?.paymentTiming ?? 'advance')
+  const paysAtEnd = paymentTiming === 'arrears'
+  /* Months only mean something when a first payment is being recorded: a
+     start-of-month tenant who has not paid owes from move-in, month by month. */
+  const coveredMonths = !paysAtEnd && recordFirstPayment ? monthsCovered : 1
+  const dueDay = moveInDate ? Number(moveInDate.slice(8, 10)) : null
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [active, setActive] = useState(initialData?.active ?? true)
@@ -140,8 +154,8 @@ export default function TenantForm({ initialData }: TenantFormProps) {
   function chooseUnit(unit: Unit) {
     setUnitId(unit.id)
     setPropertyId(unit.propertyId)
-    if (!initialData && recordFirstPayment) {
-      setPaymentAmount(String(unit.rentAmount ? unit.rentAmount * monthsCovered : ''))
+    if (!initialData && recordFirstPayment && !paysAtEnd) {
+      setPaymentAmount(String(unit.rentAmount ? unit.rentAmount * coveredMonths : ''))
     }
     closeUnitPicker()
   }
@@ -151,13 +165,12 @@ export default function TenantForm({ initialData }: TenantFormProps) {
       return
     }
 
-    const nextDueDate = addMonths(moveInDate, monthsCovered)
-    setRentDueDate(nextDueDate)
+    setRentDueDate(addMonths(moveInDate, coveredMonths))
 
-    if (selectedUnit && recordFirstPayment) {
-      setPaymentAmount(String(selectedUnit.rentAmount ? selectedUnit.rentAmount * monthsCovered : ''))
+    if (selectedUnit && recordFirstPayment && !paysAtEnd) {
+      setPaymentAmount(String(selectedUnit.rentAmount ? selectedUnit.rentAmount * coveredMonths : ''))
     }
-  }, [initialData, monthsCovered, moveInDate, recordFirstPayment, selectedUnit])
+  }, [coveredMonths, initialData, moveInDate, paysAtEnd, recordFirstPayment, selectedUnit])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -178,8 +191,9 @@ export default function TenantForm({ initialData }: TenantFormProps) {
       moveInDate,
       rentDueDate,
       active,
-      monthsCovered,
-      recordFirstPayment,
+      paymentTiming,
+      monthsCovered: coveredMonths,
+      recordFirstPayment: paysAtEnd ? false : recordFirstPayment,
       paymentAmount,
       paymentMethod
     }
@@ -388,56 +402,76 @@ export default function TenantForm({ initialData }: TenantFormProps) {
         </div>
 
         <div>
-          <label className="field-label">Period end / next scheduled date</label>
+          <label className="field-label">{!initialData && paysAtEnd ? 'First rent due' : 'Next rent due'}</label>
           <div className="field-input bg-slate-50 text-slate-700">
-            {rentDueDate || 'Choose move-in date and duration'}
+            {rentDueDate || 'Choose a move-in date'}
           </div>
         </div>
       </div>
 
-      {!initialData && (
-        <section className="border-y border-slate-200 py-5">
-          <div>
-            <p className="text-sm font-semibold text-slate-950">Rent period</p>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Choose how many months this tenant is paying for or will owe from the move-in date.
-            </p>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {durationOptions.map((months) => (
+      <fieldset>
+        <legend className="field-label">When does this tenant pay rent?</legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {([
+            {
+              value: 'advance',
+              title: 'At the start of each month',
+              detail: dueDay
+                ? `Pays on the ${dayWithSuffix(dueDay)} for the month ahead`
+                : 'Pays before the month they are paying for'
+            },
+            {
+              value: 'arrears',
+              title: 'At the end of each month',
+              detail: dueDay
+                ? `Pays on the ${dayWithSuffix(dueDay)} for the month just ended`
+                : 'Pays after the month they are paying for'
+            }
+          ] as const).map((option) => {
+            const selected = paymentTiming === option.value
+            return (
               <button
-                key={months}
+                key={option.value}
                 type="button"
-                onClick={() => setMonthsCovered(months)}
-                className="rounded-lg border px-3 py-2 text-sm font-semibold transition"
+                onClick={() => setPaymentTiming(option.value)}
+                aria-pressed={selected}
+                className="flex min-h-[64px] flex-col items-start justify-center rounded-xl border px-3.5 py-2.5 text-left transition"
                 style={{
-                  borderColor: monthsCovered === months ? '#00A550' : '#e2e8f0',
-                  backgroundColor: monthsCovered === months ? '#e6f7ef' : '#fff',
-                  color: monthsCovered === months ? '#007038' : '#374151'
+                  borderColor: selected ? '#00A550' : '#e2e8f0',
+                  backgroundColor: selected ? '#e6f7ef' : '#fff'
                 }}
               >
-                {months} mo
+                <span className="text-sm font-semibold" style={{ color: selected ? '#007038' : '#1a1a2e' }}>
+                  {option.title}
+                </span>
+                <span className="mt-0.5 text-xs text-slate-500">{option.detail}</span>
               </button>
-            ))}
-            <label className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: '#e2e8f0' }}>
-              <span className="sr-only">Custom months</span>
-              <input
-                type="number"
-                min="1"
-                value={customMonths}
-                onFocus={() => setMonthsCovered(Math.max(1, Number(customMonths) || 1))}
-                onChange={(e) => {
-                  setCustomMonths(e.target.value)
-                  setMonthsCovered(Math.max(1, Number(e.target.value) || 1))
-                }}
-                className="w-full bg-transparent text-center font-semibold outline-none"
-                placeholder="Custom"
-              />
-            </label>
-          </div>
+            )
+          })}
+        </div>
+        {initialData && (initialData.paymentTiming ?? 'advance') !== paymentTiming && (
+          <p className="mt-2 text-xs text-slate-500">
+            Saving recalculates when the next rent is due. Recorded payments are not changed.
+          </p>
+        )}
+      </fieldset>
 
-          <label className="mt-4 flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-semibold text-slate-800">
+      {!initialData && paysAtEnd && (
+        <div className="flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+          <WalletCards className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
+          <p>
+            Nothing is paid at move-in.{' '}
+            {selectedUnit?.rentAmount
+              ? `The first rent of UGX ${selectedUnit.rentAmount.toLocaleString()} is due on ${rentDueDate || 'the end of the first month'}, at the end of the first month.`
+              : `The first rent is due on ${rentDueDate || 'the end of the first month'}, at the end of the first month.`}{' '}
+            Record it from Payments when they pay. Unpaid months simply add up until they do.
+          </p>
+        </div>
+      )}
+
+      {!initialData && !paysAtEnd && (
+        <section className="border-y border-slate-200 py-5">
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-semibold text-slate-800">
             <input
               type="checkbox"
               checked={recordFirstPayment}
@@ -448,37 +482,80 @@ export default function TenantForm({ initialData }: TenantFormProps) {
           </label>
 
           {recordFirstPayment ? (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="field-label">First payment amount</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(cleanMoneyInput(e.target.value))}
-                  required
-                  className="field-input"
-                />
+            <>
+              <div className="mt-4">
+                <p className="text-sm font-semibold text-slate-950">How many months is this payment for?</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Rent is still due every month afterwards. This only covers the first payment.
+                </p>
               </div>
-              <div>
-                <label className="field-label">Payment method</label>
-                <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="field-input">
-                  <option value="cash">Cash</option>
-                  <option value="bank_transfer">Bank transfer</option>
-                  <option value="mobile_money">Mobile money</option>
-                  <option value="card">Card</option>
-                  <option value="other">Other</option>
-                </select>
+
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {durationOptions.map((months) => (
+                  <button
+                    key={months}
+                    type="button"
+                    onClick={() => setMonthsCovered(months)}
+                    className="rounded-lg border px-3 py-2 text-sm font-semibold transition"
+                    style={{
+                      borderColor: monthsCovered === months ? '#00A550' : '#e2e8f0',
+                      backgroundColor: monthsCovered === months ? '#e6f7ef' : '#fff',
+                      color: monthsCovered === months ? '#007038' : '#374151'
+                    }}
+                  >
+                    {months} mo
+                  </button>
+                ))}
+                <label className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: '#e2e8f0' }}>
+                  <span className="sr-only">Custom months</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={customMonths}
+                    onFocus={() => setMonthsCovered(Math.max(1, Number(customMonths) || 1))}
+                    onChange={(e) => {
+                      setCustomMonths(e.target.value)
+                      setMonthsCovered(Math.max(1, Number(e.target.value) || 1))
+                    }}
+                    className="w-full bg-transparent text-center font-semibold outline-none"
+                    placeholder="Custom"
+                  />
+                </label>
               </div>
-            </div>
+
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="field-label">First payment amount</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(cleanMoneyInput(e.target.value))}
+                    required
+                    className="field-input"
+                  />
+                </div>
+                <div>
+                  <label className="field-label">Payment method</label>
+                  <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="field-input">
+                    <option value="cash">Cash</option>
+                    <option value="bank_transfer">Bank transfer</option>
+                    <option value="mobile_money">Mobile money</option>
+                    <option value="card">Card</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+            </>
           ) : (
             <div className="mt-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
               <WalletCards className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
               <p>
-                No payment will be recorded. {selectedUnit?.rentAmount
-                  ? `UGX ${(selectedUnit.rentAmount * monthsCovered).toLocaleString()} will be outstanding for ${monthsCovered} month${monthsCovered === 1 ? '' : 's'}, from ${moveInDate || 'the move-in date'} to ${rentDueDate || 'the calculated period end'}.`
-                  : `Rent for ${monthsCovered} month${monthsCovered === 1 ? '' : 's'} will be outstanding from the move-in date to ${rentDueDate || 'the calculated period end'}.`}
+                No payment recorded yet.{' '}
+                {selectedUnit?.rentAmount
+                  ? `UGX ${selectedUnit.rentAmount.toLocaleString()} is owed from ${moveInDate || 'the move-in date'}, then again every month until it is paid.`
+                  : `Rent is owed from ${moveInDate || 'the move-in date'}, then again every month until it is paid.`}
               </p>
             </div>
           )}

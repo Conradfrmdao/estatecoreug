@@ -32,6 +32,7 @@ export default async function EditTenantPage({
     email: row.tenant.email,
     moveInDate: toDateInputValue(row.tenant.moveInDate),
     rentDueDate: toDateInputValue(row.tenant.rentDueDate),
+    paymentTiming: row.tenant.paymentTiming === 'arrears' ? 'arrears' as const : 'advance' as const,
     active: row.tenant.active
   }
 

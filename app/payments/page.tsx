@@ -6,7 +6,7 @@ import { requireCurrentAppUser } from '@/lib/auth'
 import { listPaymentsForUser, listPropertiesForUser, listTenantPaymentTargets } from '@/lib/data'
 import { currency, dateKey, formatDate, monthLabel, monthShortLabel } from '@/lib/format'
 import { normalizePaymentFilters, paymentMatchesSearch, paymentReceivedInPeriod } from '@/lib/payment-filters'
-import { paymentAllocations, paymentBillingPeriods } from '@/lib/rent-cycle'
+import { paymentAllocationBillingMonth, paymentAllocations, paymentBillingPeriods } from '@/lib/rent-cycle'
 import { Building2, Download, Plus, WalletCards } from 'lucide-react'
 import Link from 'next/link'
 
@@ -244,10 +244,12 @@ export default async function PaymentsPage({
                             {paymentBillingPeriods(payment).map((period) => monthLabel(period.month)).join(', ')}
                             <span className="mt-1 block text-xs text-slate-400">{payment.monthsCovered} month{payment.monthsCovered === 1 ? '' : 's'}</span>
                             {(() => {
-                              const allocations = paymentAllocations(payment)
-                              const settledMonths = allocations.filter(
-                                (allocation) => allocation.month < dateKey(payment.paymentDate).slice(0, 7)
-                              )
+                              const paidMonth = dateKey(payment.paymentDate).slice(0, 7)
+                              const allocations = paymentAllocations(payment).map((allocation) => ({
+                                ...allocation,
+                                month: paymentAllocationBillingMonth(payment, allocation)
+                              }))
+                              const settledMonths = allocations.filter((allocation) => allocation.month < paidMonth)
 
                               if (allocations.length < 2 && settledMonths.length === 0) {
                                 return null
@@ -259,7 +261,7 @@ export default async function PaymentsPage({
                                     <span key={allocation.month} className="flex items-center justify-between gap-2 text-[11px]">
                                       <span className="font-semibold text-slate-500">
                                         {monthShortLabel(allocation.month)}
-                                        {allocation.month < dateKey(payment.paymentDate).slice(0, 7) && (
+                                        {allocation.month < paidMonth && (
                                           <span className="ml-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-black uppercase text-amber-700">
                                             Arrears
                                           </span>
