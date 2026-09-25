@@ -1,9 +1,11 @@
+/**
+ * "UGX 1,250,000". Intl renders the en-UG currency symbol as "USh", which
+ * disagreed with the dashboard, the PDF receipts and the PDF reports - all of
+ * which write "UGX" - so the code is written out explicitly here too.
+ */
 export function currency(value: number) {
-  return new Intl.NumberFormat('en-UG', {
-    style: 'currency',
-    currency: 'UGX',
-    maximumFractionDigits: 0
-  }).format(value)
+  const digits = new Intl.NumberFormat('en-UG', { maximumFractionDigits: 0 }).format(Math.abs(value))
+  return `${value < 0 ? '-' : ''}UGX ${digits}`
 }
 
 export function formatDate(value: Date | string | null | undefined) {
