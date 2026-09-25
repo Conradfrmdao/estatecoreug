@@ -1,133 +1,167 @@
-function OwingRowSkeleton() {
+import { Bone, HeaderSkeleton, SkeletonScreen } from '@/components/ui/Skeleton'
+
+function MoneyCardSkeleton() {
   return (
-    <div className="surface-card flex items-center gap-3 p-3.5">
-      <span className="skeleton h-9 w-9 shrink-0 rounded-full" />
-      <span className="min-w-0 flex-1 space-y-2">
-        <span className="skeleton block h-3.5 w-2/5" />
-        <span className="skeleton block h-3 w-3/5" />
+    <div className="flex min-h-[196px] flex-col justify-between gap-4 rounded-card bg-white p-[22px] xl:min-h-0">
+      <span className="flex items-center gap-3">
+        <Bone className="h-11 w-11 shrink-0 rounded-full" />
+        <Bone className="h-3.5 w-32" />
       </span>
-      <span className="w-[96px] shrink-0 space-y-2">
-        <span className="skeleton ml-auto block h-4 w-full" />
-        <span className="skeleton ml-auto block h-2.5 w-3/4" />
-      </span>
+      <Bone className="h-9 w-3/4 rounded-[10px]" />
+      <Bone className="h-3 w-3/5" />
     </div>
+  )
+}
+
+function ListRowSkeleton({ tone = 'light' }: { tone?: 'light' | 'tint' }) {
+  return (
+    <span className="flex items-center gap-3">
+      <Bone tone={tone} className="h-9 w-9 shrink-0 rounded-full" />
+      <span className="flex min-w-0 flex-1 flex-col gap-2">
+        <Bone tone={tone} className="h-3.5 w-2/5" />
+        <Bone tone={tone} className="h-2 w-full rounded-full" />
+      </span>
+      <Bone tone={tone} className="h-3.5 w-20 shrink-0" />
+    </span>
   )
 }
 
 export default function Loading() {
   return (
-    <div aria-busy="true" aria-live="polite">
-      <span className="sr-only">Loading your dashboard</span>
-
-      {/* Mobile — mirrors the aurora header, mini stats and owing list */}
-      <div className="lg:hidden">
-        <div className="aurora rounded-b-[22px] px-4 pb-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+    <SkeletonScreen label="Loading your dashboard" className="lg:h-full">
+      {/* Phone: the forest header, month strip, mini stats and who owes. */}
+      <div className="safe-top-fill bg-canvas lg:hidden">
+        <div className="safe-top rounded-b-[28px] bg-forest px-4 pb-5">
           <div className="flex items-center justify-between">
-            <span className="h-10 w-10 rounded-[10px] bg-white/10" />
-            <span className="h-9 w-9 rounded-full bg-white/10" />
+            <span className="h-10 w-10 rounded-full bg-hi" />
+            <span className="flex gap-2">
+              <Bone tone="dark" className="h-10 w-10 rounded-full" />
+              <Bone tone="dark" className="h-10 w-10 rounded-full" />
+            </span>
           </div>
           <div className="mt-5 flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1 space-y-2.5">
-              <span className="block h-2.5 w-24 rounded bg-white/15" />
-              <span className="block h-7 w-40 rounded bg-white/15" />
-              <span className="mt-5 block h-2.5 w-28 rounded bg-white/15" />
-              <span className="block h-7 w-48 rounded bg-white/15" />
-              <span className="block h-3 w-36 rounded bg-white/10" />
+              <Bone tone="dark" className="h-2.5 w-24" />
+              <Bone tone="dark" className="h-7 w-44 rounded-[10px]" />
+              <Bone tone="dark" className="mt-5 h-2.5 w-28" />
+              <Bone tone="dark" className="h-8 w-48 rounded-[10px]" />
+              <Bone tone="dark" className="h-3 w-36" />
             </div>
-            <span className="h-[92px] w-[92px] shrink-0 rounded-full border-8 border-white/10" />
+            <span className="h-[92px] w-[92px] shrink-0 rounded-full border-[9px] border-white/10" />
           </div>
-          <div className="mt-5 flex gap-1.5">
+          <div className="mt-5 flex gap-1.5 overflow-hidden">
             {[0, 1, 2, 3, 4].map((index) => (
-              <span key={index} className="h-9 w-16 shrink-0 rounded-full bg-white/10" />
+              <Bone key={index} tone="dark" className="h-9 w-20 shrink-0 rounded-full" />
             ))}
           </div>
         </div>
 
-        <div className="space-y-4 px-4 pt-4">
+        <div className="space-y-4 px-4 pb-6 pt-4">
           <div className="grid grid-cols-3 gap-2">
             {[0, 1, 2].map((index) => (
-              <div key={index} className="surface-card space-y-2 px-3 py-2.5">
-                <span className="skeleton block h-2.5 w-10" />
-                <span className="skeleton block h-5 w-14" />
-                <span className="skeleton block h-1 w-full" />
+              <div key={index} className="space-y-2 rounded-[18px] bg-white px-3 py-3">
+                <Bone className="h-2.5 w-10" />
+                <Bone className="h-5 w-14" />
+                <Bone className="h-1 w-full rounded-full" />
               </div>
             ))}
           </div>
-          <span className="skeleton block h-[52px] w-full rounded-[14px]" />
-          <div className="space-y-2.5">
+          <Bone className="h-[52px] w-full rounded-full" />
+          <Bone className="mt-2 h-5 w-36" />
+          <div className="space-y-2">
             {[0, 1, 2].map((index) => (
-              <OwingRowSkeleton key={index} />
+              <div key={index} className="rounded-[22px] bg-white p-3.5">
+                <ListRowSkeleton />
+              </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Desktop — mirrors the KPI row, portfolio strip and owing list */}
-      <div className="hidden space-y-4 lg:block">
-        <div className="flex items-end justify-between gap-6">
-          <div className="space-y-2.5">
-            <span className="skeleton block h-7 w-48" />
-            <span className="skeleton block h-4 w-80" />
-          </div>
-          <div className="flex gap-2.5">
-            <span className="skeleton block h-11 w-40" />
-            <span className="skeleton block h-11 w-40" />
-          </div>
-        </div>
+      {/* Desktop: the same grid as the page, card for card. */}
+      <div className="hidden grid-cols-1 gap-[22px] pb-[22px] lg:grid lg:min-h-full lg:grid-rows-[auto_auto_auto_auto_76px] xl:h-full xl:grid-rows-[auto_minmax(196px,212fr)_minmax(330px,356fr)_minmax(300px,336fr)_76px]">
+        <HeaderSkeleton actions={['w-[284px]', 'hidden xl:block xl:w-[250px]']} />
 
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          {[0, 1, 2, 3].map((index) => (
-            <div key={index} className="surface-card flex min-h-[132px] gap-3.5 p-5">
-              <span className="skeleton w-1 shrink-0 rounded-full" />
-              <span className="min-w-0 flex-1 space-y-3">
-                <span className="skeleton block h-2.5 w-24" />
-                <span className="skeleton block h-6 w-40" />
-                <span className="skeleton block h-3 w-32" />
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="surface-card grid grid-cols-5 divide-x divide-[var(--line)] px-2 py-1">
-          {[0, 1, 2, 3, 4].map((index) => (
-            <div key={index} className="space-y-2 px-4 py-3">
-              <span className="skeleton block h-2.5 w-16" />
-              <span className="skeleton block h-6 w-10" />
-            </div>
-          ))}
-        </div>
-
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-          <div className="surface-card space-y-3 p-5">
-            <span className="skeleton block h-4 w-40" />
-            {[0, 1, 2, 3].map((index) => (
-              <OwingRowSkeleton key={index} />
-            ))}
+        <div className="grid min-h-0 grid-cols-2 gap-5 xl:grid-cols-3">
+          <div className="contents xl:col-span-2 xl:grid xl:grid-cols-3 xl:gap-5">
+            <MoneyCardSkeleton />
+            <MoneyCardSkeleton />
+            <MoneyCardSkeleton />
           </div>
-          <div className="space-y-4">
-            <div className="surface-card flex items-center gap-5 p-5">
-              <span className="h-[132px] w-[132px] shrink-0 rounded-full border-[16px] border-[var(--neutral-bg)]" />
-              <span className="flex-1 space-y-2.5">
-                <span className="skeleton block h-3 w-full" />
-                <span className="skeleton block h-3 w-4/5" />
-                <span className="skeleton block h-3 w-3/5" />
-              </span>
-            </div>
-            <div className="surface-card space-y-3.5 p-5">
-              <span className="skeleton block h-4 w-32" />
+          <div className="flex min-h-[196px] flex-col justify-between gap-4 rounded-card bg-night px-6 py-[22px] xl:min-h-0">
+            <Bone tone="dark" className="h-3.5 w-28" />
+            <Bone tone="dark" className="h-9 w-3/4 rounded-[10px]" />
+            <span className="flex gap-2">
               {[0, 1, 2].map((index) => (
-                <span key={index} className="flex items-center gap-3">
-                  <span className="skeleton h-8 w-8 shrink-0 rounded-full" />
-                  <span className="flex-1 space-y-1.5">
-                    <span className="skeleton block h-3 w-2/3" />
-                    <span className="skeleton block h-2.5 w-1/2" />
+                <Bone key={index} tone="dark" className="h-10 flex-1 rounded-full" />
+              ))}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid min-h-0 gap-5 xl:grid-cols-3">
+          <div className="flex min-h-[330px] gap-5 rounded-card bg-white p-5 xl:col-span-2 xl:min-h-0">
+            <div className="flex min-w-0 flex-1 flex-col gap-4">
+              <span className="flex items-center justify-between">
+                <Bone className="h-5 w-28" />
+                <span className="flex gap-1.5">
+                  <Bone className="h-10 w-10 rounded-full" />
+                  <Bone className="h-10 w-10 rounded-full" />
+                </span>
+              </span>
+              <div className="grid flex-1 grid-cols-7 gap-1.5">
+                {Array.from({ length: 35 }, (_, index) => (
+                  <Bone key={index} className="aspect-square max-h-11 w-full justify-self-center rounded-full" />
+                ))}
+              </div>
+            </div>
+            <div className="hidden w-[250px] shrink-0 flex-col gap-3 rounded-panel bg-canvas p-4 xl:flex">
+              <Bone className="h-4 w-32" />
+              {[0, 1, 2].map((index) => (
+                <span key={index} className="flex items-center gap-2.5">
+                  <span className="h-[34px] w-[34px] shrink-0 rounded-[10px] bg-white" />
+                  <span className="flex flex-1 flex-col gap-1.5">
+                    <Bone className="h-3 w-3/4" />
+                    <Bone className="h-2.5 w-1/2" />
                   </span>
                 </span>
               ))}
             </div>
           </div>
+          <div className="flex min-h-[330px] flex-col gap-4 rounded-card bg-hi p-6 xl:min-h-0">
+            <Bone tone="tint" className="h-5 w-40" />
+            {[0, 1, 2, 3].map((index) => (
+              <ListRowSkeleton key={index} tone="tint" />
+            ))}
+          </div>
         </div>
+
+        <div className="grid min-h-0 gap-5 xl:grid-cols-3">
+          <div className="flex min-h-[300px] flex-col gap-4 rounded-card bg-white px-6 py-5 xl:col-span-2 xl:min-h-0">
+            <Bone className="h-5 w-40" />
+            {[0, 1, 2, 3].map((index) => (
+              <span key={index} className="flex items-center gap-4 border-t border-line pt-3.5">
+                <Bone className="h-9 w-9 shrink-0 rounded-full" />
+                <Bone className="h-3.5 flex-1" />
+                <Bone className="h-3.5 w-24" />
+                <Bone className="h-3.5 w-20" />
+                <Bone className="h-7 w-20 rounded-full" />
+              </span>
+            ))}
+          </div>
+          <div className="flex min-h-[300px] flex-col justify-between gap-4 rounded-card bg-mint px-6 py-5 xl:min-h-0">
+            <Bone tone="tint" className="h-5 w-32" />
+            <Bone tone="tint" className="h-12 w-28 rounded-[12px]" />
+            <div className="grid grid-cols-2 gap-2.5">
+              {[0, 1, 2, 3].map((index) => (
+                <Bone key={index} tone="tint" className="h-[62px] rounded-tile" />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <span className="h-[56px] w-[min(440px,100%)] self-end justify-self-center rounded-full bg-night" />
       </div>
-    </div>
+    </SkeletonScreen>
   )
 }
