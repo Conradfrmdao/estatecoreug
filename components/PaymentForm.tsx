@@ -100,10 +100,10 @@ function paymentDueAmountForTenant(tenant: TenantOption) {
 
 function paymentTargetPresentation(tenant?: TenantOption) {
   if (tenant && Number(tenant.totalOutstandingBalance ?? 0) <= 0) {
-    return { label: 'Paid up', amountClass: 'text-emerald-700', labelClass: 'text-emerald-600' }
+    return { label: 'Paid up', amountClass: 'text-paid-fg', labelClass: 'text-paid-fg' }
   }
 
-  return { label: 'Outstanding', amountClass: 'text-amber-700', labelClass: 'text-amber-600' }
+  return { label: 'Outstanding', amountClass: 'text-carried-fg', labelClass: 'text-carried-fg' }
 }
 
 function PaymentFormFields({ initialData }: PaymentFormProps) {
@@ -317,38 +317,38 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
         <button
           type="button"
           onClick={openTenantPicker}
-          className="field-input flex min-h-[52px] items-center justify-between gap-3 text-left transition hover:border-emerald-300 hover:bg-emerald-50/30"
+          className="field-input flex !min-h-[60px] items-center justify-between gap-3 !rounded-[22px] text-left"
         >
           <span className="min-w-0">
             {selectedTenant ? (
               <>
-                <span className="block truncate text-sm font-black text-slate-950">
+                <span className="block truncate text-[14.5px] font-extrabold text-ink">
                   Unit {selectedTenant.unitNumber}
                 </span>
-                <span className="mt-0.5 block truncate text-xs text-slate-500">
+                <span className="mt-0.5 block truncate text-[12.5px] font-medium text-muted">
                   {selectedTenant.fullName} - {selectedProperty?.name ?? selectedTenant.propertyName}
                 </span>
               </>
             ) : (
               <>
-                <span className="block text-sm font-black text-slate-700">Select unit</span>
-                <span className="mt-0.5 block text-xs text-slate-500">Choose property, then unit</span>
+                <span className="block text-[14.5px] font-bold text-ink-soft">Select unit</span>
+                <span className="mt-0.5 block text-[12.5px] font-medium text-muted">Choose property, then unit</span>
               </>
             )}
           </span>
-          <UserRound className="h-5 w-5 shrink-0 text-emerald-700" strokeWidth={1.9} />
+          <UserRound className="h-5 w-5 shrink-0 text-brand-text" strokeWidth={1.9} />
         </button>
       </div>
 
       {tenantPickerOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 px-3 py-4 sm:items-center" role="dialog" aria-modal="true">
-          <div className="max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+        <div className="overlay-enter fixed inset-0 z-50 flex items-end justify-center bg-ink/45 px-3 py-4 backdrop-blur-[2px] sm:items-center" role="dialog" aria-modal="true" aria-label="Choose tenant">
+          <div className="dialog-enter max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-overlay">
+            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
               <div className="min-w-0">
-                <p className="text-sm font-black text-slate-950">
+                <p className="text-[16px] font-extrabold text-ink">
                   {pickerProperty ? pickerProperty.name : 'Choose property'}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-[12.5px] font-medium text-muted">
                   {pickerProperty ? 'Select the unit and tenant for this payment.' : 'Select the property for this payment.'}
                 </p>
               </div>
@@ -356,22 +356,22 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
                 type="button"
                 onClick={closeTenantPicker}
                 aria-label="Close tenant picker"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-50"
+                className="btn btn-soft btn-icon btn-sm shrink-0"
               >
                 <X className="h-4 w-4" strokeWidth={2} />
               </button>
             </div>
 
-            <div className="max-h-[72vh] overflow-y-auto p-4">
+            <div className="max-h-[72vh] overflow-y-auto p-5">
               {!pickerProperty ? (
                 <div className="space-y-3">
                   <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={1.9} />
+                    <Search className="pointer-events-none absolute left-[18px] top-1/2 h-4 w-4 -translate-y-1/2 text-muted" strokeWidth={2} />
                     <input
                       value={propertySearch}
                       onChange={(e) => setPropertySearch(e.target.value)}
                       className="field-input"
-                      style={{ paddingLeft: '2.5rem' }}
+                      style={{ paddingLeft: '2.75rem' }}
                       placeholder="Search property..."
                     />
                   </div>
@@ -385,22 +385,22 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
                           setPickerPropertyId(property.id)
                           setTenantSearch('')
                         }}
-                        className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
+                        className="flex min-h-14 items-center justify-between gap-3 rounded-[18px] bg-canvas px-4 py-2.5 text-left transition hover:bg-mint"
                       >
                         <span className="flex min-w-0 items-center gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-forest">
                             <Building2 className="h-4 w-4" strokeWidth={1.9} />
                           </span>
                           <span className="min-w-0">
-                            <span className="block truncate text-sm font-black text-slate-950">{property.name}</span>
-                            <span className="block text-xs text-slate-500">{property.tenantCount} occupied unit{property.tenantCount === 1 ? '' : 's'}</span>
+                            <span className="block truncate text-[14.5px] font-extrabold text-ink">{property.name}</span>
+                            <span className="block text-[12.5px] font-medium text-muted">{property.tenantCount} occupied unit{property.tenantCount === 1 ? '' : 's'}</span>
                           </span>
                         </span>
-                        {property.id === propertyId && <Check className="h-4 w-4 shrink-0 text-emerald-700" strokeWidth={2} />}
+                        {property.id === propertyId && <Check className="h-4 w-4 shrink-0 text-brand-text" strokeWidth={2.4} />}
                       </button>
                     ))}
                     {filteredProperties.length === 0 && (
-                      <p className="rounded-xl bg-slate-50 px-3 py-6 text-center text-sm font-semibold text-slate-500">
+                      <p className="rounded-[18px] bg-canvas px-3 py-6 text-center text-[13.5px] font-semibold text-muted">
                         {tenants.length === 0
                           ? 'No active tenants were found.'
                           : 'No properties match that search.'}
@@ -416,19 +416,19 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
                       setPickerPropertyId('')
                       setTenantSearch('')
                     }}
-                    className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-slate-800"
+                    className="inline-flex items-center gap-2 rounded-full py-1 pr-2 text-[13.5px] font-bold text-muted transition hover:text-ink"
                   >
                     <ChevronLeft className="h-4 w-4" strokeWidth={1.9} />
                     Back to properties
                   </button>
 
                   <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={1.9} />
+                    <Search className="pointer-events-none absolute left-[18px] top-1/2 h-4 w-4 -translate-y-1/2 text-muted" strokeWidth={2} />
                     <input
                       value={tenantSearch}
                       onChange={(e) => setTenantSearch(e.target.value)}
                       className="field-input"
-                      style={{ paddingLeft: '2.5rem' }}
+                      style={{ paddingLeft: '2.75rem' }}
                       placeholder="Search unit, tenant, phone, or email..."
                     />
                   </div>
@@ -441,25 +441,25 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
                           key={tenant.id}
                           type="button"
                           onClick={() => chooseTenant(tenant)}
-                          className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
+                          className="flex min-h-14 items-center justify-between gap-3 rounded-[18px] bg-canvas px-4 py-3 text-left transition hover:bg-mint"
                         >
                           <span className="min-w-0">
-                            <span className="block truncate text-sm font-black text-slate-950">Unit {tenant.unitNumber}</span>
-                            <span className="block text-xs text-slate-500">
+                            <span className="block truncate text-[14.5px] font-extrabold text-ink">Unit {tenant.unitNumber}</span>
+                            <span className="block text-[12.5px] font-medium text-ink-soft">
                               {tenant.fullName} - {currency(tenant.rentAmount)}/mo
                             </span>
-                            <span className="block truncate text-xs text-slate-400">
+                            <span className="block truncate text-[12px] font-medium text-muted">
                               {tenant.phone || tenant.email || 'No contact saved'}
                             </span>
                           </span>
                           <span className="shrink-0 text-right">
-                            <span className={`block text-xs font-black uppercase tracking-[0.08em] ${target.labelClass}`}>
+                            <span className={`block text-[10.5px] font-extrabold uppercase tracking-[0.08em] ${target.labelClass}`}>
                               {target.label}
                             </span>
-                            <span className={`block text-sm font-black ${target.amountClass}`}>
+                            <span className={`block text-[14.5px] font-extrabold tabular-nums ${target.amountClass}`}>
                               {currency(paymentDueAmountForTenant(tenant))}
                             </span>
-                            <span className="block text-[10px] font-semibold text-slate-400">
+                            <span className="block text-[11px] font-semibold text-muted">
                               {formatDate(tenant.nextPaymentDate ?? tenant.targetDueDate ?? tenant.rentDueDate)}
                             </span>
                             <CarryForwardNote
@@ -468,13 +468,13 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
                               carriedForwardMonths={tenant.carriedForwardMonths ?? []}
                               className="justify-end whitespace-nowrap text-right"
                             />
-                            {tenant.id === tenantId && <Check className="ml-auto mt-1 h-4 w-4 text-emerald-700" strokeWidth={2} />}
+                            {tenant.id === tenantId && <Check className="ml-auto mt-1 h-4 w-4 text-brand-text" strokeWidth={2.4} />}
                           </span>
                         </button>
                       )
                     })}
                     {tenantOptions.length === 0 && (
-                      <p className="rounded-xl bg-slate-50 px-3 py-6 text-center text-sm font-semibold text-slate-500">
+                      <p className="rounded-[18px] bg-canvas px-3 py-6 text-center text-[13.5px] font-semibold text-muted">
                         No tenants match that search.
                       </p>
                     )}
@@ -487,48 +487,48 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
       )}
 
       {selectedTenant ? (
-        <div className="grid gap-4 rounded-xl border bg-slate-50 p-4 text-sm text-slate-700" style={{ borderColor: '#e2e8f0' }}>
+        <div className="fade-in grid gap-4 rounded-[22px] bg-canvas p-5 text-[14px] text-ink-soft">
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Monthly rent</p>
-              <p className="mt-1 font-black text-slate-950">{currency(selectedTenant.rentAmount)}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">Monthly rent</p>
+              <p className="mt-1 text-[16px] font-extrabold tabular-nums text-ink">{currency(selectedTenant.rentAmount)}</p>
             </div>
             <div>
-              <p className={`text-xs font-black uppercase tracking-[0.12em] ${selectedTarget?.labelClass ?? 'text-slate-400'}`}>
+              <p className={`text-[11px] font-bold uppercase tracking-[0.08em] ${selectedTarget?.labelClass ?? 'text-muted'}`}>
                 {selectedTarget?.label ?? 'Scheduled amount'}
               </p>
-              <p className={`mt-1 font-black ${selectedTarget?.amountClass ?? 'text-slate-950'}`}>
+              <p className={`mt-1 text-[16px] font-extrabold tabular-nums ${selectedTarget?.amountClass ?? 'text-ink'}`}>
                 {currency(paymentDueAmountForTenant(selectedTenant))}
               </p>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-0.5 text-[12px] font-medium text-muted">
                 Next scheduled {formatDate(selectedTenant.nextPaymentDate ?? selectedTenant.targetDueDate ?? selectedTenant.rentDueDate)}
               </p>
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Already paid</p>
-              <p className="mt-1 font-black text-emerald-700">{currency(Number(selectedTenant.targetAmountPaid ?? 0))}</p>
-              <p className="mt-0.5 text-xs text-slate-500">Extra money carries forward.</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">Already paid</p>
+              <p className="mt-1 text-[16px] font-extrabold tabular-nums text-brand-text">{currency(Number(selectedTenant.targetAmountPaid ?? 0))}</p>
+              <p className="mt-0.5 text-[12px] font-medium text-muted">Extra money carries forward.</p>
             </div>
           </div>
 
           {Number(selectedTenant.carriedForwardBalance ?? 0) > 0 && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3">
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">
+            <div className="rounded-[18px] bg-carried-bg px-4 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-carried-fg">
                 Balance carried forward
               </p>
-              <p className="mt-1 text-sm font-black text-amber-800">
+              <p className="mt-1 text-[14px] font-extrabold text-carried-fg">
                 {currency(Number(selectedTenant.carriedForwardBalance ?? 0))} from earlier months
               </p>
               <CarryForwardBreakdown
                 months={selectedTenant.outstandingMonths ?? []}
                 currentMonth={currentPaymentMonth()}
-                className="mt-2 border-t border-amber-200 pt-2"
+                className="mt-2 border-t border-carried-bar/30 pt-2"
               />
             </div>
           )}
 
           {Number(selectedTenant.totalOutstandingBalance ?? 0) <= 0 && (
-            <p className="rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-xs font-semibold text-emerald-800">
+            <p className="rounded-[18px] bg-mint px-4 py-2.5 text-[12.5px] font-semibold text-forest">
               This tenant has no rent due yet. This payment will be recorded in advance for {monthLabel(paymentMonth)}.
             </p>
           )}
@@ -551,16 +551,16 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
 
         <div>
           <label className="field-label">Applies first to</label>
-          <div className="field-input bg-slate-50 text-slate-700">
+          <div className="field-input text-ink-soft">
             {monthLabel(paymentMonth)}
           </div>
         </div>
       </div>
 
-      <section className="rounded-xl border bg-white p-4" style={{ borderColor: '#e2e8f0' }}>
+      <section className="rounded-[22px] border border-line p-4 sm:p-5">
         <div className="flex flex-col gap-1">
-          <p className="text-sm font-semibold" style={{ color: '#1a1a2e' }}>Rent coverage</p>
-          <p className="text-xs text-slate-500">Money is applied to the oldest unpaid balance first; any extra moves into the next month.</p>
+          <p className="text-[15px] font-extrabold text-ink">Rent coverage</p>
+          <p className="text-[12.5px] font-medium text-muted">Money is applied to the oldest unpaid balance first; any extra moves into the next month.</p>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
           <div>
@@ -578,7 +578,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
           </div>
           <div>
             <label className="field-label">Coverage ends</label>
-            <div className="field-input min-w-[11rem] bg-slate-50 text-slate-700">
+            <div className="field-input min-w-[11rem] text-ink-soft">
               {coverageEnd || 'Select start'}
             </div>
           </div>
@@ -589,17 +589,15 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
               key={months}
               type="button"
               onClick={() => setMonthsCovered(months)}
-              className="rounded-lg border px-3 py-2 text-sm font-semibold transition"
-              style={{
-                borderColor: monthsCovered === months ? '#00A550' : '#e2e8f0',
-                backgroundColor: monthsCovered === months ? '#e6f7ef' : '#fff',
-                color: monthsCovered === months ? '#007038' : '#374151'
-              }}
+              aria-pressed={monthsCovered === months}
+              className={`h-11 rounded-full text-[14px] font-bold transition duration-200 ${
+                monthsCovered === months ? 'bg-ink text-white' : 'bg-canvas text-ink hover:bg-mint-soft'
+              }`}
             >
               {months} mo
             </button>
           ))}
-          <label className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: '#e2e8f0' }}>
+          <label className="flex h-11 items-center rounded-full bg-canvas px-3 text-[14px] focus-within:ring-2 focus-within:ring-brand">
             <span className="sr-only">Custom months</span>
             <input
               type="number"
@@ -659,16 +657,14 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
       <div className="form-actions">
         <button
           disabled={isSaving}
-          className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
-          style={{ backgroundColor: '#00A550', boxShadow: '0 4px 14px rgba(0,165,80,0.3)' }}
+          className="btn btn-lg btn-ink px-7"
         >
           {isSaving ? 'Saving...' : initialData ? 'Save Payment' : 'Record Payment'}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded-xl px-4 py-2.5 text-sm font-medium transition"
-          style={{ border: '1.5px solid #e2e8f0', color: '#64748b' }}
+          className="btn btn-lg btn-outline"
         >
           Cancel
         </button>
@@ -679,7 +675,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
 
 export default function PaymentForm(props: PaymentFormProps) {
   return (
-    <Suspense fallback={<div className="text-slate-500 text-sm">Loading form...</div>}>
+    <Suspense fallback={<div className="space-y-4" aria-busy="true"><span className="skeleton block h-[60px] rounded-[22px]" /><span className="skeleton block h-[52px] rounded-full" /><span className="skeleton block h-40 rounded-[22px]" /></div>}>
       <PaymentFormFields {...props} />
     </Suspense>
   )

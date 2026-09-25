@@ -43,24 +43,22 @@ export default function PropertyUnitsModal({
       description={`${propertyLocation} - ${units.length} unit${units.length === 1 ? '' : 's'}`}
       downloadHref={downloadHref}
     >
-      <div className="sticky top-0 z-10 border-b border-slate-100 bg-white p-3 sm:px-5 sm:py-4">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={1.9} />
+      <div className="sticky top-0 z-10 bg-white px-4 pb-3 pt-4 sm:px-6">
+        <label className="search-field">
+          <Search aria-hidden="true" className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+          <span className="sr-only">Search units in {propertyName}</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="field-input"
-            style={{ paddingLeft: '2.5rem' }}
             placeholder="Search unit number, rent, or status..."
-            aria-label={`Search units in ${propertyName}`}
           />
-        </div>
-        <p className="mt-2 text-xs font-semibold text-slate-500">
+        </label>
+        <p className="mt-2 px-1 text-[12.5px] font-semibold text-muted">
           {filteredUnits.length} of {units.length} units
         </p>
       </div>
 
-      <div className="overflow-x-auto p-3 sm:p-5">
+      <div className="overflow-x-auto px-4 pb-5 sm:px-6">
         <table className="data-table">
           <thead>
             <tr>
@@ -73,8 +71,8 @@ export default function PropertyUnitsModal({
           <tbody>
             {filteredUnits.map((unit) => (
               <tr key={unit.id}>
-                <td data-label="Unit"><span className="font-semibold text-slate-950">Unit {unit.unitNumber}</span></td>
-                <td data-label="Monthly Rent" className="font-semibold text-slate-950">{currency(unit.rentAmount)}</td>
+                <td data-label="Unit"><span className="font-extrabold text-ink">Unit {unit.unitNumber}</span></td>
+                <td data-label="Monthly Rent" className="font-bold tabular-nums text-ink">{currency(unit.rentAmount)}</td>
                 <td data-label="Status">
                   <span className={unit.status === 'occupied' ? 'badge badge-green' : 'badge badge-amber'}>
                     {unit.status === 'occupied' ? 'Occupied' : 'Vacant'}
@@ -82,10 +80,14 @@ export default function PropertyUnitsModal({
                 </td>
                 <td data-label="Actions">
                   <div className="flex items-center justify-end gap-2">
-                    <Link href={`/units/${unit.id}/edit`} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50">
+                    <Link href={`/units/${unit.id}/edit`} className="btn btn-xs btn-outline">
                       Edit
                     </Link>
-                    <DeleteButton endpoint={`/api/units/${unit.id}`} confirmMessage="Delete this unit and all linked tenants, payments, and expenses?" />
+                    <DeleteButton
+                      endpoint={`/api/units/${unit.id}`}
+                      confirmMessage="Delete this unit and all linked tenants, payments, and expenses?"
+                      className="btn btn-xs btn-danger"
+                    />
                   </div>
                 </td>
               </tr>
@@ -93,7 +95,7 @@ export default function PropertyUnitsModal({
           </tbody>
         </table>
         {filteredUnits.length === 0 && (
-          <p className="py-12 text-center text-sm font-semibold text-slate-500">No units match that search.</p>
+          <p className="py-12 text-center text-[14px] font-semibold text-muted">No units match that search.</p>
         )}
       </div>
     </PropertyRecordsModal>

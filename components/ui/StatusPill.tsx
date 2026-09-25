@@ -1,8 +1,8 @@
 import type { TenantRentStatus } from '@/lib/rent-cycle'
 
 /**
- * The semantic set from artboard 1a: Paid - In advance - Part paid - Due (date) - Overdue.
- * "Cleared" is retired (design §6.4) - a tenant with no payment on record is Due.
+ * The semantic set: Paid - In advance - Part paid - Due (date) - Overdue.
+ * "Cleared" is retired - a tenant with no payment on record is Due.
  */
 export type RentStatusKind =
   | 'paid'
@@ -14,13 +14,13 @@ export type RentStatusKind =
   | 'inactive'
 
 const presentation: Record<RentStatusKind, { label: string; className: string }> = {
-  paid: { label: 'Paid', className: 'bg-[var(--paid-bg)] text-[var(--paid-fg)]' },
-  in_advance: { label: 'In advance', className: 'bg-[var(--advance-bg)] text-[var(--advance-fg)]' },
-  part_paid: { label: 'Part paid', className: 'bg-[var(--carried-bg)] text-[var(--carried-fg)]' },
-  due: { label: 'Due', className: 'bg-[var(--due-bg)] text-[var(--due-fg)]' },
-  overdue: { label: 'Overdue', className: 'bg-[var(--overdue-bg)] text-[var(--overdue-fg)]' },
-  vacant: { label: 'Vacant', className: 'border border-dashed border-[var(--line-strong)] text-[var(--text-muted)]' },
-  inactive: { label: 'Inactive', className: 'border border-dashed border-[var(--line-strong)] text-[var(--text-muted)]' }
+  paid: { label: 'Paid', className: 'bg-paid-bg text-paid-fg' },
+  in_advance: { label: 'In advance', className: 'bg-advance-bg text-advance-fg' },
+  part_paid: { label: 'Part paid', className: 'bg-carried-bg text-carried-fg' },
+  due: { label: 'Due', className: 'bg-due-bg text-due-fg' },
+  overdue: { label: 'Overdue', className: 'bg-overdue-bg text-overdue-fg' },
+  vacant: { label: 'Vacant', className: 'border border-dashed border-line-strong text-muted' },
+  inactive: { label: 'Inactive', className: 'border border-dashed border-line-strong text-muted' }
 }
 
 /**
@@ -49,11 +49,11 @@ export default function StatusPill({
   className?: string
 }) {
   const tone = presentation[kind]
-  const separator = kind === 'due' ? ' ' : ' \u00b7 '
+  const separator = kind === 'due' ? ' ' : ' · '
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold leading-4 ${tone.className} ${className}`}
+      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-1 text-[11.5px] font-bold leading-4 ${tone.className} ${className}`}
     >
       {tone.label}
       {detail ? `${separator}${detail}` : ''}

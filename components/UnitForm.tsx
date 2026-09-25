@@ -126,16 +126,14 @@ export default function UnitForm({ initialData }: UnitFormProps) {
       <div className="form-actions">
         <button
           disabled={isSaving}
-          className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
-          style={{ backgroundColor: '#00A550', boxShadow: '0 4px 14px rgba(0,165,80,0.3)' }}
+          className="btn btn-lg btn-ink px-7"
         >
           {isSaving ? 'Saving…' : initialData ? 'Save Unit' : 'Create Unit'}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded-xl px-4 py-2.5 text-sm font-medium transition"
-          style={{ border: '1.5px solid #e2e8f0', color: '#64748b' }}
+          className="btn btn-lg btn-outline"
         >
           Cancel
         </button>

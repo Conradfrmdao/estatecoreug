@@ -16,10 +16,9 @@ export default function AuthBackButton() {
           router.push('/')
         }
       }}
-      className="inline-flex items-center gap-2 rounded-lg border bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-      style={{ borderColor: '#e2e8f0' }}
+      className="btn btn-sm btn-white"
     >
-      <ArrowLeft className="h-4 w-4" />
+      <ArrowLeft aria-hidden="true" className="h-4 w-4" strokeWidth={2.2} />
       Back
     </button>
   )

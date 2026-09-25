@@ -1,3 +1,5 @@
+import { CircleAlert, CircleCheck } from 'lucide-react'
+
 export default function FormNotice({
   message,
   tone = 'error'
@@ -9,13 +11,18 @@ export default function FormNotice({
     return null
   }
 
-  const styles = tone === 'success'
-    ? 'border-green-200 bg-green-50 text-green-800'
-    : 'border-rose-200 bg-rose-50 text-rose-700'
+  const success = tone === 'success'
+  const Icon = success ? CircleCheck : CircleAlert
 
   return (
-    <div className={`rounded-lg border px-3 py-2 text-sm font-medium ${styles}`}>
-      {message}
+    <div
+      role={success ? 'status' : 'alert'}
+      className={`fade-in flex items-start gap-2.5 rounded-2xl px-4 py-3 text-[13.5px] font-semibold leading-5 ${
+        success ? 'bg-paid-bg text-paid-fg' : 'bg-overdue-bg text-overdue-fg'
+      }`}
+    >
+      <Icon aria-hidden="true" className="mt-px h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+      <span>{message}</span>
     </div>
   )
 }

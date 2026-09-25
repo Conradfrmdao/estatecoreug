@@ -1,24 +1,25 @@
 'use client'
 
 import CarryForwardNote from '@/components/CarryForwardNote'
+import Dialog from '@/components/ui/Dialog'
 import { currency } from '@/lib/format'
 import {
   ArrowUpRight,
   Building2,
+  Clock3,
   Download,
-  Home,
+  House,
   ReceiptText,
   UsersRound,
-  WalletCards,
+  Wallet,
   X,
   type LucideIcon
 } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { useId, useRef, useState, type ReactNode } from 'react'
 
 type CardKey = 'units' | 'tenants' | 'rent-roll' | 'paid' | 'outstanding' | 'expenses'
-type CardTone = 'green' | 'amber' | 'rose' | 'slate'
+type CardTone = 'hi' | 'mint' | 'night' | 'plain' | 'warn' | 'danger'
 
 type UnitDetail = {
   id: number
@@ -99,19 +100,21 @@ type CardDefinition = {
   description: string
 }
 
-const toneClasses: Record<CardTone, string> = {
-  green: 'bg-emerald-50 text-emerald-700',
-  amber: 'bg-amber-50 text-amber-700',
-  rose: 'bg-rose-50 text-rose-700',
-  slate: 'bg-slate-100 text-slate-700'
+const iconTone: Record<CardTone, string> = {
+  hi: 'bg-hi text-ink',
+  mint: 'bg-mint text-forest',
+  night: 'bg-ink text-white',
+  plain: 'bg-canvas text-ink',
+  warn: 'bg-carried-bg text-carried-fg',
+  danger: 'bg-danger-soft text-danger'
 }
 
 function EmptyState({ children }: { children: ReactNode }) {
-  return (
-    <p className="px-4 py-12 text-center text-sm font-semibold text-slate-500">
-      {children}
-    </p>
-  )
+  return <p className="px-4 py-12 text-center text-[14px] font-semibold text-muted">{children}</p>
+}
+
+function TableFrame({ children }: { children: ReactNode }) {
+  return <div className="overflow-x-auto px-4 py-4 sm:px-6 sm:py-5">{children}</div>
 }
 
 export default function PropertySummaryCards({
@@ -125,9 +128,9 @@ export default function PropertySummaryCards({
   expenses
 }: PropertySummaryCardsProps) {
   const [activeCard, setActiveCard] = useState<CardKey | null>(null)
+  const [shownCard, setShownCard] = useState<CardKey | null>(null)
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
-  const lastTriggerRef = useRef<HTMLButtonElement | null>(null)
 
   const cards: CardDefinition[] = [
     {
@@ -136,7 +139,7 @@ export default function PropertySummaryCards({
       value: summary.totalUnits,
       sub: `${summary.occupiedUnits} occupied`,
       icon: Building2,
-      tone: 'slate',
+      tone: 'plain',
       title: `${propertyName} Units`,
       description: 'Occupancy, assigned tenants, and monthly pricing.'
     },
@@ -146,7 +149,7 @@ export default function PropertySummaryCards({
       value: summary.activeTenants,
       sub: `${summary.totalTenants} total records`,
       icon: UsersRound,
-      tone: 'green',
+      tone: 'mint',
       title: `${propertyName} Tenants`,
       description: 'Active and historical tenant records for this property.'
     },
@@ -155,8 +158,8 @@ export default function PropertySummaryCards({
       label: 'Rent Roll',
       value: currency(summary.monthlyRentRoll),
       sub: 'all unit prices',
-      icon: Home,
-      tone: 'slate',
+      icon: House,
+      tone: 'plain',
       title: `${propertyName} Rent Roll`,
       description: 'The monthly rent price assigned to every unit.'
     },
@@ -165,8 +168,8 @@ export default function PropertySummaryCards({
       label: 'Paid',
       value: currency(summary.collectedThisMonth),
       sub: monthLabel,
-      icon: WalletCards,
-      tone: 'green',
+      icon: Wallet,
+      tone: 'hi',
       title: `${monthLabel} Payments`,
       description: `Receipts recorded for ${propertyName} during ${monthLabel}.`
     },
@@ -175,8 +178,8 @@ export default function PropertySummaryCards({
       label: 'Outstanding',
       value: currency(summary.outstandingRent),
       sub: 'all rent due to date',
-      icon: WalletCards,
-      tone: 'amber',
+      icon: Clock3,
+      tone: summary.outstandingRent > 0 ? 'warn' : 'night',
       title: `${propertyName} Outstanding Rent`,
       description: 'Active tenants with rent balances due through today.'
     },
@@ -186,44 +189,26 @@ export default function PropertySummaryCards({
       value: currency(summary.expensesThisMonth),
       sub: 'selected month',
       icon: ReceiptText,
-      tone: 'rose',
+      tone: 'danger',
       title: `${monthLabel} Expenses`,
       description: `Expenses recorded for ${propertyName} during ${monthLabel}.`
     }
   ]
 
-  const activeDefinition = cards.find((card) => card.key === activeCard) ?? null
+  /* The dialog keeps showing the card it opened with while it animates shut. */
+  const shownDefinition = cards.find((card) => card.key === shownCard) ?? null
 
-  useEffect(() => {
-    if (!activeCard) return
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    closeRef.current?.focus()
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setActiveCard(null)
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', handleKeyDown)
-      lastTriggerRef.current?.focus()
-    }
-  }, [activeCard])
-
-  function openCard(card: CardKey, trigger: HTMLButtonElement) {
-    lastTriggerRef.current = trigger
+  function openCard(card: CardKey) {
+    setShownCard(card)
     setActiveCard(card)
   }
 
   function renderDetails() {
-    if (activeCard === 'units' || activeCard === 'rent-roll') {
+    if (shownCard === 'units' || shownCard === 'rent-roll') {
       return units.length === 0 ? (
         <EmptyState>No units have been added to this property.</EmptyState>
       ) : (
-        <div className="overflow-x-auto p-3 sm:p-5">
+        <TableFrame>
           <table className="data-table">
             <thead>
               <tr>
@@ -236,9 +221,9 @@ export default function PropertySummaryCards({
             <tbody>
               {units.map((unit) => (
                 <tr key={unit.id}>
-                  <td data-label="Unit" className="font-bold text-slate-950">Unit {unit.unitNumber}</td>
-                  <td data-label="Monthly Rent" className="font-bold text-slate-800">{currency(unit.rentAmount)}</td>
-                  <td data-label="Tenant" className="text-sm text-slate-600">{unit.tenantName ?? 'No active tenant'}</td>
+                  <td data-label="Unit" className="font-extrabold text-ink">Unit {unit.unitNumber}</td>
+                  <td data-label="Monthly Rent" className="font-bold tabular-nums text-ink">{currency(unit.rentAmount)}</td>
+                  <td data-label="Tenant" className="font-medium text-ink-soft">{unit.tenantName ?? 'No active tenant'}</td>
                   <td data-label="Status">
                     <span className={unit.status === 'occupied' ? 'badge badge-green' : 'badge badge-amber'}>
                       {unit.status === 'occupied' ? 'Occupied' : 'Vacant'}
@@ -248,15 +233,15 @@ export default function PropertySummaryCards({
               ))}
             </tbody>
           </table>
-        </div>
+        </TableFrame>
       )
     }
 
-    if (activeCard === 'tenants') {
+    if (shownCard === 'tenants') {
       return tenants.length === 0 ? (
         <EmptyState>No tenant records exist for this property.</EmptyState>
       ) : (
-        <div className="overflow-x-auto p-3 sm:p-5">
+        <TableFrame>
           <table className="data-table">
             <thead>
               <tr>
@@ -271,14 +256,14 @@ export default function PropertySummaryCards({
               {tenants.map((tenant) => (
                 <tr key={tenant.id}>
                   <td data-label="Tenant">
-                    <span className="block font-bold text-slate-950">{tenant.fullName}</span>
-                    {tenant.email && <span className="block text-xs text-slate-500">{tenant.email}</span>}
+                    <span className="block font-bold text-ink">{tenant.fullName}</span>
+                    {tenant.email && <span className="block text-[12.5px] font-medium text-muted">{tenant.email}</span>}
                   </td>
-                  <td data-label="Unit" className="font-semibold text-slate-800">Unit {tenant.unitNumber}</td>
-                  <td data-label="Contact" className="text-sm text-slate-600">{tenant.phone}</td>
-                  <td data-label="Move In" className="text-sm text-slate-600">{tenant.moveInDate}</td>
+                  <td data-label="Unit" className="font-bold text-ink">Unit {tenant.unitNumber}</td>
+                  <td data-label="Contact" className="font-medium text-ink-soft">{tenant.phone}</td>
+                  <td data-label="Move In" className="font-medium text-ink-soft">{tenant.moveInDate}</td>
                   <td data-label="Status">
-                    <span className={tenant.active ? 'badge badge-green' : 'badge bg-slate-100 text-slate-600'}>
+                    <span className={tenant.active ? 'badge badge-green' : 'badge badge-slate'}>
                       {tenant.active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
@@ -286,15 +271,15 @@ export default function PropertySummaryCards({
               ))}
             </tbody>
           </table>
-        </div>
+        </TableFrame>
       )
     }
 
-    if (activeCard === 'paid') {
+    if (shownCard === 'paid') {
       return receipts.length === 0 ? (
         <EmptyState>No receipts were recorded for this property in {monthLabel}.</EmptyState>
       ) : (
-        <div className="overflow-x-auto p-3 sm:p-5">
+        <TableFrame>
           <table className="data-table">
             <thead>
               <tr>
@@ -303,40 +288,38 @@ export default function PropertySummaryCards({
                 <th>Date</th>
                 <th>Method</th>
                 <th>Amount</th>
-                <th>Receipt</th>
+                <th className="text-right">Receipt</th>
               </tr>
             </thead>
             <tbody>
               {receipts.map((receipt) => (
                 <tr key={receipt.id}>
-                  <td data-label="Tenant" className="font-bold text-slate-950">{receipt.tenantName}</td>
-                  <td data-label="Unit" className="font-semibold text-slate-800">Unit {receipt.unitNumber}</td>
-                  <td data-label="Date" className="text-sm text-slate-600">{receipt.paymentDate}</td>
-                  <td data-label="Method"><span className="badge bg-slate-100 text-slate-700">{receipt.paymentMethod.toUpperCase()}</span></td>
-                  <td data-label="Amount" className="font-black text-emerald-700">{currency(receipt.amountPaid)}</td>
+                  <td data-label="Tenant" className="font-bold text-ink">{receipt.tenantName}</td>
+                  <td data-label="Unit" className="font-bold text-ink">Unit {receipt.unitNumber}</td>
+                  <td data-label="Date" className="font-medium text-ink-soft">{receipt.paymentDate}</td>
+                  <td data-label="Method"><span className="badge badge-slate">{receipt.paymentMethod.replace(/_/g, ' ')}</span></td>
+                  <td data-label="Amount" className="font-extrabold tabular-nums text-brand-text">{currency(receipt.amountPaid)}</td>
                   <td data-label="Receipt">
-                    <a
-                      href={`/api/receipts/${receipt.id}`}
-                      download
-                      className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-emerald-200 px-3 text-xs font-bold text-emerald-700 transition hover:bg-emerald-50"
-                    >
-                      <Download className="h-3.5 w-3.5" strokeWidth={2} />
-                      Download
-                    </a>
+                    <div className="flex justify-end">
+                      <a href={`/api/receipts/${receipt.id}`} download className="btn btn-xs btn-mint">
+                        <Download aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
+                        Download
+                      </a>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </TableFrame>
       )
     }
 
-    if (activeCard === 'outstanding') {
+    if (shownCard === 'outstanding') {
       return outstanding.length === 0 ? (
         <EmptyState>No outstanding rent remains for this property.</EmptyState>
       ) : (
-        <div className="overflow-x-auto p-3 sm:p-5">
+        <TableFrame>
           <table className="data-table">
             <thead>
               <tr>
@@ -345,18 +328,18 @@ export default function PropertySummaryCards({
                 <th>Oldest Due</th>
                 <th>Periods</th>
                 <th>Balance</th>
-                <th>Action</th>
+                <th className="text-right">Action</th>
               </tr>
             </thead>
             <tbody>
               {outstanding.map((row) => (
                 <tr key={row.tenantId}>
-                  <td data-label="Tenant" className="font-bold text-slate-950">{row.tenantName}</td>
-                  <td data-label="Unit" className="font-semibold text-slate-800">Unit {row.unitNumber}</td>
-                  <td data-label="Oldest Due" className="text-sm text-slate-600">{row.oldestDueDate}</td>
-                  <td data-label="Periods" className="text-sm font-semibold text-slate-700">{row.periods}</td>
+                  <td data-label="Tenant" className="font-bold text-ink">{row.tenantName}</td>
+                  <td data-label="Unit" className="font-bold text-ink">Unit {row.unitNumber}</td>
+                  <td data-label="Oldest Due" className="font-medium text-ink-soft">{row.oldestDueDate}</td>
+                  <td data-label="Periods" className="font-bold text-ink">{row.periods}</td>
                   <td data-label="Balance">
-                    <span className="block font-black text-amber-700">{currency(row.balance)}</span>
+                    <span className="block font-extrabold tabular-nums text-carried-fg">{currency(row.balance)}</span>
                     <CarryForwardNote
                       carriedForwardBalance={row.carriedForwardBalance}
                       carriedForwardMonths={row.carriedForwardMonths}
@@ -364,26 +347,25 @@ export default function PropertySummaryCards({
                     />
                   </td>
                   <td data-label="Action">
-                    <Link
-                      href={`/payments/new?tenantId=${row.tenantId}`}
-                      className="inline-flex min-h-9 items-center justify-center rounded-lg border border-emerald-200 px-3 text-xs font-bold text-emerald-700 transition hover:bg-emerald-50"
-                    >
-                      Record payment
-                    </Link>
+                    <div className="flex justify-end">
+                      <Link href={`/payments/new?tenantId=${row.tenantId}`} className="btn btn-xs btn-ink">
+                        Record payment
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </TableFrame>
       )
     }
 
-    if (activeCard === 'expenses') {
+    if (shownCard === 'expenses') {
       return expenses.length === 0 ? (
         <EmptyState>No expenses were recorded for this property in {monthLabel}.</EmptyState>
       ) : (
-        <div className="overflow-x-auto p-3 sm:p-5">
+        <TableFrame>
           <table className="data-table">
             <thead>
               <tr>
@@ -397,94 +379,95 @@ export default function PropertySummaryCards({
             <tbody>
               {expenses.map((expense) => (
                 <tr key={expense.id}>
-                  <td data-label="Expense" className="font-bold text-slate-950">{expense.title}</td>
-                  <td data-label="Unit" className="text-sm text-slate-600">{expense.unitNumber ? `Unit ${expense.unitNumber}` : 'Entire property'}</td>
-                  <td data-label="Category"><span className="badge bg-slate-100 text-slate-700">{expense.category.toUpperCase()}</span></td>
-                  <td data-label="Date" className="text-sm text-slate-600">{expense.expenseDate}</td>
-                  <td data-label="Amount" className="font-black text-rose-600">{currency(expense.amount)}</td>
+                  <td data-label="Expense" className="font-bold text-ink">{expense.title}</td>
+                  <td data-label="Unit" className="font-medium text-ink-soft">{expense.unitNumber ? `Unit ${expense.unitNumber}` : 'Entire property'}</td>
+                  <td data-label="Category"><span className="badge badge-slate">{expense.category}</span></td>
+                  <td data-label="Date" className="font-medium text-ink-soft">{expense.expenseDate}</td>
+                  <td data-label="Amount" className="font-extrabold tabular-nums text-danger">{currency(expense.amount)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </TableFrame>
       )
     }
 
     return null
   }
 
-  const modal = activeDefinition ? (
-    <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/45 p-0 backdrop-blur-[1px] sm:items-center sm:p-5"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) setActiveCard(null)
-      }}
-    >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="flex max-h-[calc(100dvh-1rem)] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:max-h-[88vh] sm:max-w-6xl sm:rounded-2xl"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
-        <header className="flex items-start gap-3 border-b border-slate-200 px-4 py-3 sm:items-center sm:px-5 sm:py-4">
-          <div className="min-w-0 flex-1">
-            <h2 id={titleId} className="truncate text-base font-black text-slate-950 sm:text-lg">
-              {activeDefinition.title}
-            </h2>
-            <p className="mt-0.5 line-clamp-2 text-xs text-slate-500 sm:text-sm">
-              {activeDefinition.description}
-            </p>
-          </div>
-          <button
-            ref={closeRef}
-            type="button"
-            onClick={() => setActiveCard(null)}
-            aria-label="Close"
-            title="Close"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50"
-          >
-            <X className="h-5 w-5" strokeWidth={2} />
-          </button>
-        </header>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          {renderDetails()}
-        </div>
-      </section>
-    </div>
-  ) : null
-
   return (
     <>
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+      <section className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         {cards.map((card) => {
           const Icon = card.icon
           return (
             <button
               key={card.key}
               type="button"
-              onClick={(event) => openCard(card.key, event.currentTarget)}
+              onClick={() => openCard(card.key)}
               aria-haspopup="dialog"
-              className="group min-w-0 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              className="group flex min-w-0 flex-col rounded-[24px] bg-white p-5 text-left transition duration-300 ease-out-soft hover:-translate-y-0.5 hover:shadow-soft"
             >
-              <div className="flex items-center gap-2">
-                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${toneClasses[card.tone]}`}>
-                  <Icon className="h-4 w-4" strokeWidth={1.9} />
+              <div className="flex items-center gap-2.5">
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${iconTone[card.tone]}`}>
+                  <Icon aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.9} />
                 </span>
-                <p className="min-w-0 flex-1 truncate text-[11px] font-black uppercase tracking-wide text-slate-500">
+                <p className="min-w-0 flex-1 truncate text-[11.5px] font-bold uppercase tracking-[0.08em] text-muted">
                   {card.label}
                 </p>
-                <ArrowUpRight className="h-4 w-4 shrink-0 text-slate-300 transition group-hover:text-emerald-600" strokeWidth={2} />
+                <ArrowUpRight
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-faint transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-ink"
+                  strokeWidth={2}
+                />
               </div>
-              <p className="mt-4 break-words text-[clamp(1.25rem,1.7vw,1.9rem)] font-black leading-none text-slate-950">
+              <p className="mt-4 break-words text-[clamp(1.25rem,1.6vw,1.75rem)] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-ink">
                 {card.value}
               </p>
-              <p className="mt-2 truncate text-xs font-semibold text-slate-500">{card.sub}</p>
+              <p className="mt-2 truncate text-[12.5px] font-semibold text-muted">{card.sub}</p>
             </button>
           )
         })}
       </section>
-      {typeof document !== 'undefined' && modal ? createPortal(modal, document.body) : null}
+
+      <Dialog
+        open={activeCard !== null}
+        onClose={() => setActiveCard(null)}
+        labelledBy={titleId}
+        variant="sheet-dialog"
+        zIndex={90}
+        initialFocusRef={closeRef}
+        className="flex max-h-[calc(100dvh-1rem)] w-full flex-col overflow-hidden rounded-t-[28px] bg-white shadow-overlay sm:max-h-[88vh] sm:max-w-6xl sm:rounded-[28px]"
+      >
+        {shownDefinition && (
+          <>
+            <header className="flex items-start gap-3 border-b border-line px-5 pb-4 pt-5 sm:items-center sm:px-6">
+              <div className="min-w-0 flex-1">
+                <h2 id={titleId} className="truncate text-[18px] font-extrabold text-ink sm:text-[20px]">
+                  {shownDefinition.title}
+                </h2>
+                <p className="mt-0.5 line-clamp-2 text-[13px] font-medium text-muted">{shownDefinition.description}</p>
+              </div>
+              <button
+                ref={closeRef}
+                type="button"
+                onClick={() => setActiveCard(null)}
+                aria-label="Close"
+                title="Close"
+                className="btn btn-soft btn-icon btn-sm shrink-0"
+              >
+                <X aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
+              </button>
+            </header>
+            <div
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            >
+              {renderDetails()}
+            </div>
+          </>
+        )}
+      </Dialog>
     </>
   )
 }

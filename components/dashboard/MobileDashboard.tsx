@@ -1,12 +1,13 @@
 import NotificationBell from '@/components/NotificationBell'
+import type { DashboardView } from '@/components/dashboard/types'
+import HouseMark from '@/components/shell/HouseMark'
 import { ComposedBalanceCell } from '@/components/ui/ComposedBalance'
 import CollectionRing from '@/components/ui/CollectionRing'
 import Money from '@/components/ui/Money'
 import SplitBar from '@/components/ui/SplitBar'
 import StatusPill from '@/components/ui/StatusPill'
-import type { DashboardView } from '@/components/dashboard/types'
+import { UserButton } from '@clerk/nextjs'
 import { ChevronRight, Plus } from 'lucide-react'
-import Image from 'next/image'
 import Link from 'next/link'
 
 function MiniStat({
@@ -21,14 +22,14 @@ function MiniStat({
   tone: 'carried' | 'spent' | 'current'
 }) {
   return (
-    <div className="surface-card min-w-0 px-3 py-2.5">
-      <p className="t-label truncate text-[var(--text-soft)]">{label}</p>
-      <p className="mt-1 text-[19px] leading-none text-[var(--text-ink)]">
+    <div className="min-w-0 rounded-[20px] bg-white px-3 py-3">
+      <p className="truncate text-[11px] font-bold uppercase leading-4 tracking-[0.07em] text-muted">{label}</p>
+      <p className="mt-1 text-[19px] font-extrabold leading-none text-ink">
         <Money value={value} abbreviate />
       </p>
       <SplitBar
         orientation="horizontal"
-        className="mt-2"
+        className="mt-2.5"
         segments={[
           { value: Math.max(fill, 0), tone },
           { value: Math.max(1 - fill, 0), tone: 'track' }
@@ -39,42 +40,38 @@ function MiniStat({
 }
 
 export default function MobileDashboard({ view }: { view: DashboardView }) {
-  const expectedRatio = view.totalExpected > 0 ? view.collectedThisMonth / view.totalExpected : 0
-
   return (
-    <div className="safe-top-fill bg-[var(--surface-sunken)] lg:hidden">
-      <header className="aurora safe-top rounded-b-[22px] px-4 pb-4 text-white">
+    <div className="safe-top-fill bg-canvas lg:hidden">
+      <header className="safe-top rounded-b-[28px] bg-forest px-4 pb-5 text-white">
         <div className="flex items-center justify-between gap-3">
-          <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[10px] bg-white/10 ring-1 ring-white/15">
-            <Image
-              src="/estatecore-mark.png"
-              alt="EstateCore UG"
-              width={80}
-              height={80}
-              className="h-10 w-10 object-contain"
-              priority
-            />
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-hi text-ink">
+            <HouseMark />
+            <span className="sr-only">EstateCore UG</span>
           </span>
-          <NotificationBell />
+          <div className="flex items-center gap-2">
+            <NotificationBell size="md" tone="dark" />
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
+              <UserButton />
+            </span>
+          </div>
         </div>
 
         <div className="mt-5 flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <p className="t-label text-emerald-100/60">Kampala, Uganda</p>
-            <h1 className="mt-0.5 text-[clamp(1.375rem,6.4vw,1.75rem)] font-bold leading-[1.15] tracking-[-0.02em] text-white [overflow-wrap:anywhere]">
-              Hello, {view.greetingName}
+            <p className="text-[11.5px] font-bold uppercase tracking-[0.08em] text-forest-muted">Kampala, Uganda</p>
+            <h1 className="mt-0.5 text-[clamp(1.375rem,6.4vw,1.75rem)] font-extrabold leading-[1.15] tracking-[-0.02em] text-white [overflow-wrap:anywhere]">
+              Hi {view.greetingName}
             </h1>
 
-            <p className="t-label mt-5 text-emerald-100/60">
+            <p className="mt-5 text-[11.5px] font-bold uppercase tracking-[0.08em] text-forest-muted">
               Collected &middot; {view.monthName}
             </p>
             <p className="money mt-1 text-[30px] leading-none text-white">
-              <span className="money-prefix text-emerald-100/60">UGX&nbsp;</span>
+              <span className="money-prefix !text-forest-muted">UGX&nbsp;</span>
               <Money value={view.collectedThisMonth} />
             </p>
-            <p className="t-small mt-1.5 text-emerald-100/70">
-              {view.collectedPercent}% of <Money value={view.totalExpected} className="font-semibold" />{' '}
-              expected
+            <p className="mt-1.5 text-[13px] font-medium text-forest-muted">
+              {view.collectedPercent}% of <Money value={view.totalExpected} className="text-white" /> expected
             </p>
           </div>
 
@@ -91,12 +88,11 @@ export default function MobileDashboard({ view }: { view: DashboardView }) {
           {view.scrubberMonths.map((entry) => (
             <Link
               key={entry.month}
-              href={`/dashboard?month=${entry.month}`}
+              href={entry.href}
+              scroll={false}
               aria-current={entry.isCurrent ? 'page' : undefined}
-              className={`flex min-h-9 shrink-0 items-center rounded-full px-3.5 text-[13px] transition ${
-                entry.isCurrent
-                  ? 'bg-white font-semibold text-[var(--brand-deep)]'
-                  : 'bg-white/10 font-medium text-emerald-50/75'
+              className={`flex min-h-9 shrink-0 items-center rounded-full px-4 text-[13px] transition-colors duration-300 ${
+                entry.isCurrent ? 'bg-hi font-bold text-ink' : 'bg-white/10 font-semibold text-white/80'
               }`}
             >
               {entry.label}
@@ -105,7 +101,7 @@ export default function MobileDashboard({ view }: { view: DashboardView }) {
         </nav>
       </header>
 
-      <div className="space-y-3.5 bg-[var(--surface-sunken)] px-4 pb-6 pt-4">
+      <div className="stagger space-y-4 px-4 pb-6 pt-4">
         <div className="grid grid-cols-3 gap-2">
           <MiniStat
             label="Owed"
@@ -131,57 +127,48 @@ export default function MobileDashboard({ view }: { view: DashboardView }) {
           />
         </div>
 
-        <Link
-          href="/payments/new"
-          className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[var(--brand)] text-[16px] font-semibold text-white shadow-[0_8px_20px_rgba(0,165,80,0.28)] transition active:scale-[0.99]"
-        >
-          <Plus aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
+        <Link href="/payments/new" className="btn btn-ink btn-lg w-full text-[16px]">
+          <Plus aria-hidden="true" className="h-5 w-5" strokeWidth={2.2} />
           Record payment
         </Link>
 
         <section>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <h2 className="t-section text-[var(--text-ink)]">Who owes rent</h2>
+              <h2 className="text-[17px] font-extrabold text-ink">Who owes rent</h2>
               {view.owingRows.length > 0 && (
-                <span className="money flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[var(--overdue-bg)] px-1.5 text-[11px] text-[var(--overdue-fg)]">
+                <span className="flex min-h-6 min-w-6 items-center justify-center rounded-full bg-overdue-bg px-2 text-[12px] font-extrabold text-overdue-fg">
                   {view.owingRows.length}
                 </span>
               )}
             </div>
-            <Link
-              href="/tenants"
-              className="t-small inline-flex items-center gap-0.5 font-semibold text-[var(--brand-text)]"
-            >
+            <Link href="/tenants" className="inline-flex items-center gap-0.5 text-[13.5px] font-bold text-brand-text">
               All
-              <ChevronRight aria-hidden="true" className="h-4 w-4" strokeWidth={1.75} />
+              <ChevronRight aria-hidden="true" className="h-4 w-4" strokeWidth={2.2} />
             </Link>
           </div>
 
           <ul className="mt-3 space-y-2.5">
             {view.owingRows.map((row) => (
-              <li key={row.tenantId} className="surface-card p-3.5">
+              <li key={row.tenantId} className="rounded-[22px] bg-white p-4">
                 <div className="flex items-start gap-3">
-                  <span className="money flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--paid-bg)] text-[12px] text-[var(--brand-text)]">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint text-[12.5px] font-extrabold text-forest">
                     {row.initials}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="t-section min-w-0 truncate text-[var(--text-ink)]">{row.name}</p>
+                      <p className="min-w-0 truncate text-[15px] font-bold text-ink">{row.name}</p>
                       <StatusPill kind={row.statusKind} detail={row.statusDetail} />
                     </div>
-                    <p className="mt-0.5 truncate text-[12px] leading-4 text-[var(--text-muted)]">
+                    <p className="mt-0.5 truncate text-[12.5px] font-medium leading-4 text-muted">
                       {row.propertyName} &middot; {row.unitNumber} &middot; {row.dueLabel}
                     </p>
                   </div>
                 </div>
 
                 <div className="mt-3 flex items-end justify-between gap-3">
-                  <Link
-                    href={`/payments/new?tenantId=${row.tenantId}`}
-                    className="inline-flex min-h-10 items-center gap-1.5 rounded-[10px] border border-[var(--brand-200)] bg-[var(--paid-bg)] px-3 text-[13px] font-semibold text-[var(--brand-text)]"
-                  >
-                    <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+                  <Link href={`/payments/new?tenantId=${row.tenantId}`} className="btn btn-sm btn-mint">
+                    <Plus aria-hidden="true" className="h-4 w-4" strokeWidth={2.2} />
                     Record
                   </Link>
                   <ComposedBalanceCell balance={row.balance} />
@@ -191,16 +178,14 @@ export default function MobileDashboard({ view }: { view: DashboardView }) {
           </ul>
 
           {view.owingRows.length === 0 && (
-            <div className="surface-card mt-3 px-4 py-8 text-center">
-              <p className="t-section text-[var(--brand-text)]">Everyone has paid</p>
-              <p className="t-small mt-1 text-[var(--text-muted)]">
-                No tenant owes rent for {view.monthName}.
-              </p>
+            <div className="mt-3 rounded-[22px] bg-white px-4 py-8 text-center">
+              <p className="text-[16px] font-extrabold text-brand-text">Everyone has paid</p>
+              <p className="mt-1 text-[13px] font-medium text-muted">No tenant owes rent right now.</p>
             </div>
           )}
 
           {view.fullyPaidCount > 0 && (
-            <p className="t-small mt-3 text-center text-[var(--text-muted)]">
+            <p className="mt-3 text-center text-[13px] font-medium text-muted">
               {view.fullyPaidCount} tenant{view.fullyPaidCount === 1 ? ' is' : 's are'} fully paid for{' '}
               {view.monthName}.
             </p>

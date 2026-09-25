@@ -1,8 +1,8 @@
 'use client'
 
+import Dialog from '@/components/ui/Dialog'
 import { Download, Eye, X } from 'lucide-react'
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { useId, useRef, useState, type ReactNode } from 'react'
 
 type PropertyRecordsModalProps = {
   buttonLabel: string
@@ -21,56 +21,43 @@ export default function PropertyRecordsModal({
 }: PropertyRecordsModalProps) {
   const [open, setOpen] = useState(false)
   const titleId = useId()
-  const triggerRef = useRef<HTMLButtonElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
 
-  useEffect(() => {
-    if (!open) return
+  return (
+    <>
+      <div className="mt-auto flex items-center gap-2.5">
+        <button type="button" onClick={() => setOpen(true)} className="btn h-12 min-w-0 flex-1 btn-outline">
+          <Eye aria-hidden="true" className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+          <span className="truncate">{buttonLabel}</span>
+        </button>
+        <a
+          href={downloadHref}
+          download
+          aria-label={`Download ${title} report`}
+          title="Download property report"
+          className="btn btn-outline btn-icon h-12 w-12 shrink-0"
+        >
+          <Download aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.9} />
+        </a>
+      </div>
 
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    closeRef.current?.focus()
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setOpen(false)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', handleKeyDown)
-      triggerRef.current?.focus()
-    }
-  }, [open])
-
-  const modal = open ? (
-    <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/45 p-0 backdrop-blur-[1px] sm:items-center sm:p-5"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) setOpen(false)
-      }}
-    >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="flex max-h-[calc(100dvh-1rem)] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:max-h-[88vh] sm:max-w-6xl sm:rounded-2xl"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        labelledBy={titleId}
+        variant="sheet-dialog"
+        zIndex={80}
+        initialFocusRef={closeRef}
+        className="flex max-h-[calc(100dvh-1rem)] w-full flex-col overflow-hidden rounded-t-[28px] bg-white shadow-overlay sm:max-h-[88vh] sm:max-w-6xl sm:rounded-[28px]"
       >
-        <header className="flex items-start gap-3 border-b border-slate-200 px-4 py-3 sm:items-center sm:px-5 sm:py-4">
+        <header className="flex items-start gap-3 px-5 pb-4 pt-5 sm:items-center sm:px-6">
           <div className="min-w-0 flex-1">
-            <h2 id={titleId} className="truncate text-base font-black text-slate-950 sm:text-lg">
+            <h2 id={titleId} className="truncate text-[18px] font-extrabold leading-6 text-ink sm:text-[20px]">
               {title}
             </h2>
-            <p className="mt-0.5 line-clamp-2 text-xs text-slate-500 sm:text-sm">{description}</p>
+            <p className="mt-0.5 line-clamp-2 text-[13px] font-medium text-muted">{description}</p>
           </div>
-          <a
-            href={downloadHref}
-            download
-            className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 text-xs font-bold text-white transition hover:bg-emerald-700 sm:px-4"
-          >
+          <a href={downloadHref} download className="btn btn-sm btn-hi shrink-0">
             <Download aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
             <span className="hidden min-[390px]:inline">Report</span>
           </a>
@@ -80,39 +67,18 @@ export default function PropertyRecordsModal({
             onClick={() => setOpen(false)}
             aria-label="Close"
             title="Close"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50"
+            className="btn btn-soft btn-icon btn-sm shrink-0"
           >
             <X aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
           </button>
         </header>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
-      </section>
-    </div>
-  ) : null
-
-  return (
-    <>
-      <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-        <button
-          ref={triggerRef}
-          type="button"
-          onClick={() => setOpen(true)}
-          className="inline-flex min-h-10 min-w-0 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-line"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
-          <Eye aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={1.9} />
-          <span className="truncate">{buttonLabel}</span>
-        </button>
-        <a
-          href={downloadHref}
-          download
-          aria-label={`Download ${title} report`}
-          title="Download property report"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"
-        >
-          <Download aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
-        </a>
-      </div>
-      {typeof document !== 'undefined' && modal ? createPortal(modal, document.body) : null}
+          {children}
+        </div>
+      </Dialog>
     </>
   )
 }
