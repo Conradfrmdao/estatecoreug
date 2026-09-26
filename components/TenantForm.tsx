@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createPortal } from 'react-dom'
 import FormNotice from '@/components/FormNotice'
 import { cleanMoneyInput } from '@/lib/money'
 import { Check, Home, Search, WalletCards, X } from 'lucide-react'
@@ -246,7 +247,7 @@ export default function TenantForm({ initialData }: TenantFormProps) {
         </button>
       </div>
 
-      {unitPickerOpen && (
+      {unitPickerOpen && typeof document !== 'undefined' && createPortal(
         <div className="overlay-enter fixed inset-0 z-50 flex items-end justify-center bg-ink/45 px-3 py-4 backdrop-blur-[2px] sm:items-center" role="dialog" aria-modal="true" aria-label="Choose unit">
           <div className="dialog-enter max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-overlay">
             <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
@@ -353,7 +354,8 @@ export default function TenantForm({ initialData }: TenantFormProps) {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <div>

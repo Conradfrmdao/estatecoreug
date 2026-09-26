@@ -882,11 +882,11 @@
 
 /* A page arriving: the page rises, its sections follow in a short cascade */
 .page-enter {
-  animation: rise-in 0.45s var(--ease-out-soft) both;
+  animation: rise-in 0.45s var(--ease-out-soft) backwards;
 }
 
 .stagger > * {
-  animation: rise-in 0.5s var(--ease-out-soft) both;
+  animation: rise-in 0.5s var(--ease-out-soft) backwards;
 }
 .stagger > *:nth-child(2) { animation-delay: 45ms; }
 .stagger > *:nth-child(3) { animation-delay: 90ms; }
@@ -897,17 +897,24 @@
 .stagger > *:nth-child(n + 8) { animation-delay: 300ms; }
 
 .fade-in {
-  animation: fade-in 0.3s ease both;
+  animation: fade-in 0.3s ease backwards;
 }
 
 .pop-in {
-  animation: pop-in 0.45s var(--ease-out-soft) both;
+  animation: pop-in 0.45s var(--ease-out-soft) backwards;
 }
 
 .bar-grow {
   transform-origin: left center;
-  animation: bar-grow 0.9s var(--ease-out-soft) both;
+  animation: bar-grow 0.9s var(--ease-out-soft) backwards;
 }
+
+/* Entrances fill backwards only: they hide an element until its turn, then
+   let go. A finished animation that kept filling would still count as in
+   effect, which browsers treat like will-change: transform - every section
+   would become a stacking context and a containing block for anything fixed
+   inside it, trapping popovers under the next card and full-screen pickers
+   inside the form. Exits keep their end state until the element unmounts. */
 
 .ring-draw {
   animation: ring-draw 0.9s var(--ease-out-soft) forwards;
@@ -915,26 +922,26 @@
 
 /* Dialogs and sheets */
 .overlay-enter {
-  animation: fade-in 0.22s ease both;
+  animation: fade-in 0.22s ease backwards;
 }
 .overlay-exit {
   animation: fade-out 0.2s ease both;
 }
 .dialog-enter {
-  animation: dialog-in 0.32s var(--ease-out-soft) both;
+  animation: dialog-in 0.32s var(--ease-out-soft) backwards;
 }
 .dialog-exit {
   animation: dialog-out 0.2s ease both;
 }
 .sheet-enter {
-  animation: sheet-up 0.38s var(--ease-out-soft) both;
+  animation: sheet-up 0.38s var(--ease-out-soft) backwards;
 }
 .sheet-exit {
   animation: sheet-down 0.24s ease-in both;
 }
 @media (min-width: 640px) {
   .sheet-enter.sm-dialog {
-    animation: dialog-in 0.32s var(--ease-out-soft) both;
+    animation: dialog-in 0.32s var(--ease-out-soft) backwards;
   }
   .sheet-exit.sm-dialog {
     animation: dialog-out 0.2s ease both;
@@ -944,7 +951,7 @@
 /* Popovers (notifications) */
 .popover-enter {
   transform-origin: top right;
-  animation: dialog-in 0.22s var(--ease-out-soft) both;
+  animation: dialog-in 0.22s var(--ease-out-soft) backwards;
 }
 
 @layer components {
@@ -987,7 +994,7 @@
     border-radius: 8px;
   }
   .skeleton-screen {
-    animation: fade-in 0.25s ease 0.12s both;
+    animation: fade-in 0.25s ease 0.12s backwards;
   }
 }
 
