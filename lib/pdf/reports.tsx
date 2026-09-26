@@ -1,6 +1,9 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import path from 'path'
 import type { PropertySummaryData } from '@/lib/data'
+import { formatDate, monthNameLabel, shortDate } from '@/lib/format'
+import type { RentTrackerProperty, RentTrackerTotals } from '@/lib/rent-tracker'
+import { rentTrackerNotes, statusLabel, timingLabel } from '@/lib/rent-tracker-labels'
 
 const styles = StyleSheet.create({
   page: {
@@ -237,13 +240,177 @@ interface PropertyDetailReportProps {
   data: PropertySummaryData
 }
 
+interface RentTrackerReportProps {
+  type: 'rent-tracker'
+  title: string
+  month: string
+  monthKey: string
+  scopeLabel: string
+  filterLabel: string | null
+  data: {
+    timing: 'past' | 'current' | 'future'
+    totals: RentTrackerTotals
+    /** Only the tenants the filter keeps; the totals are for everyone. */
+    properties: RentTrackerProperty[]
+  }
+}
+
 type ReportProps =
+  | RentTrackerReportProps
   | MonthlyRentReportProps
   | PaymentHistoryReportProps
   | UnpaidTenantsReportProps
   | IncomeExpenseReportProps
   | PropertySummaryReportProps
   | PropertyDetailReportProps
+
+/* Whole words only: a note that breaks "Au-gust" across lines reads badly. */
+const wholeWords = (word: string) => [word]
+
+const trackerStatusColor = {
+  paid: '#166534',
+  part_paid: '#b45309',
+  not_yet: '#475569',
+  late: '#b91c1c'
+} as const
+
+function RentTrackerSection(props: RentTrackerReportProps) {
+  const { totals, properties, timing } = props.data
+  const digits = (amount: number) => amount.toLocaleString('en-US')
+  const monthName = monthNameLabel(props.monthKey)
+  const dueWord = timing === 'past' ? 'Was due' : 'Due'
+  const shown = properties.filter((property) => property.units.length > 0)
+  const cell = { borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#e2e8f0' }
+
+  return (
+    <View>
+      <View style={styles.summaryGrid}>
+        <View style={styles.summaryCard}>
+          <Text style={{ color: '#64748b', fontSize: 8 }}>EXPECTED FOR {monthName.toUpperCase()}</Text>
+          <Text style={styles.summaryVal}>UGX {digits(totals.expected)}</Text>
+          <Text style={{ color: '#64748b', fontSize: 8, marginTop: 2 }}>
+            {totals.tenants} tenant{totals.tenants === 1 ? '' : 's'}
+          </Text>
+        </View>
+        <View style={styles.summaryCard}>
+          <Text style={{ color: '#64748b', fontSize: 8 }}>PAID SO FAR</Text>
+          <Text style={styles.summaryVal}>UGX {digits(totals.paid)}</Text>
+          <Text style={{ color: '#64748b', fontSize: 8, marginTop: 2 }}>
+            {totals.paidCount} paid in full{totals.partCount > 0 ? `, ${totals.partCount} part paid` : ''}
+          </Text>
+        </View>
+        <View style={styles.summaryCard}>
+          <Text style={{ color: '#64748b', fontSize: 8 }}>{timing === 'past' ? 'NEVER CAME IN' : 'STILL TO COME'}</Text>
+          <Text style={[styles.summaryVal, { color: '#b45309' }]}>UGX {digits(totals.left)}</Text>
+          <Text style={{ color: '#64748b', fontSize: 8, marginTop: 2 }}>
+            {totals.owingCount} not paid yet{totals.lateCount > 0 ? `, ${totals.lateCount} late` : ''}
+          </Text>
+        </View>
+      </View>
+
+      <Text style={styles.sectionTitle}>When the rent is due</Text>
+      <View style={styles.table}>
+        {totals.dueDates.length === 0 ? (
+          <View style={styles.tableRow}>
+            <Text style={{ width: '100%', textAlign: 'center', color: '#94a3b8' }}>No tenant is billed for {monthName}.</Text>
+          </View>
+        ) : (
+          totals.dueDates.map((day, index) => (
+            <View
+              key={`${day.date}-${day.timing}`}
+              wrap={false}
+              style={index % 2 === 0 ? styles.tableRow : styles.tableRowAlternate}
+            >
+              <Text style={{ width: '22%', fontWeight: 'bold' }}>
+                {dueWord} {formatDate(`${day.date}T00:00:00.000Z`)}
+              </Text>
+              <Text style={{ width: '28%' }}>{timingLabel(day.timing)}</Text>
+              <Text style={{ width: '14%' }}>
+                {day.tenants} tenant{day.tenants === 1 ? '' : 's'}
+              </Text>
+              <Text style={{ width: '18%', textAlign: 'right' }}>UGX {digits(day.expected)}</Text>
+              <Text style={{ width: '18%', textAlign: 'right', color: day.owingCount > 0 ? '#b45309' : '#166534' }}>
+                {day.paidCount} paid, {day.owingCount} not yet
+              </Text>
+            </View>
+          ))
+        )}
+      </View>
+
+      {totals.earlierOwed > 0 && (
+        <Text style={{ fontSize: 8.5, color: '#475569', marginBottom: 10 }}>
+          Separately, {totals.earlierOwedCount} of these tenants still owe UGX {digits(totals.earlierOwed)} for months
+          before {monthName}.
+        </Text>
+      )}
+
+      {shown.length === 0 && (
+        <Text style={{ color: '#94a3b8', textAlign: 'center', marginTop: 10 }}>No tenants to show.</Text>
+      )}
+
+      {shown.map((property) => (
+        <View key={property.propertyId}>
+          <View wrap={false}>
+            <Text style={styles.sectionTitle}>{property.name}</Text>
+            <Text style={{ fontSize: 8.5, color: '#475569', marginBottom: 6 }}>
+              UGX {digits(property.totals.expected)} expected from {property.totals.tenants} tenant
+              {property.totals.tenants === 1 ? '' : 's'} · {property.totals.paidCount} paid ·{' '}
+              {property.totals.owingCount} not yet · UGX {digits(property.totals.left)} still to come
+            </Text>
+            <View style={[styles.tableRow, styles.tableHeader, cell, { borderTopWidth: 1 }]}>
+              <Text style={[styles.th, { width: '9%' }]}>Unit</Text>
+              <Text style={[styles.th, { width: '31%' }]}>Tenant</Text>
+              <Text style={[styles.th, { width: '10%' }]}>Due</Text>
+              <Text style={[styles.th, { width: '12%', textAlign: 'right' }]}>Rent</Text>
+              <Text style={[styles.th, { width: '12%', textAlign: 'right' }]}>Paid</Text>
+              <Text style={[styles.th, { width: '12%', textAlign: 'right' }]}>Left</Text>
+              <Text style={[styles.th, { width: '14%', textAlign: 'right' }]}>Status</Text>
+            </View>
+          </View>
+          {property.units
+            .flatMap((unit) => unit.tenants)
+            .map((row, index) => {
+              const notes = rentTrackerNotes(row, props.monthKey)
+              return (
+                <View
+                  key={row.tenantId}
+                  wrap={false}
+                  style={[index % 2 === 0 ? styles.tableRow : styles.tableRowAlternate, cell]}
+                >
+                  <Text style={{ width: '9%', fontWeight: 'bold' }}>{row.unitNumber}</Text>
+                  <View style={{ width: '31%', paddingRight: 6 }}>
+                    <Text hyphenationCallback={wholeWords} style={{ fontWeight: 'bold', color: '#0f172a' }}>
+                      {row.name}
+                    </Text>
+                    {row.phone ? <Text style={{ fontSize: 7.5, color: '#64748b' }}>{row.phone}</Text> : null}
+                    {notes.map((note) => (
+                      <Text key={note} hyphenationCallback={wholeWords} style={{ fontSize: 7.5, color: '#92400e', marginTop: 1 }}>
+                        {note}
+                      </Text>
+                    ))}
+                  </View>
+                  <Text style={{ width: '10%' }}>{shortDate(`${row.dueDate}T00:00:00.000Z`)}</Text>
+                  <Text style={{ width: '12%', textAlign: 'right' }}>{digits(row.rent)}</Text>
+                  <Text style={{ width: '12%', textAlign: 'right', color: '#166534' }}>{digits(row.paid)}</Text>
+                  <Text style={{ width: '12%', textAlign: 'right', fontWeight: row.left > 0 ? 'bold' : 'normal' }}>
+                    {digits(row.left)}
+                  </Text>
+                  <Text style={{ width: '14%', textAlign: 'right', fontWeight: 'bold', color: trackerStatusColor[row.status] }}>
+                    {statusLabel(row)}
+                  </Text>
+                </View>
+              )
+            })}
+          {property.emptyUnits.length > 0 && (
+            <Text style={{ fontSize: 8, color: '#94a3b8', marginTop: 4 }}>
+              No tenant billed for {monthName}: {property.emptyUnits.map((unit) => unit.unitNumber).join(', ')}
+            </Text>
+          )}
+        </View>
+      ))}
+    </View>
+  )
+}
 
 export function ReportDocument(props: ReportProps) {
   const logoPath = path.join(process.cwd(), 'public/brand/estatecore-logo-forest.png')
@@ -271,7 +438,15 @@ export function ReportDocument(props: ReportProps) {
           {props.type === 'income-expense' && <Text style={styles.metaText}>Period: {props.monthRange}</Text>}
           {props.type === 'property-summary' && <Text style={styles.metaText}>Period: {props.month}</Text>}
           {props.type === 'property-detail' && <Text style={styles.metaText}>Property: {props.propertyName} | Period: {props.month}</Text>}
+          {props.type === 'rent-tracker' && (
+            <Text style={styles.metaText}>
+              Rent for: {props.month} | {props.scopeLabel}
+              {props.filterLabel ? ` | Showing: ${props.filterLabel}` : ''}
+            </Text>
+          )}
         </View>
+
+        {props.type === 'rent-tracker' && <RentTrackerSection {...props} />}
 
         {/* Report Content */}
         {props.type === 'monthly-rent' && (

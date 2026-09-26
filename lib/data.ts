@@ -40,6 +40,7 @@ import {
   buildTenantPaymentTarget,
   groupPaymentsByTenant
 } from '@/lib/tenant-balances'
+import { buildRentTracker } from '@/lib/rent-tracker'
 import { and, desc, eq } from 'drizzle-orm'
 
 export type UnitWithProperty = {
@@ -514,6 +515,24 @@ export async function listTenantBalances(userId: number, month = currentPaymentM
   const tenantRows = await listTenantsForUser(userId)
   const paymentRows = await listPaymentsForUser(userId)
   return buildTenantBalances(tenantRows, paymentRows, month)
+}
+
+/** One month's rent, property by property and tenant by tenant, for the rent tracker. */
+export async function getRentTrackerData(userId: number, month = currentPaymentMonth()) {
+  const [propertyRows, unitRows, tenantRows, paymentRows] = await Promise.all([
+    listPropertiesForUser(userId),
+    listUnitsForUser(userId),
+    listTenantsForUser(userId),
+    listPaymentsForUser(userId)
+  ])
+
+  return buildRentTracker({
+    properties: propertyRows,
+    units: unitRows,
+    tenants: tenantRows,
+    payments: paymentRows,
+    month
+  })
 }
 
 export async function listTenantPaymentTargets(userId: number) {

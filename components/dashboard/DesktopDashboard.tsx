@@ -1,20 +1,22 @@
 import DashboardCalendar from '@/components/dashboard/DashboardCalendar'
 import DashboardSearch from '@/components/dashboard/DashboardSearch'
 import type { DashboardView, RecentPaymentRow, UnitRentRow } from '@/components/dashboard/types'
+import RentTrackerLauncher from '@/components/rent-tracker/RentTrackerLauncher'
 import PageHeader from '@/components/shell/PageHeader'
 import Avatar from '@/components/ui/Avatar'
 import { rentStatusLabel } from '@/components/ui/StatusPill'
 import { amountDigits, currency } from '@/lib/format'
 import {
   ArrowRight,
+  ArrowUpRight,
   Banknote,
   Building2,
   Check,
   ChevronRight,
+  ClipboardList,
   Clock3,
   FileDown,
   Grid2x2,
-  Info,
   KeyRound,
   Plus,
   ReceiptText,
@@ -93,44 +95,49 @@ function MoneyCard({
   )
 }
 
-function ExpenseCard({ view }: { view: DashboardView }) {
-  if (view.expensesThisMonth <= 0) {
-    return (
-      <Link
-        href="/expenses/new"
-        className="group relative flex min-h-[196px] flex-col items-center justify-center gap-2 rounded-card border-2 xl:min-h-0 border-dashed border-line-strong p-[22px] text-center transition duration-300 hover:border-ink/25 hover:bg-white/60"
-      >
-        <span className="absolute left-1/2 top-0 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-3 py-[7px] text-[12px] font-semibold leading-4 text-white">
-          <Info aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2.2} />
-          No expenses yet this month
-        </span>
-        <ReceiptText aria-hidden="true" className="h-[22px] w-[22px] text-ink" strokeWidth={1.8} />
-        <h2 className="text-[15px] font-bold leading-5 text-ink">Add an expense</h2>
-        <p className="max-w-[190px] text-[12px] font-medium leading-[17px] text-muted">
-          Record repairs or bills to see your true net.
-        </p>
-        <span className="mt-1 flex h-11 w-11 items-center justify-center rounded-full bg-hi text-ink transition-transform duration-300 group-hover:rotate-90">
-          <Plus aria-hidden="true" className="h-5 w-5" strokeWidth={2.2} />
-        </span>
-      </Link>
-    )
-  }
+/* Where the landlord goes for the detail: one month's rent, property by
+   property and tenant by tenant, in a pop-up that can be saved as a PDF. */
+function RentTrackerCard({ view }: { view: DashboardView }) {
+  const { paid, total } = view.statusCounts
+  const ratio = total > 0 ? paid / total : 0
 
-  const largest = view.largestExpenseCategory
   return (
-    <MoneyCard
-      href={view.links.expenses}
-      title={`Expenses in ${view.monthName}`}
-      value={view.expensesThisMonth}
-      sub={
-        largest
-          ? `${largest.category.charAt(0).toUpperCase()}${largest.category.slice(1)} is the largest at ${currency(largest.amount)}`
-          : `Recorded in ${view.monthName}`
-      }
-      icon={ReceiptText}
-      iconClass="rounded-xl bg-ink text-white"
-      wash="canvas"
-    />
+    <RentTrackerLauncher
+      month={view.month}
+      propertyId={view.selectedPropertyId}
+      className="group relative flex min-h-[196px] flex-col justify-between gap-4 overflow-hidden rounded-card bg-white p-[22px] text-left transition duration-300 ease-out-soft hover:-translate-y-0.5 hover:shadow-soft xl:min-h-0"
+    >
+      <CornerWash tone="canvas" />
+      <span className="relative flex items-start justify-between gap-2">
+        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-ink text-white">
+          <ClipboardList aria-hidden="true" className="h-5 w-5" strokeWidth={1.9} />
+        </span>
+        <span className="rounded-full bg-hi px-2.5 py-1 text-[11px] font-extrabold uppercase leading-4 tracking-[0.06em] text-ink">
+          New
+        </span>
+      </span>
+      <span className="relative flex flex-col gap-1.5">
+        <span className="flex items-center justify-between gap-2">
+          <span className="text-[15px] font-bold leading-5 text-ink">Rent tracker</span>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-white transition duration-300 group-hover:bg-hi group-hover:text-ink">
+            <ArrowUpRight aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
+          </span>
+        </span>
+        <span className="text-[12.5px] font-medium leading-[17px] text-muted">
+          Track rent for each month and each property
+        </span>
+        {total > 0 && (
+          <span className="mt-1 flex items-center gap-2.5">
+            <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-canvas">
+              <span className="bar-grow block h-full rounded-full bg-forest" style={{ width: `${ratio * 100}%` }} />
+            </span>
+            <span className="shrink-0 text-[12px] font-bold leading-4 text-ink tabular-nums">
+              {paid} of {total} paid
+            </span>
+          </span>
+        )}
+      </span>
+    </RentTrackerLauncher>
   )
 }
 
@@ -154,7 +161,18 @@ function NetCard({ view }: { view: DashboardView }) {
       <div className="relative flex flex-col gap-1.5">
         <h2 className="text-[15px] font-bold leading-5">Net in {view.monthName}</h2>
         <Amount value={view.netThisMonth} size={32} muted="text-night-muted" />
-        <span className="text-[13px] font-medium leading-[18px] text-night-muted">Collected minus expenses</span>
+        <span className="text-[13px] font-medium leading-[18px] text-night-muted">
+          {view.expensesThisMonth > 0 ? (
+            <>
+              Collected minus{' '}
+              <Link href={view.links.expenses} className="font-semibold text-white underline-offset-2 hover:underline">
+                {currency(view.expensesThisMonth)} expenses
+              </Link>
+            </>
+          ) : (
+            'Collected minus expenses'
+          )}
+        </span>
       </div>
       <div className="relative flex items-end justify-between">
         {actions.map(({ href, label, icon: Icon, lit }) => (
@@ -571,7 +589,7 @@ export default function DesktopDashboard({ view }: { view: DashboardView }) {
             iconClass="rounded-xl bg-ink text-white"
             wash="mint"
           />
-          <ExpenseCard view={view} />
+          <RentTrackerCard view={view} />
         </div>
         <NetCard view={view} />
       </section>

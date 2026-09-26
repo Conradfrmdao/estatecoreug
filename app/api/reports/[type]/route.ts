@@ -1,8 +1,19 @@
 import { requireCurrentAppUser } from '@/lib/auth'
-import { getDashboardData, getPropertySummaryData, listPaymentsForUser, listPropertiesForUser } from '@/lib/data'
+import {
+  getDashboardData,
+  getPropertySummaryData,
+  getRentTrackerData,
+  listPaymentsForUser,
+  listPropertiesForUser
+} from '@/lib/data'
 import { currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
 import { normalizePaymentFilters, paymentMatchesSearch, paymentReceivedInPeriod } from '@/lib/payment-filters'
 import { ReportDocument } from '@/lib/pdf/reports'
+import {
+  normalizeRentTrackerFilter,
+  rentTrackerFilterLabel,
+  rentTrackerRowMatches
+} from '@/lib/rent-tracker-labels'
 import {
   buildReportPeriodSnapshot,
   normalizeReportMonth,
@@ -315,6 +326,33 @@ export async function GET(req: Request, { params }: ReportRouteContext) {
         title: `Property Portfolio Performance - ${reportPeriodLabel}`,
         month: reportPeriodLabel,
         data: propertyData
+      }
+    } else if (type === 'rent-tracker') {
+      const tracker = await getRentTrackerData(user.id, month)
+      const filter = normalizeRentTrackerFilter(searchParams.get('status'))
+      const scoped = scopedProperty
+        ? tracker.properties.filter((property) => property.propertyId === scopedProperty.id)
+        : tracker.properties
+      const properties = scoped.map((property) => ({
+        ...property,
+        units: property.units
+          .map((unit) => ({ ...unit, tenants: unit.tenants.filter((row) => rentTrackerRowMatches(row, filter)) }))
+          .filter((unit) => unit.tenants.length > 0),
+        emptyUnits: filter === 'all' ? property.emptyUnits : []
+      }))
+
+      reportProps = {
+        type: 'rent-tracker',
+        title: `${scopeName} Rent Tracker - ${monthLabel(month)}`,
+        month: monthLabel(month),
+        monthKey: month,
+        scopeLabel: scopeName,
+        filterLabel: filter === 'all' ? null : rentTrackerFilterLabel[filter],
+        data: {
+          timing: tracker.timing,
+          totals: scopedProperty ? scoped[0]?.totals ?? tracker.totals : tracker.totals,
+          properties
+        }
       }
     } else {
       return NextResponse.json({ error: 'Invalid report type.' }, { status: 400 })

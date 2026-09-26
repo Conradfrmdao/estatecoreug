@@ -1,13 +1,14 @@
 import NotificationBell from '@/components/NotificationBell'
 import type { DashboardView } from '@/components/dashboard/types'
 import { LogoMark } from '@/components/brand/Logo'
+import RentTrackerLauncher from '@/components/rent-tracker/RentTrackerLauncher'
 import { ComposedBalanceCell } from '@/components/ui/ComposedBalance'
 import CollectionRing from '@/components/ui/CollectionRing'
 import Money from '@/components/ui/Money'
 import SplitBar from '@/components/ui/SplitBar'
 import StatusPill from '@/components/ui/StatusPill'
 import { UserButton } from '@clerk/nextjs'
-import { ChevronRight, Plus } from 'lucide-react'
+import { ChevronRight, ClipboardList, Plus } from 'lucide-react'
 import Link from 'next/link'
 
 function MiniStat({
@@ -129,6 +130,36 @@ export default function MobileDashboard({ view }: { view: DashboardView }) {
           <Plus aria-hidden="true" className="h-5 w-5" strokeWidth={2.2} />
           Record payment
         </Link>
+
+        <RentTrackerLauncher
+          month={view.month}
+          propertyId={view.selectedPropertyId}
+          className="flex w-full items-center gap-3 rounded-[22px] bg-white p-4 text-left transition active:scale-[0.99]"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ink text-white">
+            <ClipboardList aria-hidden="true" className="h-5 w-5" strokeWidth={1.9} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2">
+              <span className="text-[15px] font-extrabold leading-5 text-ink">Rent tracker</span>
+              <span className="rounded-full bg-hi px-2 py-0.5 text-[10.5px] font-extrabold uppercase leading-4 tracking-[0.06em] text-ink">
+                New
+              </span>
+            </span>
+            <span className="mt-0.5 block text-[12.5px] font-medium leading-4 text-muted">
+              Track rent for each month and each property
+            </span>
+          </span>
+          {view.statusCounts.total > 0 && (
+            <span className="shrink-0 text-right">
+              <span className="block text-[15px] font-extrabold leading-5 text-ink tabular-nums">
+                {view.statusCounts.paid}/{view.statusCounts.total}
+              </span>
+              <span className="block text-[11px] font-semibold leading-4 text-muted">paid</span>
+            </span>
+          )}
+          <ChevronRight aria-hidden="true" className="h-5 w-5 shrink-0 text-muted" strokeWidth={2.2} />
+        </RentTrackerLauncher>
 
         <section>
           <div className="flex items-center justify-between gap-3">
