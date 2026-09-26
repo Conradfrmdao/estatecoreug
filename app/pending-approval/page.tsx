@@ -1,6 +1,6 @@
 import { getCurrentAppUser } from '@/lib/auth'
 import { SignOutButton } from '@clerk/nextjs'
-import HouseMark from '@/components/shell/HouseMark'
+import { LogoFull } from '@/components/brand/Logo'
 import { Mail, Phone } from 'lucide-react'
 import type { Viewport } from 'next'
 import Link from 'next/link'
@@ -8,7 +8,7 @@ import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-export const viewport: Viewport = { themeColor: '#E6EBE6' }
+export const viewport: Viewport = { themeColor: '#2F7A52' }
 
 const statusCopy = {
   pending: {
@@ -50,18 +50,14 @@ export default async function PendingApprovalPage() {
   const copy = statusCopy[user.accountStatus as keyof typeof statusCopy] ?? statusCopy.pending
 
   return (
-    <main className="min-h-dvh overflow-y-auto bg-ground px-4 py-6 sm:px-6 sm:py-10">
+    <main className="app-backdrop min-h-dvh overflow-y-auto px-4 py-6 sm:px-6 sm:py-10">
       <section
         className="mx-auto flex min-h-[calc(100dvh-3rem)] w-full max-w-xl items-center justify-center sm:min-h-[calc(100dvh-5rem)]"
         aria-labelledby="approval-title"
       >
-        <div className="page-enter w-full rounded-[28px] bg-white px-5 py-7 text-center shadow-soft sm:px-9 sm:py-9">
-          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-hi text-ink">
-            <HouseMark size={32} />
-          </span>
-          <p className="eyebrow mt-5">{copy.eyebrow}</p>
-          <p className="mt-2 text-[17px] font-extrabold leading-tight text-ink">EstateCore UG</p>
-          <p className="mt-0.5 text-[12px] font-semibold text-muted">Property management</p>
+        <div className="page-enter w-full rounded-[28px] bg-white px-5 py-7 text-center shadow-[0_34px_80px_-34px_rgba(4,30,18,0.65)] sm:px-9 sm:py-9">
+          <LogoFull tone="forest" width={240} priority className="mx-auto" />
+          <p className="eyebrow mt-7">{copy.eyebrow}</p>
           <h1 id="approval-title" className="mt-5 text-[26px] font-extrabold leading-8 tracking-[-0.02em] text-ink sm:text-[28px] sm:leading-[34px]">
             {copy.title}
           </h1>

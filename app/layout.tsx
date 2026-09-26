@@ -24,10 +24,14 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'EstateCore UG'
   },
+  /* The ?v= busts the old logo out of browser icon caches. */
   icons: {
-    icon: '/favicon.png',
-    shortcut: '/favicon.ico',
-    apple: '/apple-icon.png'
+    icon: [
+      { url: '/icon.svg?v=2', type: 'image/svg+xml' },
+      { url: '/favicon.png?v=2', sizes: '512x512', type: 'image/png' }
+    ],
+    shortcut: '/favicon.ico?v=2',
+    apple: '/apple-icon.png?v=2'
   },
 }
 
@@ -35,7 +39,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#071a0f'
+  themeColor: '#F5F7F4'
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

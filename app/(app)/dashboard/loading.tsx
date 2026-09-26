@@ -1,3 +1,4 @@
+import { LogoMark } from '@/components/brand/Logo'
 import { Bone, HeaderSkeleton, SkeletonScreen } from '@/components/ui/Skeleton'
 
 function MoneyCardSkeleton() {
@@ -30,10 +31,11 @@ export default function Loading() {
   return (
     <SkeletonScreen label="Loading your dashboard" className="lg:h-full">
       {/* Phone: the forest header, month strip, mini stats and who owes. */}
-      <div className="safe-top-fill bg-canvas lg:hidden">
+      <div className="bg-canvas lg:hidden">
+        <div aria-hidden="true" className="notch-fill bg-forest" />
         <div className="safe-top rounded-b-[28px] bg-forest px-4 pb-5">
           <div className="flex items-center justify-between">
-            <span className="h-10 w-10 rounded-full bg-hi" />
+            <LogoMark tone="white" size={42} />
             <span className="flex gap-2">
               <Bone tone="dark" className="h-10 w-10 rounded-full" />
               <Bone tone="dark" className="h-10 w-10 rounded-full" />

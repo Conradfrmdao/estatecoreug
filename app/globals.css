@@ -173,6 +173,17 @@
 /* ── Components ───────────────────────────────────────────────────── */
 @layer components {
   /* Buttons — every button is a pill */
+  /* The green surface the desktop app sits on: mid green, lit with lime from
+     the top left and deepening toward the bottom right, so the pale frame
+     reads as a sheet laid on top of it. */
+  .app-backdrop {
+    background-color: #2f7a52;
+    background-image:
+      radial-gradient(70% 90% at 0% 0%, rgb(var(--c-hi) / 0.45), transparent 60%),
+      radial-gradient(60% 80% at 100% 100%, rgb(var(--c-forest) / 0.55), transparent 65%),
+      linear-gradient(135deg, #3d8f61 0%, #256b47 100%);
+  }
+
   .btn {
     display: inline-flex;
     align-items: center;
@@ -704,6 +715,20 @@
   }
 }
 
+/* The phone dashboard opens on a green header: pulling it down past the top
+   shows green too, and the rest of the backdrop stays the page's canvas. The
+   background belongs to the scroller's box, so it does not scroll away. */
+@media (max-width: 1023px) {
+  .dashboard-scroller {
+    background-image: linear-gradient(
+      to bottom,
+      rgb(var(--c-forest)) 0%,
+      rgb(var(--c-forest)) 50%,
+      rgb(var(--c-canvas)) 50%
+    );
+  }
+}
+
 @media (min-width: 1024px) {
   .app-shell-main.is-flush {
     padding-bottom: 0;
@@ -740,27 +765,31 @@
   overflow: hidden;
 }
 
-/* Safe area / notch. In a browser tab env(safe-area-inset-top) is 0 and
-   this paints nothing; installed to the home screen it keeps the strip
-   behind the status bar the colour of the header under it. */
+/* Safe area / notch. Installed to the home screen the page runs under the
+   status bar, env(safe-area-inset-top) is its height, and a header with
+   .safe-top reaches up behind it. */
 .safe-top {
   padding-top: calc(var(--safe-top-gap, 0.75rem) + env(safe-area-inset-top, 0px));
 }
 
-.safe-top-fill::before {
-  content: '';
+/* The strip behind the status bar, in the colour of the header below it.
+   In a Safari tab the inset is 0 and Safari 26 no longer reads theme-color:
+   it tints the status bar from a fixed element touching the top edge, and
+   otherwise from the page background - which is how the dashboard's green
+   header came to sit under a white bar. At least a pixel tall, so there is
+   always something for Safari to take the colour from. */
+.notch-fill {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: env(safe-area-inset-top, 0px);
-  background-color: rgb(var(--c-forest));
-  z-index: 60;
+  height: max(1px, env(safe-area-inset-top, 0px));
+  z-index: 45;
   pointer-events: none;
 }
 
 @media (min-width: 1024px) {
-  .safe-top-fill::before {
+  .notch-fill {
     display: none;
   }
 }
@@ -880,6 +909,13 @@
   }
 }
 
+/* Entrances fill backwards only: they hide an element until its turn, then
+   let go. A finished animation that kept filling would still count as in
+   effect, which browsers treat like will-change: transform - every section
+   would become a stacking context and a containing block for anything fixed
+   inside it, trapping popovers under the next card and full-screen pickers
+   inside the form. Exits keep their end state until the element unmounts. */
+
 /* A page arriving: the page rises, its sections follow in a short cascade */
 .page-enter {
   animation: rise-in 0.45s var(--ease-out-soft) backwards;
@@ -908,13 +944,6 @@
   transform-origin: left center;
   animation: bar-grow 0.9s var(--ease-out-soft) backwards;
 }
-
-/* Entrances fill backwards only: they hide an element until its turn, then
-   let go. A finished animation that kept filling would still count as in
-   effect, which browsers treat like will-change: transform - every section
-   would become a stacking context and a containing block for anything fixed
-   inside it, trapping popovers under the next card and full-screen pickers
-   inside the form. Exits keep their end state until the element unmounts. */
 
 .ring-draw {
   animation: ring-draw 0.9s var(--ease-out-soft) forwards;

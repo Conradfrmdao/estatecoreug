@@ -1,5 +1,5 @@
 import AuthBackButton from '@/components/AuthBackButton'
-import HouseMark from '@/components/shell/HouseMark'
+import { LogoFull } from '@/components/brand/Logo'
 import type { ReactNode } from 'react'
 
 export default function AuthFrame({
@@ -18,10 +18,7 @@ export default function AuthFrame({
           <AuthBackButton />
         </div>
         <div className="mb-5 flex flex-col items-center text-center">
-          <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-hi text-ink">
-            <HouseMark size={26} />
-            <span className="sr-only">EstateCore UG</span>
-          </span>
+          <LogoFull tone="forest" width={232} priority className="mb-6" />
           <h1 className="text-[24px] font-extrabold leading-8 tracking-[-0.02em] text-ink">{title}</h1>
           <p className="mt-1 text-[13.5px] font-medium text-muted">{subtitle}</p>
         </div>

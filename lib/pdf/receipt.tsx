@@ -177,7 +177,7 @@ interface ReceiptProps {
 }
 
 export function ReceiptDocument({ payment }: ReceiptProps) {
-  const logoPath = path.join(process.cwd(), 'public/estatecore-lockup.png')
+  const logoPath = path.join(process.cwd(), 'public/brand/estatecore-logo-forest.png')
   const dateStr = new Date(payment.paymentDate).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'short',

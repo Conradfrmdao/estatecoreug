@@ -1,6 +1,6 @@
 import NotificationBell from '@/components/NotificationBell'
 import type { DashboardView } from '@/components/dashboard/types'
-import HouseMark from '@/components/shell/HouseMark'
+import { LogoMark } from '@/components/brand/Logo'
 import { ComposedBalanceCell } from '@/components/ui/ComposedBalance'
 import CollectionRing from '@/components/ui/CollectionRing'
 import Money from '@/components/ui/Money'
@@ -41,13 +41,11 @@ function MiniStat({
 
 export default function MobileDashboard({ view }: { view: DashboardView }) {
   return (
-    <div className="safe-top-fill bg-canvas lg:hidden">
+    <div className="bg-canvas lg:hidden">
+      <div aria-hidden="true" className="notch-fill bg-forest" />
       <header className="safe-top rounded-b-[28px] bg-forest px-4 pb-5 text-white">
         <div className="flex items-center justify-between gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-hi text-ink">
-            <HouseMark />
-            <span className="sr-only">EstateCore UG</span>
-          </span>
+          <LogoMark tone="white" size={42} label="EstateCore UG" />
           <div className="flex items-center gap-2">
             <NotificationBell size="md" tone="dark" />
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">

@@ -21,7 +21,7 @@ export default async function SignedInLayout({ children }: { children: ReactNode
         email: user.email,
         role: user.role === 'admin' ? 'admin' : 'landlord'
       }}
-      initialRailExpanded={cookieStore.get(RAIL_COOKIE)?.value === 'expanded'}
+      initialRailExpanded={cookieStore.get(RAIL_COOKIE)?.value !== 'collapsed'}
     >
       {children}
     </AppShell>
