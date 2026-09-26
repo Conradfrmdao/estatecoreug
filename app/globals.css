@@ -776,14 +776,17 @@
    In a Safari tab the inset is 0 and Safari 26 no longer reads theme-color:
    it tints the status bar from a fixed element touching the top edge, and
    otherwise from the page background - which is how the dashboard's green
-   header came to sit under a white bar. At least a pixel tall, so there is
-   always something for Safari to take the colour from. */
+   header came to sit under a white bar. Safari only counts a fixed element
+   that is full width and at least 6px tall, so a hairline is ignored; 8px
+   clears that with room to spare. At the top of the page it sits on the
+   header in the same colour, and scrolled it reads as the status bar's
+   own edge. */
 .notch-fill {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: max(1px, env(safe-area-inset-top, 0px));
+  height: max(8px, env(safe-area-inset-top, 0px));
   z-index: 45;
   pointer-events: none;
 }
