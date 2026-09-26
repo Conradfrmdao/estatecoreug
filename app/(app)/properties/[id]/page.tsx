@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import PropertySummaryCards from '@/components/PropertySummaryCards'
 import PageHeader from '@/components/shell/PageHeader'
 import BackLink from '@/components/ui/BackLink'
+import PdfDownload from '@/components/ui/PdfDownload'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getPropertySummaryData } from '@/lib/data'
 import { currency, currentPaymentMonth, formatDate, monthLabel } from '@/lib/format'
@@ -81,14 +82,13 @@ export default async function PropertySummaryPage({
               </label>
               <button type="submit" className="btn btn-sm btn-ink">View</button>
             </Form>
-            <a
+            <PdfDownload
               href={`/api/reports/property-detail?month=${month}&propertyId=${data.property.id}`}
-              download
               className="btn btn-lg btn-hi max-lg:flex-1"
             >
               <Download aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
               Download Report
-            </a>
+            </PdfDownload>
             <Link href={`/properties/${data.property.id}/edit`} className="btn btn-lg btn-outline max-lg:flex-1">
               <Pencil aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
               Edit

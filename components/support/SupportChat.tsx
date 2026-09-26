@@ -287,7 +287,7 @@ export function SupportChatTrigger({ variant }: { variant: TriggerVariant }) {
         onClick={openChat}
         aria-label={`Chat with admin${unreadLabel}`}
         title="Chat with admin"
-        className="relative flex h-11 w-11 items-center justify-center rounded-full text-forest-muted transition hover:bg-white/[0.08] hover:text-white"
+        className="rail-foot-button relative flex items-center justify-center rounded-full text-forest-muted transition hover:bg-white/[0.08] hover:text-white"
       >
         <Headphones aria-hidden="true" className="h-[22px] w-[22px]" strokeWidth={1.8} />
         <UnreadBadge count={unreadCount} className="absolute -right-1 -top-1" />
@@ -301,7 +301,7 @@ export function SupportChatTrigger({ variant }: { variant: TriggerVariant }) {
         type="button"
         onClick={openChat}
         aria-label={`Need help? Chat with admin${unreadLabel}`}
-        className="flex w-full items-center gap-3 rounded-[22px] bg-white/[0.08] p-3.5 text-left text-white transition hover:bg-white/[0.13]"
+        className="rail-help-card flex w-full items-center gap-3 rounded-[22px] bg-white/[0.08] p-3.5 text-left text-white transition hover:bg-white/[0.13]"
       >
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-hi text-ink">
           <Headphones aria-hidden="true" className="h-5 w-5" strokeWidth={1.9} />

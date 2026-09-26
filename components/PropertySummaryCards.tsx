@@ -2,6 +2,7 @@
 
 import CarryForwardNote from '@/components/CarryForwardNote'
 import Dialog from '@/components/ui/Dialog'
+import PdfDownload from '@/components/ui/PdfDownload'
 import { currency } from '@/lib/format'
 import {
   ArrowUpRight,
@@ -301,10 +302,10 @@ export default function PropertySummaryCards({
                   <td data-label="Amount" className="font-extrabold tabular-nums text-brand-text">{currency(receipt.amountPaid)}</td>
                   <td data-label="Receipt">
                     <div className="flex justify-end">
-                      <a href={`/api/receipts/${receipt.id}`} download className="btn btn-xs btn-mint">
+                      <PdfDownload href={`/api/receipts/${receipt.id}`} className="btn btn-xs btn-mint">
                         <Download aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
                         Download
-                      </a>
+                      </PdfDownload>
                     </div>
                   </td>
                 </tr>

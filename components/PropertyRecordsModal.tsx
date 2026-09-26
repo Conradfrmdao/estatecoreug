@@ -1,6 +1,7 @@
 'use client'
 
 import Dialog from '@/components/ui/Dialog'
+import PdfDownload from '@/components/ui/PdfDownload'
 import { Download, Eye, X } from 'lucide-react'
 import { useId, useRef, useState, type ReactNode } from 'react'
 
@@ -30,15 +31,14 @@ export default function PropertyRecordsModal({
           <Eye aria-hidden="true" className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
           <span className="truncate">{buttonLabel}</span>
         </button>
-        <a
+        <PdfDownload
           href={downloadHref}
-          download
           aria-label={`Download ${title} report`}
           title="Download property report"
           className="btn btn-outline btn-icon h-12 w-12 shrink-0"
         >
           <Download aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.9} />
-        </a>
+        </PdfDownload>
       </div>
 
       <Dialog
@@ -57,10 +57,10 @@ export default function PropertyRecordsModal({
             </h2>
             <p className="mt-0.5 line-clamp-2 text-[13px] font-medium text-muted">{description}</p>
           </div>
-          <a href={downloadHref} download className="btn btn-sm btn-hi shrink-0">
+          <PdfDownload href={downloadHref} className="btn btn-sm btn-hi shrink-0">
             <Download aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
             <span className="hidden min-[390px]:inline">Report</span>
-          </a>
+          </PdfDownload>
           <button
             ref={closeRef}
             type="button"

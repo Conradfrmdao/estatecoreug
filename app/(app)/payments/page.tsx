@@ -6,6 +6,7 @@ import TenantRentDemandList from '@/components/TenantRentDemandList'
 import PageHeader from '@/components/shell/PageHeader'
 import Avatar, { initialsOf, toneFor } from '@/components/ui/Avatar'
 import EmptyState from '@/components/ui/EmptyState'
+import PdfDownload from '@/components/ui/PdfDownload'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { listPaymentsForUser, listPropertiesForUser, listTenantPaymentTargets } from '@/lib/data'
 import { currency, dateKey, formatDate, monthLabel, monthShortLabel } from '@/lib/format'
@@ -308,10 +309,10 @@ export default async function PaymentsPage({
                             <td data-label="Method"><span className="badge badge-slate">{payment.paymentMethod.replace(/_/g, ' ')}</span></td>
                             <td data-label="Actions">
                               <div className="flex items-center justify-end gap-2">
-                                <a href={`/api/receipts/${payment.id}`} download className="btn btn-xs btn-mint">
+                                <PdfDownload href={`/api/receipts/${payment.id}`} className="btn btn-xs btn-mint">
                                   <Download aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
                                   Receipt
-                                </a>
+                                </PdfDownload>
                                 <Link href={`/payments/${payment.id}/edit`} className="btn btn-xs btn-outline">
                                   Edit
                                 </Link>

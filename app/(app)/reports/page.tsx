@@ -1,5 +1,6 @@
 import ReportScopeDownload from '@/components/ReportScopeDownload'
 import PageHeader from '@/components/shell/PageHeader'
+import PdfDownload from '@/components/ui/PdfDownload'
 import { requireCurrentAppUser } from '@/lib/auth'
 import { getDashboardData } from '@/lib/data'
 import { currency, currentPaymentMonth, monthLabel } from '@/lib/format'
@@ -294,15 +295,14 @@ export default async function ReportsPage({
                 <span>Collected {currency(singleProperty ? singleProperty.collected : snapshot.summary.collected)}</span>
                 <span>Net {currency(singleProperty ? singleProperty.net : snapshot.summary.net)}</span>
                 {singleProperty && (
-                  <a
+                  <PdfDownload
                     href={scopedReportUrl('property-detail', month, singleProperty.property.id, period)}
-                    download
                     aria-label={`Download the ${singleProperty.property.name} report`}
                     title="Download property report"
                     className="btn btn-mint btn-icon btn-sm"
                   >
                     <Download aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
-                  </a>
+                  </PdfDownload>
                 )}
               </span>
             </div>
@@ -410,14 +410,13 @@ export default async function ReportsPage({
                     </td>
                     <td data-label="Property Report">
                       <div className="flex justify-end">
-                        <a
+                        <PdfDownload
                           href={scopedReportUrl('property-detail', month, property.id, period)}
-                          download
                           className="btn btn-xs btn-mint"
                         >
                           <Download aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
                           Download
-                        </a>
+                        </PdfDownload>
                       </div>
                     </td>
                   </tr>

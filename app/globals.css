@@ -709,6 +709,121 @@
   bottom: calc(0.75rem + env(safe-area-inset-bottom));
 }
 
+/* The desktop rail. Its measures live here so they can step down with the
+   window's height: a laptop at 100% zoom is often only 600-730px tall, and at
+   the design's full size (88px header, 44px links on a 54px pitch, a 44px
+   margin above and below the list) the last links - Reports, Settings - fell
+   below the fold and could only be reached by scrolling a list with no
+   scrollbar. Each step keeps every link, the help card and the account in
+   view down to about a 570px-tall window. Rail.tsx places the active tab from
+   the same variables, so the highlight still lands on its link. */
+.rail {
+  --rail-head: 88px;
+  --rail-pad: 44px;
+  --rail-item: 44px;
+  --rail-gap: 10px;
+  --rail-foot-btn: 44px;
+  --rail-foot-gap: 12px;
+  --rail-foot-top: 12px;
+  --rail-foot-bottom: 24px;
+}
+
+.rail-foot-button {
+  width: var(--rail-foot-btn, 44px);
+  height: var(--rail-foot-btn, 44px);
+}
+
+.rail-list {
+  scrollbar-width: none;
+}
+.rail-list::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-height: 899px) {
+  .rail {
+    --rail-head: 76px;
+    --rail-pad: 24px;
+    --rail-item: 42px;
+    --rail-gap: 8px;
+    --rail-foot-btn: 42px;
+    --rail-foot-gap: 10px;
+    --rail-foot-top: 10px;
+    --rail-foot-bottom: 18px;
+  }
+}
+
+@media (max-height: 779px) {
+  .rail {
+    --rail-head: 66px;
+    --rail-pad: 12px;
+    --rail-item: 40px;
+    --rail-gap: 4px;
+    --rail-foot-btn: 40px;
+    --rail-foot-gap: 8px;
+    --rail-foot-top: 8px;
+    --rail-foot-bottom: 14px;
+  }
+  .rail-help-card {
+    padding: 10px;
+  }
+}
+
+@media (max-height: 671px) {
+  .rail {
+    --rail-head: 58px;
+    --rail-pad: 6px;
+    --rail-item: 36px;
+    --rail-gap: 2px;
+    --rail-foot-btn: 36px;
+    --rail-foot-gap: 6px;
+    --rail-foot-top: 6px;
+    --rail-foot-bottom: 10px;
+  }
+  .rail-help-card {
+    padding: 8px;
+  }
+}
+
+/* Shorter than anything the steps can fit: the list scrolls, and says so. */
+@media (max-height: 567px) {
+  .rail-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.3) transparent;
+  }
+  .rail-list::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+  }
+  .rail-list::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.3);
+  }
+}
+
+/* The green margin round the desktop frame, which gives up a little height
+   on a short screen too. It is set here rather than as lg:p-5 because
+   Tailwind writes its breakpoint classes after this file, where they would
+   win over the short-screen steps. .page-fill reads the same variable. */
+:root {
+  --frame-pad: 20px;
+}
+@media (max-height: 779px) {
+  :root {
+    --frame-pad: 16px;
+  }
+}
+@media (max-height: 671px) {
+  :root {
+    --frame-pad: 12px;
+  }
+}
+@media (min-width: 1024px) {
+  .app-frame {
+    padding: var(--frame-pad);
+  }
+}
+
 @media (max-width: 1023px) {
   .app-shell-main {
     padding-bottom: calc(7rem + env(safe-area-inset-bottom));
@@ -735,12 +850,12 @@
   }
 
   /* A page whose last card runs to the foot of the canvas, as the design
-     draws the Properties, Expenses, Calendar and Reports pages. 98px is the
-     frame's 20px margins plus the page's own top and bottom padding. */
+     draws the Properties, Expenses, Calendar and Reports pages: the window
+     less the frame's margins and the page's own 26px + 32px of padding. */
   .page-fill {
     display: flex;
     flex-direction: column;
-    min-height: calc(100dvh - 98px);
+    min-height: calc(100dvh - 58px - 2 * var(--frame-pad));
   }
 }
 
