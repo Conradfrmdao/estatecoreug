@@ -16,6 +16,9 @@ export type DeckFeature = {
   body: string
   image: StaticImageData
   alt: string
+  /* A photograph needs a dark gradient under its title. A picture of the app
+     already ends in solid green, and shading it only greys out the app. */
+  shade?: boolean
 }
 
 /* How long a card stays on top before the next is dealt, how long a card
@@ -406,10 +409,12 @@ export default function FeatureDeck({
                   draggable={false}
                   className="pointer-events-none object-cover"
                 />
-                <div
-                  aria-hidden="true"
-                  className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-night/85 via-night/40 to-transparent"
-                />
+                {feature.shade !== false && (
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-night/85 via-night/40 to-transparent"
+                  />
+                )}
                 <span className="absolute left-4 top-4 rounded-full bg-white/90 px-2.5 py-1 text-[12px] font-extrabold tabular-nums text-ink">
                   {String(index + 1).padStart(2, '0')}
                   <span className="font-bold text-muted"> / {String(count).padStart(2, '0')}</span>
