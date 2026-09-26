@@ -7,10 +7,15 @@ import Link from 'next/link'
 import { LogoMark } from '@/components/brand/Logo'
 import type { NavItem } from './nav'
 
-/* Rail geometry, from the design: items are 44px tall on a 54px pitch and the
-   first sits 132px from the top (88px header + 44px of headroom for the notch). */
-const PITCH = 54
-const LIST_PAD = 44
+/* Rail geometry comes from CSS variables on .rail (app/globals.css). On a
+   tall screen it is the design's: 44px items on a 54px pitch, the first 132px
+   from the top. On a shorter one every measure steps down, so all the links
+   fit at 100% zoom instead of the last ones scrolling out of sight. */
+const PITCH = 'calc(var(--rail-item) + var(--rail-gap))'
+
+function railTop(index: number, offset: string) {
+  return `calc(var(--rail-pad) + ${index} * ${PITCH} + ${offset})`
+}
 
 export default function Rail({
   id,
@@ -44,29 +49,34 @@ export default function Rail({
     <nav
       id={id}
       aria-label="Main menu"
-      className="relative flex h-full shrink-0 flex-col overflow-hidden bg-forest transition-[width] duration-[400ms] ease-rail"
+      className="rail relative flex h-full shrink-0 flex-col overflow-hidden bg-forest transition-[width] duration-[400ms] ease-rail"
       style={{ width }}
     >
-      <div className="relative h-[88px] shrink-0">
+      <div className="relative shrink-0" style={{ height: 'var(--rail-head)' }}>
         <Link
           href="/dashboard"
           aria-label="EstateCore UG home"
           onClick={() => onNavigate('/dashboard')}
-          className="absolute left-[18px] top-[18px] flex h-[52px] w-[52px] items-center justify-center rounded-2xl transition-[background-color,transform] duration-300 ease-out-soft hover:scale-[1.04] hover:bg-white/[0.06]"
+          className="absolute left-[18px] flex h-[52px] w-[52px] items-center justify-center rounded-2xl transition-[background-color,transform] duration-300 ease-out-soft hover:scale-[1.04] hover:bg-white/[0.06]"
+          style={{ top: 'calc((var(--rail-head) - 52px) / 2)' }}
         >
           <LogoMark tone="white" size={46} />
         </Link>
         <div
-          className="absolute left-[82px] top-[30px] flex flex-col gap-0.5 whitespace-nowrap transition-[opacity,visibility] duration-[250ms]"
-          style={{ opacity: expanded ? 1 : 0, visibility: expanded ? 'visible' : 'hidden' }}
+          className="absolute left-[82px] flex flex-col gap-0.5 whitespace-nowrap transition-[opacity,visibility] duration-[250ms]"
+          style={{
+            top: 'calc((var(--rail-head) - 40px) / 2)',
+            opacity: expanded ? 1 : 0,
+            visibility: expanded ? 'visible' : 'hidden'
+          }}
         >
           <span className="text-[16px] font-extrabold leading-[22px] tracking-[-0.01em] text-white">EstateCore UG</span>
           <span className="text-[11px] font-semibold leading-4 text-forest-muted">Property management</span>
         </div>
       </div>
 
-      <div className="no-scrollbar relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="relative" style={{ paddingTop: LIST_PAD, paddingBottom: LIST_PAD }}>
+      <div className="rail-list relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="relative" style={{ paddingTop: 'var(--rail-pad)', paddingBottom: 'var(--rail-pad)' }}>
           {/* Collapsed: the canvas bulges into the rail around the active icon. */}
           <svg
             aria-hidden="true"
@@ -75,7 +85,7 @@ export default function Rail({
             viewBox="0 0 63 128"
             className="pointer-events-none absolute right-0 transition-[top,opacity] duration-[550ms] ease-rail"
             style={{
-              top: LIST_PAD + index * PITCH - 42,
+              top: railTop(index, 'var(--rail-item) / 2 - 64px'),
               opacity: hasActive && !expanded ? 1 : 0,
               transitionDuration: '550ms, 250ms'
             }}
@@ -86,9 +96,10 @@ export default function Rail({
           {/* Expanded: a tab that runs from the item into the page. */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute left-4 right-0 h-12 transition-[top,opacity] ease-rail"
+            className="pointer-events-none absolute left-4 right-0 transition-[top,opacity] ease-rail"
             style={{
-              top: LIST_PAD + index * PITCH - 2,
+              top: railTop(index, '-2px'),
+              height: 'calc(var(--rail-item) + 4px)',
               opacity: hasActive && expanded ? 1 : 0,
               transitionDuration: '550ms, 250ms'
             }}
@@ -102,7 +113,7 @@ export default function Rail({
             </svg>
           </div>
 
-          <ul className="relative flex flex-col gap-2.5 pl-[22px]">
+          <ul className="relative flex flex-col pl-[22px]" style={{ gap: 'var(--rail-gap)' }}>
             {items.map((item, itemIndex) => {
               const active = itemIndex === activeIndex
               const Icon = item.icon
@@ -118,12 +129,12 @@ export default function Rail({
                       if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
                       onNavigate(item.href)
                     }}
-                    className={`flex h-11 items-center gap-4 overflow-hidden whitespace-nowrap rounded-full pl-[11px] text-[14px] leading-5 transition-[width,color,background-color] duration-[400ms] ease-rail ${
+                    className={`flex items-center gap-4 overflow-hidden whitespace-nowrap rounded-full pl-[11px] text-[14px] leading-5 transition-[width,color,background-color] duration-[400ms] ease-rail ${
                       active
                         ? 'font-bold text-ink'
                         : 'font-semibold text-forest-muted hover:bg-white/[0.07] hover:text-white'
                     }`}
-                    style={{ width: expanded ? 210 : 44 }}
+                    style={{ width: expanded ? 210 : 44, height: 'var(--rail-item)' }}
                   >
                     <Icon aria-hidden="true" className="h-[22px] w-[22px] shrink-0" strokeWidth={1.8} />
                     <span
@@ -141,10 +152,13 @@ export default function Rail({
       </div>
 
       {/* Both footers share one cell and cross-fade, so the rail never reflows. */}
-      <div className="grid shrink-0 pb-6 pt-3 [grid-template-areas:'stack']">
+      <div
+        className="grid shrink-0 [grid-template-areas:'stack']"
+        style={{ paddingTop: 'var(--rail-foot-top)', paddingBottom: 'var(--rail-foot-bottom)' }}
+      >
         <div
-          className="flex w-[88px] flex-col items-center gap-3 self-end transition-[opacity,visibility] duration-[250ms] [grid-area:stack]"
-          style={{ opacity: expanded ? 0 : 1, visibility: expanded ? 'hidden' : 'visible' }}
+          className="flex w-[88px] flex-col items-center self-end transition-[opacity,visibility] duration-[250ms] [grid-area:stack]"
+          style={{ gap: 'var(--rail-foot-gap)', opacity: expanded ? 0 : 1, visibility: expanded ? 'hidden' : 'visible' }}
         >
           <SupportChatTrigger variant="rail-icon" />
           <button
@@ -152,7 +166,7 @@ export default function Rail({
             onClick={onOpenProfile}
             aria-label="Your profile"
             title={displayName}
-            className="h-11 w-11 rounded-full bg-white text-[14px] font-extrabold text-ink transition hover:scale-105"
+            className="rail-foot-button rounded-full bg-white text-[14px] font-extrabold text-ink transition hover:scale-105"
           >
             {initials}
           </button>
@@ -161,17 +175,18 @@ export default function Rail({
             onClick={onSignOut}
             aria-label="Log out"
             title="Log out"
-            className="flex h-11 w-11 items-center justify-center rounded-full text-forest-muted transition hover:bg-white/[0.08] hover:text-white"
+            className="rail-foot-button flex items-center justify-center rounded-full text-forest-muted transition hover:bg-white/[0.08] hover:text-white"
           >
             <LogOut aria-hidden="true" className="h-[22px] w-[22px]" strokeWidth={1.8} />
           </button>
         </div>
 
         <div
-          className="ml-[14px] flex w-[220px] flex-col gap-3 self-end transition-[opacity,visibility] duration-[250ms] [grid-area:stack]"
-          style={{ opacity: expanded ? 1 : 0, visibility: expanded ? 'visible' : 'hidden' }}
+          className="ml-[14px] flex w-[220px] flex-col self-end transition-[opacity,visibility] duration-[250ms] [grid-area:stack]"
+          style={{ gap: 'var(--rail-foot-gap)', opacity: expanded ? 1 : 0, visibility: expanded ? 'visible' : 'hidden' }}
         >
-          <div className="hidden [@media(min-height:860px)]:block">
+          {/* Only where there is room for it and every link as well. */}
+          <div className="hidden [@media(min-height:960px)]:block">
             <SidebarCollection />
           </div>
           <SupportChatTrigger variant="rail-card" />
@@ -180,7 +195,7 @@ export default function Rail({
               type="button"
               onClick={onOpenProfile}
               aria-label="Your profile"
-              className="h-11 w-11 shrink-0 rounded-full bg-white text-[14px] font-extrabold text-ink transition hover:scale-105"
+              className="rail-foot-button shrink-0 rounded-full bg-white text-[14px] font-extrabold text-ink transition hover:scale-105"
             >
               {initials}
             </button>
@@ -192,7 +207,7 @@ export default function Rail({
               type="button"
               onClick={onSignOut}
               aria-label="Log out"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-forest-muted transition hover:bg-white/[0.08] hover:text-white"
+              className="rail-foot-button flex shrink-0 items-center justify-center rounded-full text-forest-muted transition hover:bg-white/[0.08] hover:text-white"
             >
               <LogOut aria-hidden="true" className="h-[22px] w-[22px]" strokeWidth={1.8} />
             </button>

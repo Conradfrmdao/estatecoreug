@@ -6,6 +6,7 @@ import {
   type ScopedReportPeriod,
   type ScopedReportType
 } from '@/lib/report-scope'
+import PdfDownload from '@/components/ui/PdfDownload'
 import { useState } from 'react'
 
 type ReportProperty = {
@@ -63,15 +64,14 @@ export default function ReportScopeDownload({
       </div>
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
         {downloads.map((download) => (
-          <a
+          <PdfDownload
             key={download.type}
             href={scopedReportUrl(download.type, month, propertyId, period)}
-            download
             className="btn btn-mint h-auto min-h-14 min-w-0 whitespace-normal px-4 py-2 text-[13.5px] leading-[17px] sm:h-14 sm:whitespace-nowrap sm:py-0 sm:text-[14px]"
           >
             <Download aria-hidden="true" className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
             <span className="min-w-0 sm:truncate">{download.label}</span>
-          </a>
+          </PdfDownload>
         ))}
       </div>
     </section>

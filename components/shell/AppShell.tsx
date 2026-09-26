@@ -97,7 +97,7 @@ export default function AppShell({
   const railWidth = railExpanded ? RAIL_WIDTH.expanded : RAIL_WIDTH.collapsed
 
   const frame = (
-    <div className="h-screen h-dvh w-full max-lg:bg-canvas lg:app-backdrop lg:p-5">
+    <div className="app-frame h-screen h-dvh w-full max-lg:bg-canvas lg:app-backdrop">
       <a
         href="#main"
         className="sr-only z-[200] rounded-full bg-ink px-4 py-2 text-[13px] font-bold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
