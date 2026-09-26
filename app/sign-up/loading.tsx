@@ -1,3 +1,4 @@
+import { LogoFull } from '@/components/brand/Logo'
 import { Bone, SkeletonScreen } from '@/components/ui/Skeleton'
 
 /** The sign-up page's frame while Clerk's form loads. */
@@ -7,7 +8,7 @@ export default function Loading() {
       <SkeletonScreen label="Opening sign up" className="mx-auto w-full max-w-[26rem]">
         <Bone className="mb-5 h-10 w-24 rounded-full" />
         <div className="mb-5 flex flex-col items-center gap-2.5">
-          <span className="mb-1 h-12 w-12 rounded-full bg-hi" />
+          <LogoFull tone="forest" width={232} className="mb-3.5" />
           <Bone className="h-7 w-48 rounded-[10px]" />
           <Bone className="h-3.5 w-64" />
         </div>

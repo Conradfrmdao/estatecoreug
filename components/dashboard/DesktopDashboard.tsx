@@ -391,26 +391,28 @@ function RecentPayments({ view }: { view: DashboardView }) {
   )
 }
 
-function HouseGlyph({ occupied }: { occupied: boolean }) {
+/* One segment per unit - filled when someone lives there - so the share is
+   read at a glance. A big portfolio gets one proportional bar instead. */
+function UnitStrip({ occupied, total }: { occupied: number; total: number }) {
+  const label = `${occupied} of ${total} units occupied`
+  if (total > 24) {
+    return (
+      <div role="img" aria-label={label} className="h-2.5 overflow-hidden rounded-full bg-white/80">
+        <div className="bar-grow h-full rounded-full bg-forest" style={{ width: `${Math.round((occupied / total) * 100)}%` }} />
+      </div>
+    )
+  }
   return (
-    <svg width="26" height="22" viewBox="0 0 64 54" aria-hidden="true">
-      <path d="M7 25 32 5l25 20" fill="none" stroke="rgb(var(--c-forest))" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
-      {occupied ? (
-        <>
-          <rect x="13" y="22" width="38" height="31" rx="5" fill="rgb(var(--c-forest))" />
-          <rect x="19" y="29" width="11" height="10" rx="2.5" fill="rgb(var(--c-hi))" />
-          <rect x="35" y="33" width="10" height="20" rx="2.5" fill="rgb(var(--c-mint))" />
-        </>
-      ) : (
-        <rect x="15" y="24" width="34" height="27" rx="4" fill="none" stroke="rgb(var(--c-forest))" strokeWidth="4" strokeDasharray="6 5" />
-      )}
-    </svg>
+    <div role="img" aria-label={label} className="flex gap-1">
+      {Array.from({ length: total }, (_, index) => (
+        <span key={index} className={`h-2.5 min-w-0 flex-1 rounded-full ${index < occupied ? 'bg-forest' : 'bg-white/80'}`} />
+      ))}
+    </div>
   )
 }
 
 function OccupancyCard({ view }: { view: DashboardView }) {
   const { occupancy } = view
-  const glyphs = Math.min(occupancy.totalUnits, 6)
   const tiles: { label: string; value: number; href: string; icon: LucideIcon }[] = [
     { label: 'Properties', value: occupancy.properties, href: '/properties', icon: Building2 },
     { label: 'Units', value: occupancy.totalUnits, href: '/units', icon: Grid2x2 },
@@ -430,7 +432,7 @@ function OccupancyCard({ view }: { view: DashboardView }) {
         </h2>
       </div>
 
-      <div className="flex items-end justify-between gap-3">
+      <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-0.5">
           <span className="text-[44px] font-extrabold leading-[48px] tracking-[-0.03em] text-ink tabular-nums">
             {occupancy.percent}%
@@ -440,16 +442,7 @@ function OccupancyCard({ view }: { view: DashboardView }) {
             {occupancy.activeTenants > 0 ? ` · ${occupancy.activeTenants} tenant${occupancy.activeTenants === 1 ? '' : 's'}` : ''}
           </span>
         </div>
-        {glyphs > 0 && (
-          <div aria-hidden="true" className="flex items-center gap-1.5 pb-1">
-            {Array.from({ length: glyphs }, (_, index) => (
-              <HouseGlyph key={index} occupied={index < occupancy.occupied} />
-            ))}
-            {occupancy.totalUnits > glyphs && (
-              <span className="text-[12px] font-bold text-forest-ink">+{occupancy.totalUnits - glyphs}</span>
-            )}
-          </div>
-        )}
+        {occupancy.totalUnits > 0 && <UnitStrip occupied={occupancy.occupied} total={occupancy.totalUnits} />}
       </div>
 
       <div className="grid grid-cols-2 gap-2">

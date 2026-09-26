@@ -4,7 +4,7 @@ import SidebarCollection from '@/components/SidebarCollection'
 import { SupportChatTrigger } from '@/components/support/SupportChat'
 import { LogOut } from 'lucide-react'
 import Link from 'next/link'
-import HouseMark from './HouseMark'
+import { LogoMark } from '@/components/brand/Logo'
 import type { NavItem } from './nav'
 
 /* Rail geometry, from the design: items are 44px tall on a 54px pitch and the
@@ -52,9 +52,9 @@ export default function Rail({
           href="/dashboard"
           aria-label="EstateCore UG home"
           onClick={() => onNavigate('/dashboard')}
-          className="absolute left-5 top-[26px] flex h-12 w-12 items-center justify-center rounded-full bg-hi text-ink transition-transform duration-300 ease-out-soft hover:scale-105"
+          className="absolute left-[18px] top-[18px] flex h-[52px] w-[52px] items-center justify-center rounded-2xl transition-[background-color,transform] duration-300 ease-out-soft hover:scale-[1.04] hover:bg-white/[0.06]"
         >
-          <HouseMark size={26} />
+          <LogoMark tone="white" size={46} />
         </Link>
         <div
           className="absolute left-[82px] top-[30px] flex flex-col gap-0.5 whitespace-nowrap transition-[opacity,visibility] duration-[250ms]"

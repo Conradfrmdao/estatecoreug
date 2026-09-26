@@ -7,7 +7,7 @@ import { ChevronRight, MoreHorizontal } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import HouseMark from './HouseMark'
+import { LogoMark } from '@/components/brand/Logo'
 import MoreSheet from './MoreSheet'
 import NavigationProgress from './NavigationProgress'
 import Rail from './Rail'
@@ -22,9 +22,7 @@ function MobileTopBar() {
     <header className="sticky top-0 z-30 shrink-0 bg-canvas/90 px-4 pb-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] backdrop-blur-md lg:hidden">
       <div className="flex min-w-0 items-center justify-between gap-2">
         <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5" aria-label="EstateCore UG dashboard">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-hi text-ink">
-            <HouseMark />
-          </span>
+          <LogoMark tone="forest" size={40} />
           <span className="min-w-0 leading-tight">
             <span className="block truncate text-[15px] font-extrabold tracking-[-0.01em] text-ink">EstateCore UG</span>
             <span className="block truncate text-[11.5px] font-semibold text-muted">Property management</span>
@@ -45,7 +43,7 @@ function MobileTopBar() {
 export default function AppShell({
   children,
   user,
-  initialRailExpanded = false
+  initialRailExpanded = true
 }: {
   children: ReactNode
   user: ShellUser
@@ -99,7 +97,7 @@ export default function AppShell({
   const railWidth = railExpanded ? RAIL_WIDTH.expanded : RAIL_WIDTH.collapsed
 
   const frame = (
-    <div className="h-screen h-dvh w-full bg-canvas lg:bg-ground lg:p-5">
+    <div className="h-screen h-dvh w-full max-lg:bg-canvas lg:app-backdrop lg:p-5">
       <a
         href="#main"
         className="sr-only z-[200] rounded-full bg-ink px-4 py-2 text-[13px] font-bold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
@@ -108,7 +106,7 @@ export default function AppShell({
       </a>
 
       <div
-        className="relative flex h-full w-full overflow-hidden bg-canvas lg:rounded-[36px]"
+        className="relative flex h-full w-full overflow-hidden bg-canvas lg:rounded-[36px] lg:shadow-[0_34px_80px_-34px_rgba(4,30,18,0.65)] lg:ring-1 lg:ring-white/[0.06]"
         style={{ '--rail-w': `${railWidth}px` } as React.CSSProperties}
       >
         <div className="hidden h-full lg:flex">
@@ -137,7 +135,7 @@ export default function AppShell({
             id="main"
             tabIndex={-1}
             className={`app-shell-main relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden outline-none ${
-              immersive ? 'is-flush' : ''
+              immersive ? 'is-flush dashboard-scroller' : ''
             }`}
           >
             <div

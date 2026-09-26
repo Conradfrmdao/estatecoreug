@@ -26,7 +26,7 @@ const moreLinks: MoreLink[] = [
   { href: '/units', label: 'Units', detail: 'Inside your properties', icon: Grid2x2 },
   { href: '/expenses', label: 'Expenses', detail: 'Repairs, utilities, upkeep', icon: ReceiptText },
   { href: '/calendar', label: 'Calendar', detail: 'Rent days and reminders', icon: CalendarDays },
-  { href: '/reports', label: 'Reports', detail: 'Download PDF or CSV', icon: ChartColumn }
+  { href: '/reports', label: 'Reports', detail: 'Download PDF reports', icon: ChartColumn }
 ]
 
 function SheetTile({ href, label, detail, icon: Icon, onNavigate }: MoreLink & { onNavigate: () => void }) {
