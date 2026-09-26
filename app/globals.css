@@ -794,6 +794,27 @@
   }
 }
 
+/* The landing photograph fades into the page instead of sitting in a box:
+   out through the bottom on a phone, and out through the left, towards the
+   headline, on a wide screen. */
+.hero-photo {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 38%, rgb(0 0 0 / 0.55) 58%, rgb(0 0 0 / 0.14) 76%, transparent 90%);
+  mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 38%, rgb(0 0 0 / 0.55) 58%, rgb(0 0 0 / 0.14) 76%, transparent 90%);
+}
+
+@media (min-width: 1024px) {
+  .hero-photo {
+    -webkit-mask-image:
+      linear-gradient(to right, transparent, rgb(0 0 0 / 0.08) 10%, rgb(0 0 0 / 0.32) 22%, rgb(0 0 0 / 0.7) 36%, #000 50%),
+      linear-gradient(to bottom, transparent, #000 12%, #000 60%, rgb(0 0 0 / 0.4) 82%, transparent);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to right, transparent, rgb(0 0 0 / 0.08) 10%, rgb(0 0 0 / 0.32) 22%, rgb(0 0 0 / 0.7) 36%, #000 50%),
+      linear-gradient(to bottom, transparent, #000 12%, #000 60%, rgb(0 0 0 / 0.4) 82%, transparent);
+    mask-composite: intersect;
+  }
+}
+
 /* ══════════════════════════════════════════════════════════════════
    Motion — one vocabulary: things rise in, dialogs scale in, sheets
    slide up, skeletons shimmer. All of it stops for reduced motion.
@@ -947,6 +968,38 @@
 
 .ring-draw {
   animation: ring-draw 0.9s var(--ease-out-soft) forwards;
+}
+
+/* The landing photograph settles into place as the page opens. */
+@keyframes photo-in {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.photo-enter {
+  animation: photo-in 1.2s var(--ease-out-soft) backwards;
+}
+
+/* A feature card's turn on top of the deck, as a bar filling up. The
+   duration is the deck's, set inline. */
+@keyframes deck-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.deck-progress {
+  transform-origin: left center;
+  animation: deck-progress linear forwards;
 }
 
 /* Dialogs and sheets */
