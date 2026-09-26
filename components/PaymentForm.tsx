@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { createPortal } from 'react-dom'
 import FormNotice from '@/components/FormNotice'
 import CarryForwardNote, { CarryForwardBreakdown } from '@/components/CarryForwardNote'
 import { currency, currentPaymentMonth, dateKey, formatDate, monthLabel } from '@/lib/format'
@@ -340,7 +341,7 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
         </button>
       </div>
 
-      {tenantPickerOpen && (
+      {tenantPickerOpen && typeof document !== 'undefined' && createPortal(
         <div className="overlay-enter fixed inset-0 z-50 flex items-end justify-center bg-ink/45 px-3 py-4 backdrop-blur-[2px] sm:items-center" role="dialog" aria-modal="true" aria-label="Choose tenant">
           <div className="dialog-enter max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-overlay">
             <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
@@ -483,7 +484,8 @@ function PaymentFormFields({ initialData }: PaymentFormProps) {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {selectedTenant ? (

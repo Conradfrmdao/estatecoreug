@@ -36,8 +36,10 @@ export default function PageHeader({
   const now = new Date()
 
   return (
+    /* Raised above the cards that follow, so the notifications popover and
+       anything else that drops out of the header opens over them. */
     <header
-      className={`flex flex-col gap-4 lg:min-h-16 lg:flex-row lg:items-center lg:justify-between lg:gap-6 ${className}`}
+      className={`relative z-30 flex flex-col gap-4 lg:min-h-16 lg:flex-row lg:items-center lg:justify-between lg:gap-6 ${className}`}
     >
       <div className={`flex min-w-0 flex-col ${eyebrow ? 'gap-0.5' : 'gap-1'}`}>
         {eyebrow && <span className="eyebrow">{eyebrow}</span>}
