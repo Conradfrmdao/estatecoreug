@@ -41,13 +41,15 @@ const features: DeckFeature[] = [
     title: 'Arrears that stay visible',
     body: 'Unpaid rent stays with the tenant from month to month until it is cleared, so a new month never hides an old balance.',
     image: arrearsImage,
-    alt: 'A wall of numbered letter boxes, one for each apartment'
+    alt: 'The Who owes rent list in EstateCore UG, with one tenant two months overdue and the unpaid month carried forward',
+    shade: false
   },
   {
     title: 'A receipt for every payment',
     body: 'Download a PDF receipt as soon as rent is recorded, ready to send to the tenant.',
     image: receiptsImage,
-    alt: 'A hand writing on a sheet of paper with a pen'
+    alt: 'A rent receipt made by EstateCore UG, showing the unit, the tenant and the amount paid',
+    shade: false
   },
   {
     title: 'A rent calendar',
